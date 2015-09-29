@@ -81,4 +81,30 @@ df_laplace_corr <-
 # se a amostra tem odor = n e spore-print-color = b, 
 # então tem 99% de chance de ser comestível (edible = e)
 
+# com dados de brest cancer (ivro de DS for business, pg 2351)
+#----------------------------------
+# carregando dados
+#----------------------------------
+df_wdbc <- read.csv("./data/wdbc.data.txt", header = FALSE)
+# carregando nomes dos dados
+df_nmwdbc <- read.csv("./data/wdbc.nomes.csv", header = FALSE)
+# transformando dataframe em vetor de nomes
+v_nmwdbc <- df_nmwdbc[['V1']]
+# função para retornar o dataframe com os nomes
+get.names<- function(x,y) {
+    names(x)<-y
+    x
+}
+# dataframe com os nomes das colunas
+df_wdbc <- get.names(df_wdbc,v_nmwdbc)
+# cria data.frame com uma coluna TRUE/FALSE para Setosa
+#newcol <- data.frame(isM=(df_wdbc$Diagnosis == 'M')) 
+# mescla esta coluna no dataframe 
+#df_wdbc <- cbind(df_wdbc, newcol)
+formula <- Diagnosis ~ .
+tree.2 <- rpart(formula,df_wdbc)			# A more reasonable tree
+prp(tree.2)                                     # A fast plot													
+fancyRpartPlot(tree.2)	
 
+# ver como posso fazer um gráfico de fitting controlando o número de nós
+# e pegando a acurácia para cada execução

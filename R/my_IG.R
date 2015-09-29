@@ -68,18 +68,24 @@ IG_numeric<-function(data, feature, target, bins=4) {
 }
 
 #returns IG for categorical variables.
-IG_cat<-function(data,feature,target){
+
+IG_cat<-function(data,feature,target) {
+    # geting column number from column name
+    feature_ncol <- match(feature,names(data))
+    target_ncol <- match(target,names(data))
     #Strip out rows where feature is NA
     data<-data[!is.na(data[,feature]),] 
     #use ddply to compute e and p for each value of the feature
-    dd_data<-ddply(data, feature, here(summarise), e=entropy(get(target)), N=length(get(target)))
+    #dd_data<-ddply(data, feature, here(summarise), e=entropy(get(target)), N=length(get(target)))
+    
     dd_data <-
         data %>%
-        group_by(feature) %>%
-        summarize(e=entropy(Species),
-                  N=length(Species),
-                  min=min(Sepal.Length),
-                  max=max(Sepal.Length)
+        group_by_(feature) %>%
+        summarize_(
+                  e=entropy(target),
+                  N=length(target)
+                  #min=min(feature),
+                  #max=max(feature)
         )
     
     # teste
@@ -95,4 +101,5 @@ IG_cat<-function(data,feature,target){
     return(IG)
 }
 
-# chamada para iris dataset
+# chamada para mushroom dataset
+# chamada ex: IG_cat(df_mush, "gill.color", "edible")

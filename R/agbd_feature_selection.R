@@ -8,7 +8,12 @@
 # neste exemplo, se tivessemos que escolher uma unica feature, seria ODOR
 # por apresentar o maior IG
 
-library(dplyr)
+require(dplyr)
+##############################################################
+#
+# FEATURE SELECTION PARA FEATURE CATEGÓRICA
+#
+##############################################################
 #----------------------------------
 # carregando dados
 #----------------------------------
@@ -40,14 +45,15 @@ df_mush <- get.names(df_mush,gsub("-",".",names(df_mush),))
 Ep <- f_entropy(df_mush[,1])
 
 # cálculo de information gain para feature
-#-----------------------------------------
+#----------------------------------------
 v_nfeat <- c("gill.color","spore.print.color","odor")
+
 IG <- vector()
-IG[1] <- f_ig("gill.color", "edible")
+IG[1] <- f_ig_cat(df_mush, "gill.color", "edible")
 # cálculo de information gain para feature: spore.print.color
-IG[2] <- f_ig("spore.print.color", "edible")
+IG[2] <- f_ig_cat(df_mush, "spore.print.color", "edible")
 # cálculo de information gain para feature: odor
-IG[3] <- f_ig("odor", "edible")
+IG[3] <- f_ig_cat(df_mush, "odor", "edible")
 # plota IG
 df_ig <- data.frame(v_nfeat,IG)
 # using ggplot
@@ -58,3 +64,23 @@ ggplot(data=df_ig,
              fill="#DD8888", 
              width=.8) +
     ggtitle("Information Gain for 3 features")
+
+##############################################################
+#
+# FEATURE SELECTION PARA FEATURE NUMÉRICA (iris dataset)
+#
+##############################################################
+# chama função que calcula IG (bins = 4 por default)
+IG <- vector()
+# cálculo de information gain para feature: Sepal.Length
+IG[1] <- f_ig_num(iris, "Sepal.Length", "Species")
+# cálculo de information gain para feature: Sepal.Width
+IG[2] <- f_ig_num(iris, "Sepal.Width", "Species")
+# cálculo de information gain para feature: Petal.Length
+IG[3] <- f_ig_num(iris, "Petall.Length", "Species")
+# cálculo de information gain para feature: Petal.Width
+IG[4] <- f_ig_num(iris, "Petal.Width", "Species")
+# plota IG
+df_ig <- data.frame(v_nfeat,IG)
+# using ggplot
+IG

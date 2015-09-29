@@ -1,18 +1,18 @@
 #' function: f_ig
 #' 
-f_ig <- function(feature, target) {
+f_ig_cat <- function(i_df,feature, target) {
     df_1 <-
-        df_mush %>%
+        i_df %>%
         group_by_(feature) %>%
         summarize(ct = n()) %>%
         arrange_(feature)
     
     # sumarize by gill-color and edible
     df_feature <-
-        df_mush %>%
+        i_df %>%
         group_by_(feature, target) %>%
         summarize(ct = n()) %>%
-        mutate(ttreg = nrow(df_mush)) %>%
+        mutate(ttreg = nrow(i_df)) %>%
         arrange_(feature)
     
     # merge both to prepare for calculating entropy
