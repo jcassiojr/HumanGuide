@@ -72,13 +72,16 @@ logisticModel <- glm(formula, data=wdbctrain, family='binomial')
 # Predict the probability for model
 prob <- predict(logisticModel, newdata=wdbctest, type= 'response')
 
-#result <- confusionMatrix(predictions, iris$Species)
+
+
+
+
 
 round(prob, 3)
 # medindo a matriz de confusão (mostra boa performance pois a previsão a partir dos dados
 # de teste está muito boa em relação aos dados reais presentes nos testes)
 # mas como usar para prever uma instância??? 
-tb_result <- table(round(prob),wdbctest$isM)
+tb_result <- table(round(prob),wdbctrain$isM)
 # transforming into probability matrix
 tb_result_p <- tb_result/sum(tb_result)
 # adding cost/benefit (apenas exemplo, deve ser criada de acordo com experts de negócio)
@@ -127,4 +130,33 @@ Ep_prior <- Pr_P * (tb_expect_val[1,1]* tp_rate + tb_expect_val[2,1]* fn_rate) +
 # quer dizer que se aplicamos o modelo em população de candidatos e contratamos
 # aqueles que classificamos como não gerando turnover, temos uma redução de custo média de
 # $ 268.56 por funcionário contratado
-        
+
+
+
+#+++++++++++++++++++++++++++++++++++++++++++++++++++
+# outras medidas de avaliação de métricas (Sensitivity e Specificity)
+#+++++++++++++++++++++++++++++++++++++++++++++++++++
+#----------------------------------
+# carregando dados
+#----------------------------------
+df_wdbc <- read.csv("./data/wdbc.data.txt", header = FALSE)
+# carregando nomes dos dados
+df_nmwdbc <- read.csv("./data/wdbc.nomes.csv", header = FALSE)
+# transformando dataframe em vetor de nomes
+v_nmwdbc <- df_nmwdbc[['V1']]
+# função para retornar o dataframe com os nomes
+get.names<- function(x,y) {
+    names(x)<-y
+    x
+}
+# dataframe com os nomes das colunas
+df_wdbc <- get.names(df_wdbc,v_nmwdbc)
+df_wdbc <- df_wdbc[,-c(1)]
+train_control <- trainControl(method="cv", number=10)
+m <- train(Diagnosis~., data=df_wdbc, trControl=train_control, method="nb")
+x <- predict(m, df_wdbc[,-1])
+
+r <- confusionMatrix(x, df_wdbc$Diagnosis)
+
+
+#+++++++++++++++++++++++++++++++++++++++++++++++++++
