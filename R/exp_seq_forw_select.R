@@ -7,7 +7,6 @@
 # cria data.frame com uma coluna numerica para Species
 library(dplyr)
 df_iristrain <-
-    #x <-
     iris %>%
     mutate(newcol = ifelse(Species == 'setosa',1,
                            ifelse(Species == 'virginica',2,
@@ -27,6 +26,8 @@ model2 <- glm(newcol ~ Petal.Length + Petal.Width + Sepal.Length, data=df_iristr
 model3 <- glm(newcol ~ Petal.Length + Petal.Width, data=df_iristrain)
 model4 <- glm(newcol ~ Petal.Length, data=df_iristrain)
 AIC(model1,model2,model3,model4)
+# plot de ROC de cada model
+
 # or forward
 step(glm(newcol ~ 1, data=df_iristrain), direction = "forward", scope = ~ Petal.Length + Petal.Width + Sepal.Length + Sepal.Width)
 # or both

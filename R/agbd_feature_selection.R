@@ -8,7 +8,9 @@
 # neste exemplo, se tivessemos que escolher uma unica feature, seria ODOR
 # por apresentar o maior IG
 
-require(dplyr)
+source("./R/f_ig_num.R")
+source("./R/f_ig_cat.R")
+source("./R/f_entropy.R")
 ##############################################################
 #
 # FEATURE SELECTION PARA FEATURE CATEGÓRICA

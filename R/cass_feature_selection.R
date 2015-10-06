@@ -9,6 +9,7 @@
 # por apresentar o maior IG
 
 library(dplyr)
+source("./R/f_entropy.R")
 #----------------------------------
 # carregando dados
 #----------------------------------

@@ -1,10 +1,15 @@
 #' function: f_ig
-#' 
+#' cuidado: se library "plyr" estiver carregada além da "dplyr"
+#' gera msg: Error in n() : This function should not be called directly
+#' solução: unload da library "plyr"
+
+require(plyr, warn.conflicts = TRUE)
+require(dplyr, warn.conflicts = TRUE)
 f_ig_cat <- function(i_df,feature, target) {
     df_1 <-
         i_df %>%
         group_by_(feature) %>%
-        summarize(ct = n()) %>%
+        summarise(ct = n()) %>%
         arrange_(feature)
     
     # sumarize by gill-color and edible

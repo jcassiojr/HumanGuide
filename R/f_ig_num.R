@@ -1,7 +1,7 @@
 #' function: f_ig_num
 #' para tratar feature numérica
 #'
-require(plyr)
+require(plyr, warn.conflicts = TRUE)
 require(dplyr)
 require(ggplot2)
 f_ig_num <- function(i_df,feature, target, bins = 4) {
@@ -33,8 +33,8 @@ f_ig_num <- function(i_df,feature, target, bins = 4) {
     #              max=max(Sepal.Length)
     #   )
     
-    # sumariza pela coluna cat para os cáclulos abaixo
-    dd_data<-ddply(i_df, "cat", here(summarise), 
+    # sumariza pela coluna cat para os cálculos abaixo
+    dd_data<-ddply(i_df, "cat", here(summarise),
                    e=f_entropy(get(target)), 
                    N=length(get(target)),
                    min=min(get(feature)),
@@ -62,3 +62,7 @@ f_ig_num <- function(i_df,feature, target, bins = 4) {
     
     return(IG)
 }
+#library(FSelector)
+#data(iris)
+#result <- cfs(Species ~ ., iris)
+#f <- as.simple.formula(result, "Species")
