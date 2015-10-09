@@ -62,7 +62,4 @@ f_ig_num <- function(i_df,feature, target, bins = 4) {
     
     return(IG)
 }
-#library(FSelector)
-#data(iris)
-#result <- cfs(Species ~ ., iris)
-#f <- as.simple.formula(result, "Species")
+
