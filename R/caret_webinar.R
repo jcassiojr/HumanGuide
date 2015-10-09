@@ -189,6 +189,11 @@ knnTune <- train (churn ~ .,
                   metric = "ROC",
                   trControl = ctrl)
 knnPred <- predict(knnTune,churnTest)
+#--------
+allModels <- list(knn = knnTune)
+extractPrediction(allModels, 
+                  unkX = churnTest[1:10, -20])
+#--------
 str(knnPred)
 knnProbs <- predict(knnTune,churnTest, type = "prob") # idem
 str(knnProbs)

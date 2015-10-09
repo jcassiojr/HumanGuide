@@ -446,13 +446,36 @@ print (logit_cf$overall) # acuracy as a numeric vector
 
 # usando exemplo do knn
 # K NEIGHBORS MODEL
-#set.seed(1)
-#knnTune <- train (churn ~ .,
-#                  data = churnTrain,
-#                  method = "knn",
-#                  metric = "ROC",
-#                  trControl = ctrl)
-#knnPred <- predict(knnTune,churnTest)
+set.seed(1)
+knnTune <- train (churn ~ .,
+                  data = churnTrain,
+                  method = "knn",
+                  #metric = "ROC",
+                  trControl = trainControl(method = "cv"))
+#oneModel <- list(knn = knnTune)
+#extractPrediction(oneModel, unkX = churnTest[1:10, -20])
+# extractgPredictions dando erros !!???
+# portanto vou usar predict para prever sample
+knnProbs <- predict(knnTune,churnTest[1:10,], type = "prob")
+print (knnProbs)
+
+# knnPred tem a previsão pelo modelo das 10 primeiras ocorrências do arquivo
+knnPred <- predict(knnTune,newdata = churnTest[1:10,-20]) 
+print(knnPred) # imprime previsões do modelo para os 10 primeiros dados da amostra
+print(churnTest$churn[1:10]) # imprime os 10 primeiros targets reais da amostra
+table(knnPred,churnTest$churn[1:10]) # tabela de confusão dos 10 primeiros dados
+confusionMatrix(knnPred,churnTest$churn[1:10])$table # idem por caret
+# predict NÃO USA O TARGET VARIABLE PARA OBTER A PREVISÃO DA CLASSE OU
+# PROBABILIDADE!!!!!
+# 
+# PORTANTO, PASSANDO UM VETOR DE DADOS SEM TARGET CONHECIDO,
+# OBTEMOS SUAS PROBABILIDADES OU A CLASSE SE FOR BINÁRIO!!!!
+
+
+
+
+#extractPrediction(oneModel, churnTest[,7:8])
+#predict(knnTune, churnTest)
 #str(knnPred)
 #knnProbs <- predict(knnTune,churnTest, type = "prob") # idem
 #str(knnProbs)
@@ -461,11 +484,11 @@ print (logit_cf$overall) # acuracy as a numeric vector
 #print (cf$byClass) # estatístics as a matrix
 #print (cf$overall) # acuracy as a numeric vector#
 
-#knnFit <- train(Species ~ ., data = iris, method = "knn", 
-#                trControl = trainControl(method = "cv"))
+knnFit <- train(Species ~ ., data = iris, method = "knn", 
+                trControl = trainControl(method = "cv"))
 
-#rdaFit <- train(Species ~ ., data = iris, method = "rda", 
-#                trControl = trainControl(method = "cv"))
+rdaFit <- train(Species ~ ., data = iris, method = "rda", 
+                trControl = trainControl(method = "cv"))
 
 # 1. colocar os modelos obtido com caret.trans em uma lista com list()
 # 2. aplicar extractPrediction usando a sample com targert desconhecido:
@@ -480,13 +503,13 @@ print (logit_cf$overall) # acuracy as a numeric vector
 #                   knn = knnTune,
 #                   gbm = gbmTune,
 #                   svm = svmTune)
-allModels <- list(knn = knnTune)
-l_knnFit <- list(knn = knnFit)
+allModels <- list(knn = knnFit, rda = rdaFit)
+#l_knnFit <- list(knn = knnFit)
 #predict(bothModels)
 #predict (allModels)
-#extractPrediction(bothModels, unkX = iris[1:10, -5])
+extractPrediction(allModels, unkX = iris[1:10, -5])
 #zp <- extractPrediction(l_knnFit, unkX = iris[45:60, -5])
-extractPrediction(allModels, unkX = churnTest[, -20])
+#extractPrediction(allModels, unkX = churnTest[, -20])
 #zp <- extractPrediction(l_knnFit, unkX = iris[, -5])
 #extractProb(bothModels, unkX = iris[1:10, -5])
 #extractProb(bothModels, unkX = iris[1:10, -5])
