@@ -2,7 +2,7 @@
 # Roadmap de Análise Human Guide
 #---------------------------------------
 
-# ESTABELECER CLARAMENTO O PROBLEMA DE NEGÓCIO A SOLUCIONAR
+# ESTABELECER CLARAMENTE O PROBLEMA DE NEGÓCIO A SOLUCIONAR
 #----------------------------------------------------------
 # PROBLEMA:
 # ABORDAGEM:
@@ -62,6 +62,26 @@ clusplot(mydata, fit$cluster, color=TRUE, shade=TRUE,
 # Centroid Plot against 1st 2 discriminant functions
 library(fpc)
 plotcluster(mydata, fit$cluster)
+# another example
+library(fpc)
+set.seed(121)
+sampleiris <- iris[sample(1:150, 40),] # get samples from iris dataset
+# eps is radius of neighborhood, MinPts is no of neighbors within eps
+cluster <- dbscan(sampleiris[,-5], eps=0.6, MinPts=4)
+# black points are outliers, triangles are core points and circles are boundary points
+plot(cluster, sampleiris)
+
+# Self-organizing map (SOM), also known as Kohonen network, is an artificial 
+# neural network algorithm in the unsupervised learning area. 
+library(kohonen) 
+set.seed(101)
+train.obs <- sample(nrow(iris), 50) # get the training set observations
+train.set <- scale(iris[train.obs,][,-5]) # check info about scaling data below
+test.set  <- scale(iris[-train.obs, ][-5],
+                   center = attr(train.set, "scaled:center"),
+                   scale  = attr(train.set, "scaled:scale"))
+som.iris <- som(train.set, grid = somgrid(5, 5, "hexagonal"))
+plot(som.iris)
 
 # IDENTIFICAR ATRIBUTOS COM MAIOR INFORMATION GAIN
 #-------------------------------------------------
@@ -234,7 +254,34 @@ predictors(results)
 # plot the results
 plot(results, type=c("g", "o"))
 
+# PREPROCESSANDO PARA NORMALIZAR DADOS (Z-SCALE)
+#-----------------------------------------------------
+# MELHOR ABORDAGEM É USAR PARAMETRO DE PREDICT PARA ISSO
+# ver webinar caret
+# ex.
+# svmTune <- train (churn ~ .,
+#data = churnTrain,
+#method = "svmRadial",
+# this pre processing will be applied to
+# these data and new samples too
+#preProc = c("center", "scale"),
+# tune of diferent values of cost
+#tuneLength = 10,
+#metric = "ROC",
+#trControl = ctrl)
 
+preObj <- preProcess(df, method=c("center", "scale"))
+
+# TRATANDO OVERFITING
+#----------------------------------------------------------
+# COMO TRATAR?
+# EM KNN, usar o número de vizinhos
+# EM TREES, limitar o número de nodes
+# em geral, usando um test set verificamos se ocorre overfitting
+# resampling o training set nos permite saber se a previsão é boa
+# sem udo do test set (insere variações no training set para simlar futuras
+# amostras)
+# portanto, usando train de caret já estamos lidando com isso
 
 
 
@@ -396,3 +443,52 @@ print (logit_cf$overall) # acuracy as a numeric vector
 # acrescentar aqui script para aplicar o modelo a dados reais que queremos
 # prever a classe
 # como fazer isso usando caret????
+
+# usando exemplo do knn
+# K NEIGHBORS MODEL
+#set.seed(1)
+#knnTune <- train (churn ~ .,
+#                  data = churnTrain,
+#                  method = "knn",
+#                  metric = "ROC",
+#                  trControl = ctrl)
+#knnPred <- predict(knnTune,churnTest)
+#str(knnPred)
+#knnProbs <- predict(knnTune,churnTest, type = "prob") # idem
+#str(knnProbs)
+#cf <- confusionMatrix(knnPred,churnTest$churn)
+#print (cf$table) # confusion matrix as a table
+#print (cf$byClass) # estatístics as a matrix
+#print (cf$overall) # acuracy as a numeric vector#
+
+#knnFit <- train(Species ~ ., data = iris, method = "knn", 
+#                trControl = trainControl(method = "cv"))
+
+#rdaFit <- train(Species ~ ., data = iris, method = "rda", 
+#                trControl = trainControl(method = "cv"))
+
+# 1. colocar os modelos obtido com caret.trans em uma lista com list()
+# 2. aplicar extractPrediction usando a sample com targert desconhecido:
+# zp <- extractPrediction(l_knnFit, unkX = iris[, -5])
+# usar table para ver confusion matrix do previsto x modelo
+
+
+#predict(fdaTune,churnTest)
+#predict(knnFit, type = "prob")
+
+#allModels <- list(fda = fdaTune,
+#                   knn = knnTune,
+#                   gbm = gbmTune,
+#                   svm = svmTune)
+allModels <- list(knn = knnTune)
+l_knnFit <- list(knn = knnFit)
+#predict(bothModels)
+#predict (allModels)
+#extractPrediction(bothModels, unkX = iris[1:10, -5])
+#zp <- extractPrediction(l_knnFit, unkX = iris[45:60, -5])
+extractPrediction(allModels, unkX = churnTest[, -20])
+#zp <- extractPrediction(l_knnFit, unkX = iris[, -5])
+#extractProb(bothModels, unkX = iris[1:10, -5])
+#extractProb(bothModels, unkX = iris[1:10, -5])
+#za <- iris[,5]
+#table(za,zp$pred)
