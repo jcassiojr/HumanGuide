@@ -66,7 +66,6 @@ cargo <- sample(x=c("as","an","au", "co", "ge", "cs", "di", "es",
                                            1.2/100,6.2/100))
 # features do teste HG sando os resultados da tese
 # 72 colunas com valores p (positivo), n (negativo) ou i (indiferente)
-#F1 <- sample(x=c("p","n", "i"), size=815, replace=TRUE, prob=rep(1/3, 3))
 f_11s <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(62.4/100, 17.7/100, 19.9/100))
 f_12e <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(52.2/100, 35.5/100, 12.4/100))
 f_13h <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(68.3/100, 15.1/100, 16.7/100))
@@ -151,169 +150,106 @@ df_hg <- data.frame(idade = idade, sexo = sexo, escolaridade = escolaridade, for
                     f_94d, f_95k, f_96s, f_97h, f_98hy)
 
 # Prepare Data - listwise deletion of missing (should I standardize variables?)
- 
-#data("filmData")
-#mydata <- filmData[,-4]
-#mydata <- na.omit(mydata) # listwise deletion of missing
-#mydata <- scale(mydata) # standardize variables
-#mydata <- filmData[,-4]
 df_hg <- na.omit(df_hg) # listwise deletion of missing
 
 
-# ANÁLISE EXPLORATÓRIA NOS DADOS HG
-#-------------------------------------------
+
+# IDENTIFICAR ATRIBUTOS COM MAIOR INFORMATION GAIN PARA FEATURE SELECTION
+#-------------------------------------------------
+# CÁLCULO MANUAL
+#--------------------
+# chamar aqui minha função de cálculo de information gain categórica
+Ep <- f_entropy(df_hg[,1])
+# cálculo de information gain para feature
+#----------------------------------------
+v_nfeat <- c("f_11s", "f_12e", "f_13h", "f_14k", "f_15p", "f_16hy", "f_17d", 
+             "f_18m", "f_21h", "f_22e", "f_23k", "f_24d", "f_25m", "f_26p",
+             "f_27s", "f_28hy", "f_31h", "f_32e", "f_33hy", "f_34k", "f_35s", 
+             "f_36p", "f_37d", "f_38m", "f_41hy", "f_42s", "f_43e", "f_44k", 
+             "f_45h", "f_46m", "f_47d", "f_48p", "f_51e", "f_52s", "f_53hy", 
+             "f_54k", "f_55d", "f_56h", "f_57p", "f_58m", "f_61m", "f_62s",
+             "f_63e", "f_64hy", "f_65k", "f_66p", "f_67d", "f_68h", "f_71m",
+             "f_72k", "f_73s", "f_74p", "f_75hy", "f_76h", "f_77e", "f_78d", 
+             "f_81p", "f_82h", "f_83e", "f_84s", "f_85m", "f_86k", "f_87hy", 
+             "f_88d", "f_91e", "f_92m", "f_93p", "f_94d", "f_95k", "f_96s", 
+             "f_97h", "f_98hy")
+IG <- vector()
+for (i in 1:length(v_nfeat) ) {
+    IG[i] <- f_ig_cat(df_hg, v_nfeat[i], "turnover")
+}
+
+# plota IG
+df_ig <- data.frame(v_nfeat,IG)
+# data.frame filtered: IG > 0.003 (for better viasualization)
+df_ig_fltr <- 
+    df_ig %>%
+    filter(IG > 0.003)
+# using ggplot
+library(ggplot2)
+ggplot(data=df_ig, 
+       aes(x = reorder(df_ig[,1], IG), y=IG)) +
+    geom_bar(stat="identity",color = "black",
+             fill="#DD8888", 
+             width=.8) +
+    ggtitle("Information Gain for 72 features")
+# using ggplot again for filtered data
+library(ggplot2)
+ggplot(data=df_ig_fltr, 
+       aes(x = reorder(df_ig_fltr[,1], IG), y=IG)) +
+    geom_bar(stat="identity",color = "black",
+             fill="#DD8888", 
+             width=.8) +
+    ggtitle("Information Gain for 72 features")
+
+# ou esta alternativa para selecionar as features via Information Gain
+#data(iris)
+#weights <- information.gain(Species~., iris)
+
+# CÁLCULO USANDO pacote FSelector
+#--------------------
+library(FSelector)
+weights <- information.gain(turnover~., df_hg)
+print(weights)
+# cria fórmula com os N features de maior information gain
+subset <- cutoff.k(weights, 3)
+f <- as.simple.formula(subset, "turnover")
+print(f)
+# cria fórmula com os N features information gain acima de 75 %
+subset <- cutoff.k.percent(weights, 0.75)
+f <- as.simple.formula(subset, "turnover")
+print(f)
+# esta é a melhor opção (para pegar os atributos que mais se diferenciam dos demais)
+subset <- cutoff.biggest.diff(weights)
+f <- as.simple.formula(subset, "turnover")
+print(f)
+
+# USANDO CARET
+#-------------------------
+
+# AQUI CRIAR DADOS DE TEST E TRAIN 
+#----------------------------------
+# OBS: PRIMEIRO DEVO SEPARAR EM DOIS DATASETS???: 1 só com a coluna TARGET e outro com demais features
+# VER SE É A MELHOR ABORDAGEM (é o que fqz em exp_predic_model_with_caret.R)
+# ou deixa no meso datasets TARGET + FEATURES???!!!
 
 #**********************************
 #******* PAREI AQUI ***************
 #**********************************
 #**********************************
-# hierarquical clustering
-x <- daisy(df_hg, metric = "euclidean", stand = FALSE)
-y <- agnes(x, metric = "manhattan", stand = TRUE)
-plot(y)
-
-# verificar se é a melhor abordagem para variáveis cagtegoricas!!!!
-# talvez já seja melhor partir para usar decision trees
-
-# Ward Hierarchical Clustering with Bootstrapped p values
-library(pvclust)
-fit <- pvclust(mydata, method.hclust="ward",
-               method.dist="euclidean")
-plot(fit) # dendogram with p values
-# add rectangles around groups highly supported by the data
-pvrect(fit, alpha=.95)
-
-# model based clustering
-# Model Based Clustering
-library(mclust)
-fit <- Mclust(mydata)
-plot(fit) # plot results 
-summary(fit) # display the best model
-
-# plot cluster solutions
-
-# K-Means Clustering with 5 clusters
-fit <- kmeans(mydata, 5)
-
-# Cluster Plot against 1st 2 principal components
-
-# vary parameters for most readable graph
-library(cluster) 
-clusplot(mydata, fit$cluster, color=TRUE, shade=TRUE, 
-         labels=2, lines=0)
-
-# Centroid Plot against 1st 2 discriminant functions
-library(fpc)
-plotcluster(mydata, fit$cluster)
-# another example
-library(fpc)
-set.seed(121)
-sampleiris <- iris[sample(1:150, 40),] # get samples from iris dataset
-# eps is radius of neighborhood, MinPts is no of neighbors within eps
-cluster <- dbscan(sampleiris[,-5], eps=0.6, MinPts=4)
-# black points are outliers, triangles are core points and circles are boundary points
-plot(cluster, sampleiris)
-
-# Self-organizing map (SOM), also known as Kohonen network, is an artificial 
-# neural network algorithm in the unsupervised learning area. 
-library(kohonen) 
-set.seed(101)
-train.obs <- sample(nrow(iris), 50) # get the training set observations
-train.set <- scale(iris[train.obs,][,-5]) # check info about scaling data below
-test.set  <- scale(iris[-train.obs, ][-5],
-                   center = attr(train.set, "scaled:center"),
-                   scale  = attr(train.set, "scaled:scale"))
-som.iris <- som(train.set, grid = somgrid(5, 5, "hexagonal"))
-plot(som.iris)
-
-# IDENTIFICAR ATRIBUTOS COM MAIOR INFORMATION GAIN
-#-------------------------------------------------
-
-data(iris)
-weights <- information.gain(Species~., iris)
-print(weights)
-subset <- cutoff.k(weights, 1)
-f <- as.simple.formula(subset, "Species")
-print(f)
-subset <- cutoff.k.percent(weights, 0.75)
-f <- as.simple.formula(subset, "Species")
-print(f)
-# esta é a melhor opção (para pegar os atributos que mais se diferenciam dos demais)
-subset <- cutoff.biggest.diff(weights)
-f <- as.simple.formula(subset, "Species")
-print(f)
-#print(f)
-#weights <- gain.ratio(Species~., iris)
-#print(weights)
-#subset <- cutoff.k(weights, 2)
-#f <- as.simple.formula(subset, "Species")
-#print(f)
-#weights <- symmetrical.uncertainty(Species~., iris)
-#print(weights)
-#subset <- cutoff.biggest.diff(weights)
-#f <- as.simple.formula(subset, "Species")
-#print(f)
-
-# outra possibilidade
-#library(mlbench)
-#data(HouseVotes84)
-# selecionafeature com mais information gain
-#weights <- chi.squared(Class~., HouseVotes84)
-#print(weights)
-# seleciona os 5 maiores
-#subset <- cutoff.k(weights, 5)
-# mota a fórmula com os 5 maiores
-#f <- as.simple.formula(subset, "Class")
-#print(f)
-
-#subset <- consistency(Class~., HouseVotes84)
-#f <- as.simple.formula(subset, "Class")
-#print(f)
-
-# AVALIANDO USANDO CROSS VALIDATION (MANUALMENTE)
-#---------------------------------------
-#library(rpart)
-#data(iris)
-#evaluator <- function(subset) {
-    #k-fold cross validation
-#    k <- 5
-    # gera vetor randômico para seleção dos dados
-#    splits <- runif(nrow(iris))
-    # obtém error rate para cada feature
-#    results = sapply(1:k, function(i) {
-#        test.idx <- (splits >= (i - 1) / k) & (splits < i / k)
-#        train.idx <- !test.idx
-#        test <- iris[test.idx, , drop=FALSE]
-#        train <- iris[train.idx, , drop=FALSE]
-#        tree <- rpart(as.simple.formula(subset, "Species"), train)
-#        error.rate = sum(test$Species != predict(tree, test, type="c")) / nrow(test)
-#        return(1 - error.rate)
-#    })
-#    print(subset)
-#    print(mean(results))
-#    return(mean(results))
-#}
-#subset <- exhaustive.search(names(iris)[-5], evaluator)
-#f <- as.simple.formula(subset, "Species")
-#print(f)
-
-# IDENTIFICAR ATRIBUTOS (ALTERNATIVA USANDO SFS e MEDINDO AIC)
-#-------------------------------------------------
-#library(dplyr)
-#df_iristrain <-
-#    iris %>%
-#    mutate(newcol = ifelse(Species == 'setosa',1,
-#                           ifelse(Species == 'virginica',2,
-#                                  ifelse(Species == 'versicolor',3,0))))
-
-#step(glm(newcol ~ Petal.Length + Petal.Width + Sepal.Length + Sepal.Width, data=df_iristrain), direction = "forward")
-# or
-#mod <- glm(newcol ~ Petal.Length + Petal.Width + Sepal.Length + Sepal.Width, data=df_iristrain)
-
-#AIC(mod)
 
 
-# começar o ROADMAP A PARTIR DAQUI!!!! USANDO CARET
+
+set.seed(1)
+# separa mantendo a mesma estratificação (prior class) dos originais!!
+# colocando p % dos dados no training dataset
+inTrain <- createDataPartition(turnover, p = 3/4, list = FALSE)
+trainDescr <- descr[inTrain,]
+testDescr  <- descr[-inTrain,]
+trainClass <- mutagen[inTrain]
+testClass  <- mutagen[-inTrain]
+
+
+
 
 
 # MODELING WITH THE TRAINING DATA AND CROSS VALIDATION
@@ -325,16 +261,16 @@ require(caret)
 # PREPARACAO DOS DADOS
 #----------------------------------------------------------
 # criando bases simuladas para training and testing (com 2 classes)
-set.seed(2969)
-imbal_train <- twoClassSim(10000, intercept = -20, linearVars = 20)
-imbal_test  <- twoClassSim(10000, intercept = -20, linearVars = 20)
-table(imbal_train$Class)
+#set.seed(2969)
+#imbal_train <- twoClassSim(10000, intercept = -20, linearVars = 20)
+#imbal_test  <- twoClassSim(10000, intercept = -20, linearVars = 20)
+#table(imbal_train$Class)
 
 # define training control (cross validation, 10 folds)
 #train_control <- trainControl(method="cv", number=10)
-train_control <- trainControl(method = "repeatedcv", number=10, repeats = 5,
-                     classProbs = TRUE,
-                     summaryFunction = twoClassSummary
+#train_control <- trainControl(method = "repeatedcv", number=10, repeats = 5,
+#                     classProbs = TRUE,
+#                     summaryFunction = twoClassSummary
                      )
 # usar names(getModelInfo()) para ver todas as possibilidades
 # ver doc completa em http://topepo.github.io/caret/bytag.html
