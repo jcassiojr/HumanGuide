@@ -148,6 +148,10 @@ prop.table(table(trainClass))
 # In cases where the outcome is numeric, the samples are split 
 # into quartiles and the sampling is done within each quartile.
 
+#-------------------------------------------------
+# REMOVENDO NEAR ZERO VARIANCE AND CORRELATIONS (FOR CORRELATION, NUMERIC FEATURES ONLY)
+#-------------------------------------------------
+
 # eliminando zero-variance predictors da amostra
 # There are many models where predictors with a single unique 
 # value (also known as “zero- variance predictors”) will 
@@ -207,8 +211,13 @@ ncol(trainDescr)
 require(caret)
 # load the iris dataset
 #data(iris)
+
+
+#----------------------------------------------------------
 # PREPARACAO DOS DADOS
 #----------------------------------------------------------
+
+
 # criando bases simuladas para training and testing (com 2 classes)
 #set.seed(2969)
 #imbal_train <- twoClassSim(10000, intercept = -20, linearVars = 20)
@@ -224,8 +233,12 @@ require(caret)
 # usar names(getModelInfo()) para ver todas as possibilidades
 # ver doc completa em http://topepo.github.io/caret/bytag.html
 
+
+#-------------------------------------------------
 # REMOVENDO ATRIBUTOS PARA MELHORAR PERFORMANCE DO MODELO
 #-------------------------------------------------
+
+
 # Data can contain attributes that are highly correlated with each other. 
 # Many methods perform better if highly correlated attributes are removed
 # Generally, you want to remove attributes with an absolute correlation 
@@ -255,7 +268,7 @@ control <- trainControl(method="repeatedcv", number=10, repeats=3)
 #model <- train(diabetes~., data=PimaIndiansDiabetes, method="lvq", preProcess="scale", trControl=control)
 lvq_model <- train(turnover~., data=trainHG, method="lvq", preProcess=c("scale","center"), trControl=control)
 # estimate variable importance
-importance <- varImp(model, scale=FALSE)
+importance <- varImp(lvq_model, scale=FALSE)
 # summarize importance
 print(importance)
 # plot importance
@@ -277,7 +290,7 @@ control <- rfeControl(functions=rfFuncs, method="cv", number=10)
 # run the RFE algorithm
 #results <- rfe(PimaIndiansDiabetes[,1:8], PimaIndiansDiabetes[,9], sizes=c(1:8), rfeControl=control)
 #results <- rfe(imbal_train[,1:25], imbal_train[,26], sizes=c(1:25), rfeControl=control)
-results <- rfe(trainHG[,2:80], trainHG[,1], sizes=c(1:25), rfeControl=control)
+results <- rfe(trainDescr, trainClass, sizes=c(1:25), rfeControl=control)
 # summarize the results
 print(results)
 # list the chosen features
@@ -287,7 +300,7 @@ plot(results, type=c("g", "o"))
 
 
 
-
+# SOMENTE COM AS 72 FEATURES NÃO FICOU BOM O PLOT. TENTAR COMENTE COM CADASTRAIS
 # PREPROCESSANDO PARA NORMALIZAR DADOS (Z-SCALE)
 #-----------------------------------------------------
 # MELHOR ABORDAGEM É USAR PARAMETRO DE PREDICT PARA ISSO
