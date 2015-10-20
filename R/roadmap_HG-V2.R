@@ -32,127 +32,8 @@
 # da amostra da tese
 
 # dados pessoais de 815 amostras
-set.seed(1)
-idade <- round(runif(815, 18, 60), digits = 0)
-sexo <- sample(x=c("m","f"), size=815, replace=TRUE, prob=c(51.3/100, 48.7/100))
-# superior completo, superior incompleto, posgraduacao completo,
-# posgraduação incompleto, ensino médio completo/incompleto
-escolaridade <- sample(x=c("sc","si","pc", "pi", "ec", "ei"), size=815,
-                       replace=TRUE, prob=c(470/815, 11.5/100, 133/815, 0.5/100, 11.7/100, 2.6/100))
-# humanas, exatas, biológicas, não informado
-formacao <- sample(x=c("h","e","b", NA), size=815,
-                   replace=TRUE, prob=c(46/100, 33/100, 6/100, 13.5/100))
-# área de atuação: navegação, TI, autopeças, juridico, saneamento público,
-# bancario, audiovisual, logística, educacional, saúde, químico, construcao civil, NA, outros
-segmento <- sample(x=c("nv","ti","ap","ju","sp","bn","av","lg","ed","sd","qu","cc", NA, "ou"), size=815,
-                   replace=TRUE, prob=c(27.5/100, 16.2/100, 3.7/100, 3.3/100, 2.8/100, 5.9/100, 4.6/100,
-                                        4.6/100, 3/100, 1.7/100, 2.2/100, 2.5/100, 7.9/100, 30.3/100))
-# procedência
-procedencia <- sample(x=c("sp.cap","sp.abc","sp.int", "sp.lit", "mg", "sc", "rg", "rj",
-                          "am", "ba", "ce", "df", "go", "pe", "pi", "pr"), size=815,
-                   replace=TRUE, prob=c(43.2/100, 9/100, 10.6/100, 4.2/100,
-                                        6.5/100, 2.3/100, 1.6/100, 1.2/100,
-                                        1/100, 0.2/100, 1/100, 0.2/100, 1/100, 0.2/100,
-                                        1/100,0.2/100))
-# cargos
-# assistente, analista, auxiliar, coordenador, gerente, consultor interno/externo
-# diretor, estagiários/trainees, advogado, psicólogo, engenheiro, técnico, vendedor
-# programador, planejador, NA
-cargo <- sample(x=c("as","an","au", "co", "ge", "cs", "di", "es",
-                          "ad", "ps", "en", "tc", "ve", "pr", "pl", NA), size=815,
-                      replace=TRUE, prob=c(17.1/100, 19.4/100, 6.7/100, 7.5/100,
-                                           6.3/100, 3.7/100, 2/100, 5.3/100,
-                                           2/100, 1.5/100, 2/100, 2.2/100, 1.2/100, 1.2/100,
-                                           1.2/100,6.2/100))
-# features do teste HG sando os resultados da tese
-# 72 colunas com valores p (positivo), n (negativo) ou i (indiferente)
-f_11s <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(62.4/100, 17.7/100, 19.9/100))
-f_12e <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(52.2/100, 35.5/100, 12.4/100))
-f_13h <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(68.3/100, 15.1/100, 16.7/100))
-f_14k <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(61.8/100, 28/100, 10.2/100))
-f_15p <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(43.5/100, 24.7/100, 31.6/100))
-f_16hy <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(33.9/100, 39.2/100, 26.9/100))
-f_17d <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(41.4/100, 23.7/100, 34.9/100))
-f_18m <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(34.4/100, 18.3/100, 47.3/100))
-f_21h <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(59.7/100, 32.3/100, 8.1/100))
-f_22e <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(70.4/100, 27.4/100, 2.2/100))
-f_23k <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(24.2/100, 15.1/100, 60.8/100))
-f_24d <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(12.9/100, 15.6/100, 71.5/100))
-f_25m <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(58.6/100, 38.2/100, 3.2/100))
-f_26p <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(79/100, 16.1/100, 4.8/100))
-f_27s <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(64/100, 26.9/100, 9.1/100))
-f_28hy <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(30.1/100, 28/100, 41.9/100))
-f_31h <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(51.1/100, 40.3/100, 8.6/100))
-f_32e <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(91.4/100, 7.5/100, 1.1/100))
-f_33hy <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(5.9/100, 7/100, 87.1/100))
-f_34k <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(76.3/100, 15.6/100, 8.1/100))
-f_35s <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(45.2/100, 32.3/100, 22.6/100))
-f_36p <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(62.4/100, 31.7/100, 5.9/100))
-f_37d <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(32.3/100, 31.7/100, 36/100))
-f_38m <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(37.6/100, 33.9/100, 28.5/100))
-f_41hy <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(54.3/100, 36/100, 9.7/100))
-f_42s <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(59.1/100, 17.2/100, 23.7/100))
-f_43e <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(72.6/100, 15.1/100, 12.4/100))
-f_44k <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(70.4/100, 18.3/100, 11.3/100))
-f_45h <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(40.3/100, 33.9/100, 25.8/100))
-f_46m <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(26.3/100, 28/100, 45.7/100))
-f_47d <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(52.7/100, 34.9/100, 12.4/100))
-f_48p <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(23.7/100, 17.7/100, 58.6/100))
-f_51e <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(57.8/100, 19.4/100, 4.8/100))
-f_52s <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(24.2/100, 23.7/100, 52.2/100))
-f_53hy <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(39.2/100, 31.2/100, 29.6/100))
-f_54k <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(47.8/100, 19.9/100, 32.3/100))
-f_55d <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(32.3/100, 20.4/100, 47.3/100))
-f_56h <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(51.1/100, 38.2/100, 10.8/100))
-f_57p <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(58.6/100, 31.2/100, 10.2/100))
-f_58m <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(71.5/100, 16.7/100, 11.8/100))
-f_61m <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(84.9/100, 11.3/100, 3.8/100))
-f_62s <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(36/100, 18.3/100, 45.7/100))
-f_63e <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(16.1/100, 19.9/100, 64/100))
-f_64hy <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(56.5/100, 19.9/100, 23.7/100))
-f_65k <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(65.5/100, 21.5/100, 12.9/100))
-f_66p <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(40.3/100, 43/100, 16.7/100))
-f_67d <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(38.7/100, 36.6/100, 24.7/100))
-f_68h <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(62.9/100, 29/100, 8.1/100))
-f_71m <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(21.5/100, 23.1/100, 55.4/100))
-f_72k <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(45.7/100, 40.9/100, 13.4/100))
-f_73s <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(70.4/100, 23.7/100, 5.9/100))
-f_74p <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(89.8/100, 10.2/100, 0/100))
-f_75hy <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(28/100, 25.3/100, 46.8/100))
-f_76h <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(51.6/100, 41.4/100, 7/100))
-f_77e <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(84.4/100, 13.4/100, 2.2/100))
-f_78d <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(8.6/100, 21.5/100, 69.9/100))
-f_81p <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(39.2/100, 33.3/100, 27.4/100))
-f_82h <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(72.6/100, 24.7/100, 2.7/100))
-f_83e <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(88.7/100, 9.1/100, 2.2/100))
-f_84s <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(57.5/100, 25.3/100, 17.2/100))
-f_85m <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(30.1/100, 29.9/100, 40.9/100))
-f_86k <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(61.8/100, 19.9/100, 18.3/100))
-f_87hy <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(14.5/100, 14.5/100, 71/100))
-f_88d <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(37.1/100, 43.5/100, 19.4/100))
-f_91e <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(94.1/100, 4.8/100, 1.1/100))
-f_92m <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(74.2/100, 22/100, 3.8/100))
-f_93p <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(58.6/100, 28/100, 13.4/100))
-f_94d <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(38.2/100, 34.9/100, 26.9/100))
-f_95k <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(44.6/100, 28/100, 27.4/100))
-f_96s <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(42.5/100, 23.1/100, 34.4/100))
-f_97h <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(33.3/100, 37.6/100, 29/100))
-f_98hy <- sample(x=c("p","i", "n"), size=815, replace=TRUE, prob=c(14.5/100, 21.5/100, 64/100))
-
-# criando o dataframe
-df_hg <- data.frame(idade = idade, sexo = sexo, escolaridade = escolaridade, formacao = formacao,
-                    segmento = segmento, procedencia = procedencia, cargo = cargo,
-                    f_11s, f_12e, f_13h, f_14k, f_15p, f_16hy, f_17d, f_18m, f_21h, f_22e, f_23k, f_24d, f_25m, f_26p,
-                    f_27s, f_28hy, f_31h, f_32e, f_33hy, f_34k, f_35s, f_36p, f_37d, f_38m, f_41hy, f_42s, f_43e,
-                    f_44k, f_45h, f_46m, f_47d, f_48p, f_51e, f_52s, f_53hy, f_54k, f_55d, f_56h, f_57p, f_58m,
-                    f_61m, f_62s, f_63e, f_64hy, f_65k, f_66p, f_67d, f_68h, f_71m, f_72k, f_73s, f_74p, f_75hy, f_76h,
-                    f_77e, f_78d, f_81p, f_82h, f_83e, f_84s, f_85m, f_86k, f_87hy, f_88d, f_91e, f_92m, f_93p,
-                    f_94d, f_95k, f_96s, f_97h, f_98hy)
-
-# Prepare Data - listwise deletion of missing (should I standardize variables?)
-df_hg <- na.omit(df_hg) # listwise deletion of missing
-
-
+# carrega dados simulados de Human Guide
+df_hg <- f_simula_dados_HG()
 
 # IDENTIFICAR ATRIBUTOS COM MAIOR INFORMATION GAIN PARA FEATURE SELECTION
 #-------------------------------------------------
@@ -231,23 +112,91 @@ print(f)
 # OBS: PRIMEIRO DEVO SEPARAR EM DOIS DATASETS???: 1 só com a coluna TARGET e outro com demais features
 # VER SE É A MELHOR ABORDAGEM (é o que fqz em exp_predic_model_with_caret.R)
 # ou deixa no meso datasets TARGET + FEATURES???!!!
+require(dplyr)
+# dataframe somente com coluna target variable
+#df_hg_tgv <-
+#    df_hg %>%
+#    select(turnover)
+# dataframe com colunas de features
+#df_hg_feat <-
+#    df_hg %>%
+#    select(-(turnover))
 
-#**********************************
-#******* PAREI AQUI ***************
-#**********************************
-#**********************************
-
+require(caret)
 
 
 set.seed(1)
 # separa mantendo a mesma estratificação (prior class) dos originais!!
 # colocando p % dos dados no training dataset
+# PRIMEIRA OPÇÃO: criando datasets separados pra target e features
+turnover <- df_hg[,1] # transformando em vetor de fatores
 inTrain <- createDataPartition(turnover, p = 3/4, list = FALSE)
-trainDescr <- descr[inTrain,]
-testDescr  <- descr[-inTrain,]
-trainClass <- mutagen[inTrain]
-testClass  <- mutagen[-inTrain]
+trainDescr <- df_hg[inTrain,]
+testDescr  <- df_hg[-inTrain,]
+trainClass <- turnover[inTrain]
+testClass  <- turnover[-inTrain]
 
+# SEGUNDA OPÇÃO: criando datasets com target e features
+trainHG <- df_hg[inTrain,]
+testHG  <- df_hg[-inTrain,]
+# Prepare Data - listwise deletion of missing (should I standardize variables?)
+#trainHG <- na.omit(trainHG) # listwise deletion of missing
+#testHG <- na.omit(testHG) # listwise deletion of missing
+# obtem a proporção de cada classe no outcome (target variable)
+prop.table(table(turnover))
+prop.table(table(trainClass))
+# In cases where the outcome is numeric, the samples are split 
+# into quartiles and the sampling is done within each quartile.
+
+# eliminando zero-variance predictors da amostra
+# There are many models where predictors with a single unique 
+# value (also known as “zero- variance predictors”) will 
+# cause the model to fail.
+# recomendação: descartar preditor se
+# 1. se percentagem de valores únicos menor que 20% E
+# 2. razão entre o mais frequente e o segundo mais frequente for maior que 20
+# nearZeroVar testa para estes dois casos!
+# saveMetrics = TRUE retorna dataframe com todas as informações
+#nearZeroVar(trainDescr, freqCut = 20, uniqueCut = 20)
+#trn_nzvar <- nearZeroVar(trainDescr, freqCut = 20, uniqueCut = 20, saveMetrics = TRUE)
+#tst_nzvar <- nearZeroVar(testDescr, freqCut = 20, uniqueCut = 20, saveMetrics = TRUE)
+trn_nzvar <- nearZeroVar(trainDescr, freqCut = 20, uniqueCut = 20)
+tst_nzvar <- nearZeroVar(testDescr, freqCut = 20, uniqueCut = 20)
+
+
+# --- ABAIXO SOMENTE PARA VARIÁVEIS NUMÉRICAS
+
+# Also, some models are susceptible to multicollinearity (i.e., 
+# high correlations between pre- dictors). Linear models, neural networks
+# and other models can have poor performance in these situations or may
+# generate unstable solutions. Other models, such as classification or
+# regression trees, might be resistant to highly correlated predictors, 
+# but multicollinearity may negatively a↵ect interpretability of the model.
+# If there is a need to minimize the e↵ect of multicollinearity, there a
+# re a few options. First, models that are resistant to large between-predictor
+# correlations, such as partial least squares, can be used. Also, principal
+# component analysis can be used to reduce the number of dimensions in a
+# way that removes correlations (see below). Alternatively, we can 
+# identify and remove predictors that contribute the most to the correlations.
+# In linear models, the traditional method for reducing multicollinearity
+# is to identify the of- fending predictors using the variable inflation 
+# factor (VIF). For each variable, this statistic measures the increase 
+# in the variation of the model parameter estimate in comparison to the 
+# optimal situation (i.e., an orthogonal design).
+# As an alternative, we can compute the correlation matrix of the predictors 
+# and use an al- gorithm to remove the a subset of the problematic predictors
+# such that all of the pairwise correlations are below a threshold
+
+# For illustration, predictors that result in absolute pairwise correlations 
+# greater than 0.90 can be removed using the findCorrelation function. 
+# This function returns an index of column numbers for removal.
+ncol(trainDescr)
+# obs. exemplo abaixo não achou nenhuma correlação, apesar de no texto achar!
+descrCorr <- cor(trainDescr)
+highCorr <- findCorrelation(descrCorr, 0.90)
+trainDescr <- trainDescr[, -highCorr]
+testDescr  <-  testDescr[, -highCorr]
+ncol(trainDescr)
 
 
 
@@ -271,7 +220,7 @@ require(caret)
 #train_control <- trainControl(method = "repeatedcv", number=10, repeats = 5,
 #                     classProbs = TRUE,
 #                     summaryFunction = twoClassSummary
-                     )
+#                     )
 # usar names(getModelInfo()) para ver todas as possibilidades
 # ver doc completa em http://topepo.github.io/caret/bytag.html
 
@@ -283,27 +232,28 @@ require(caret)
 # of 0.75 or higher.
 
 # load the library
-library(mlbench)
+#library(mlbench)
 # calculate correlation matrix
-correlationMatrix <- cor(imbal_train[,1:25])
+#correlationMatrix <- cor(imbal_train[,1:25])
 #correlationMatrix <- cor(PimaIndiansDiabetes[,1:8])
 # summarize the correlation matrix
-print(correlationMatrix)
+#print(correlationMatrix)
 # find attributes that are highly corrected (ideally >0.75)
-highlyCorrelated <- findCorrelation(correlationMatrix, cutoff=0.5)
+#highlyCorrelated <- findCorrelation(correlationMatrix, cutoff=0.5)
 # print indexes of highly correlated attributes
-print(highlyCorrelated)
+#print(highlyCorrelated)
 
 # ranking features by importance
 # The example below loads the Pima Indians Diabetes dataset and constructs an 
 # Learning Vector Quantization (LVQ) model. The varImp is then used to estimate
 # the variable importance, which is printed and plotted. 
+#
 
 # prepare training scheme
 control <- trainControl(method="repeatedcv", number=10, repeats=3)
 # train the model
 #model <- train(diabetes~., data=PimaIndiansDiabetes, method="lvq", preProcess="scale", trControl=control)
-model <- train(Class~., data=imbal_train, method="lvq", preProcess="scale", trControl=control)
+lvq_model <- train(turnover~., data=trainHG, method="lvq", preProcess=c("scale","center"), trControl=control)
 # estimate variable importance
 importance <- varImp(model, scale=FALSE)
 # summarize importance
@@ -320,18 +270,23 @@ plot(importance)
 # in this example, although in the plot showing the accuracy of the 
 # different attribute subset sizes, we can see that just 4 attributes 
 # gives almost comparable results.
-data(PimaIndiansDiabetes)
+#data(PimaIndiansDiabetes)
 # define the control using a random forest selection function
+#control <- rfeControl(functions=rfFuncs, method="cv", number=10)
 control <- rfeControl(functions=rfFuncs, method="cv", number=10)
 # run the RFE algorithm
 #results <- rfe(PimaIndiansDiabetes[,1:8], PimaIndiansDiabetes[,9], sizes=c(1:8), rfeControl=control)
-results <- rfe(imbal_train[,1:25], imbal_train[,26], sizes=c(1:25), rfeControl=control)
+#results <- rfe(imbal_train[,1:25], imbal_train[,26], sizes=c(1:25), rfeControl=control)
+results <- rfe(trainHG[,2:80], trainHG[,1], sizes=c(1:25), rfeControl=control)
 # summarize the results
 print(results)
 # list the chosen features
 predictors(results)
 # plot the results
 plot(results, type=c("g", "o"))
+
+
+
 
 # PREPROCESSANDO PARA NORMALIZAR DADOS (Z-SCALE)
 #-----------------------------------------------------
@@ -349,7 +304,7 @@ plot(results, type=c("g", "o"))
 #metric = "ROC",
 #trControl = ctrl)
 
-preObj <- preProcess(df, method=c("center", "scale"))
+#preObj <- preProcess(df, method=c("center", "scale"))
 
 # TRATANDO OVERFITING
 #----------------------------------------------------------
@@ -371,37 +326,51 @@ preObj <- preProcess(df, method=c("center", "scale"))
 
 # TREE BAG MODEL
 #---------------
-model <- train(Class~., data=imbal_train, 
+train_control <- trainControl(method = "repeatedcv", number=10, repeats = 5,
+                     classProbs = TRUE,
+                     summaryFunction = twoClassSummary
+                     )
+model <- train(turnover~., data=trainHG, 
                nbagg = 50,
                metric = "ROC",
+               preProcess=c("center", "scale"),
                trControl=train_control, method="treebag")
                 
 # make predictions
-predictions <- predict(model, imbal_train[, -ncol(imbal_train)])
+#predictions <- predict(model, imbal_train[, -ncol(imbal_train)])
+predictions <- predict(model, trainHG[, -1])
 #print(predictions)
 # summarize results
-tb_cf <- confusionMatrix(predictions, imbal_train$Class)
+#tb_cf <- confusionMatrix(predictions, imbal_train$Class)
+tb_cf <- confusionMatrix(predictions, trainHG$turnover)
 print (tb_cf$table) # confusion matrix as a table
 print (tb_cf$byClass) # estatístics as a matrix
 print (tb_cf$overall) # acuracy as a numeric vector
 
+
+
+
 # CONDITIONAL INFERENCE TREE MODEL
-ctree2_model <- train(Class~., data=imbal_train, 
+ctree2_model <- train(turnover~., data=trainHG, 
                     #nbagg = 50,
                     metric = "ROC",
                     trControl=train_control, method="ctree2")
 #lmt_model <- train(Class~., data=iris, trControl=train_control, method="lmt")
 # make predictions
-ctree2_predictions <- predict(ctree2_model, imbal_train[, -ncol(imbal_train)])
+#ctree2_predictions <- predict(ctree2_model, imbal_train[, -ncol(imbal_train)])
+ctree2_predictions <- predict(ctree2_model, trainHG[, -1])
 # summarize results
-ctree2_cf <- confusionMatrix(ctree2_predictions, imbal_train$Class)
+# ctree2_cf <- confusionMatrix(ctree2_predictions, imbal_train$Class)
+ctree2_cf <- confusionMatrix(ctree2_predictions, trainHG$turnover)
 print (ctree2_cf$table) # confusion matrix as a table
 print (ctree2_cf$byClass) # estatístics as a matrix
 print (ctree2_cf$overall) # acuracy as a numeric vector
 
 
+# ESTE MODELO PRECISA DE FEATURES NUMÉRICAS (NÃO FUNCIONA COM DADSO CATEGÓRICOS)
+
 # K NEIGHBORS MODEL
-knn_model <- train(Class~., data=imbal_train, 
+knn_model <- train(turnover~., data=trainHG, 
                k = 5,
                metric = "ROC",
                trControl=train_control, method="knn")
@@ -415,58 +384,71 @@ print (knn_cf$byClass) # estatístics as a matrix
 print (knn_cf$overall) # acuracy as a numeric vector
 
 # BAYESIAN GENERALIZING LINEAR MODEL
-bglm_model <- train(Class~., data=imbal_train, 
+bglm_model <- train(turnover~., data=trainHG, 
                    #nbagg = 50,
                    metric = "ROC",
                    trControl=train_control, method="bayesglm")
 #lmt_model <- train(Class~., data=iris, trControl=train_control, method="lmt")
 # make predictions
-bglm_predictions <- predict(bglm_model, imbal_train[, -ncol(imbal_train)])
+#bglm_predictions <- predict(bglm_model, imbal_train[, -ncol(imbal_train)])
+bglm_predictions <- predict(bglm_model, trainHG[, -1])
 # summarize results
-bglm_cf <- confusionMatrix(bglm_predictions, imbal_train$Class)
+#bglm_cf <- confusionMatrix(bglm_predictions, imbal_train$Class)
+bglm_cf <- confusionMatrix(bglm_predictions, trainHG$turnover)
 print (bglm_cf$table) # confusion matrix as a table
 print (bglm_cf$byClass) # estatístics as a matrix
 print (bglm_cf$overall) # acuracy as a numeric vector
 
 # GENERALIZING LINEAR MODEL
-glm_model <- train(Class~., data=imbal_train, 
+glm_model <- train(turnover~., data=trainHG, 
                     #nbagg = 50,
                     metric = "ROC",
                     trControl=train_control, method="glm")
 #lmt_model <- train(Class~., data=iris, trControl=train_control, method="lmt")
 # make predictions
-glm_predictions <- predict(glm_model, imbal_train[, -ncol(imbal_train)])
+#glm_predictions <- predict(glm_model, imbal_train[, -ncol(imbal_train)])
+glm_predictions <- predict(glm_model, trainHG[, -1])
 # summarize results
-glm_cf <- confusionMatrix(glm_predictions, imbal_train$Class)
+#glm_cf <- confusionMatrix(glm_predictions, imbal_train$Class)
+glm_cf <- confusionMatrix(glm_predictions, trainHG$turnover)
 print (glm_cf$table) # confusion matrix as a table
 print (glm_cf$byClass) # estatístics as a matrix
 print (glm_cf$overall) # acuracy as a numeric vector
 
 # BOOSTED LOGISTIC REGRESSION MODEL
-model <- train(Class~., data=imbal_train, 
+model <- train(turnover~., data=trainHG, 
                    #nbagg = 50,
                    metric = "ROC",
                    trControl=train_control, method="LogitBoost")
 #lmt_model <- train(Class~., data=iris, trControl=train_control, method="lmt")
 # make predictions
-predictions <- predict(model, imbal_train[, -ncol(imbal_train)])
+# predictions <- predict(model, imbal_train[, -ncol(imbal_train)])
+predictions <- predict(model, trainHG[, -1])
 # summarize results
-logit_cf <- confusionMatrix(predictions, imbal_train$Class)
+#logit_cf <- confusionMatrix(predictions, imbal_train$Class)
+logit_cf <- confusionMatrix(predictions, trainHG$turnover)
 print (logit_cf$table) # confusion matrix as a table
 print (logit_cf$byClass) # estatístics as a matrix
 print (logit_cf$overall) # acuracy as a numeric vector
 
 # SVM WITH FORWARD SELECTION MODEL
-# PAREI AQUI
-model <- train(Class~., data=imbal_train, 
+# ESTÁ DANDO ERRO ABAIXO SE USA metric = ROC. ???
+#train_control <- trainControl(method = "repeatedcv", number=10, repeats = 5,
+#                             classProbs = TRUE,
+#                              summaryFunction = twoClassSummary
+#)
+train_control <- trainControl(method = "repeatedcv", number=10, repeats = 5)
+model <- train(turnover~., data=trainHG, 
                #nbagg = 50,
-               metric = "ROC",
+               # metric = "ROC",
                trControl=train_control, method="svmRadialWeights")
 #lmt_model <- train(Class~., data=iris, trControl=train_control, method="lmt")
 # make predictions
-predictions <- predict(model, imbal_train[, -ncol(imbal_train)])
+# predictions <- predict(model, imbal_train[, -ncol(imbal_train)])
+predictions <- predict(model, trainHG[, -1])
 # summarize results
-svm_cf <- confusionMatrix(predictions, imbal_train$Class)
+#svm_cf <- confusionMatrix(predictions, imbal_train$Class)
+svm_cf <- confusionMatrix(predictions, trainHG$turnover)
 print (svm_cf$table) # confusion matrix as a table
 print (svm_cf$byClass) # estatístics as a matrix
 print (svm_cf$overall) # acuracy as a numeric vector
@@ -520,37 +502,120 @@ print (logit_cf$overall) # acuracy as a numeric vector
 
 # USANDO O MODELO PARA PREVISÃO
 #-------------------------------------------
+#########################
+# PAREI AQUI
+#########################
 
 # usando exemplo do knn
 # K NEIGHBORS MODEL
 set.seed(1)
-knnTune <- train (churn ~ .,
-                  data = churnTrain,
+#knnTune <- train (churn ~ .,
+#                  data = churnTrain,
+#                  method = "knn",
+#                  #metric = "ROC",
+#                  trControl = trainControl(method = "cv"))
+knnTune <- train (turnover ~ .,
+                  data = trainHG,
                   method = "knn",
                   #metric = "ROC",
                   trControl = trainControl(method = "cv"))
-
 # obtendo a previsão somente para os primeiros exemplos da base de teste
 # notar que não pego a coluna 20, onde está o target, ams não faz diferença
 # na saída da função chamada!
-knnProbs <- predict(knnTune,churnTest[1:10,-20], type = "prob")
+# knnProbs <- predict(knnTune,churnTest[1:10,-20], type = "prob")
+knnProbs <- predict(knnTune,testHG[,-1], type = "prob")
 print (knnProbs)
 
 # idem, abaixo tem a previsão pelo modelo das 10 primeiras ocorrências do arquivo
-knnPred <- predict(knnTune,newdata = churnTest[1:10,-20]) 
+#knnPred <- predict(knnTune,newdata = churnTest[1:10,-20]) 
+knnPred <- predict(knnTune,newdata = testHG[,-1]) 
 print(knnPred) # imprime previsões do modelo para os 10 primeiros dados da amostra
-print(churnTest$churn[1:10]) # imprime os 10 primeiros targets reais da amostra
-table(knnPred,churnTest$churn[1:10]) # tabela de confusão dos 10 primeiros dados
-confusionMatrix(knnPred,churnTest$churn[1:10])$table # idem por caret
+#print(churnTest$churn[1:10]) # imprime os 10 primeiros targets reais da amostra
+print(testHG$turnover) # imprime os 10 primeiros targets reais da amostra
+#table(knnPred,churnTest$churn[1:10]) # tabela de confusão dos 10 primeiros dados
+table(knnPred,testHG$turnover) # tabela de confusão dos 10 primeiros dados
+#confusionMatrix(knnPred,churnTest$churn[1:10])$table # idem por caret
+confusionMatrix(knnPred,testHG$turnover)$table # idem por caret
 
 # O Exemplo abaixo de uso de extractPredictions funciona, mas gerou erros
 # quando tentei com os dados de churn??!!
-knnFit <- train(Species ~ ., data = iris, method = "knn", 
-                trControl = trainControl(method = "cv"))
+#knnFit <- train(Species ~ ., data = iris, method = "knn", 
+#                trControl = trainControl(method = "cv"))
 
-rdaFit <- train(Species ~ ., data = iris, method = "rda", 
-                trControl = trainControl(method = "cv"))
+#rdaFit <- train(Species ~ ., data = iris, method = "rda", 
+#                trControl = trainControl(method = "cv"))
 
-allModels <- list(knn = knnFit, rda = rdaFit)
+allModels <- list(glm = glm_model, ctree = ctree2_model)
+# ERRO: TALVEZ SÓ FUNCIONE COM FESTURES NUMÉRICAS
+extractPrediction(allModels, unkX = testHG[1:10, -1])
 
-extractPrediction(allModels, unkX = iris[1:10, -5])
+# usando abaixo exemplos de exp_predic_model_with_caret.R
+#--------------------------------------------------------
+# Para o exemplo abaixo, trocar letras das 72 features por números e tirar as demais
+
+bootControl <- trainControl(number = 10) # troquei o orignal 200. Demorou mais de hora e não terminou!
+set.seed(2)
+svmFit <- train(df_hg_feat, df_hg_tgv,
+                method = "svmRadial", tuneLength = 5,
+                trControl = bootControl, scaled = FALSE)
+
+svmFit
+# melhor modelo escolhido
+svmFit$finalModel
+
+# outro exemplo
+gbmGrid <- expand.grid(.interaction.depth = seq(1,5, by = 2),
+                       .n.trees = seq(100,1000, by = 50),
+                       .shrinkage = c(0.01, 0.1),
+                       .n.minobsinnode = 1)
+bootControl <- trainControl(method = "repeatedcv", repeats = 5,
+                            summaryFunction = twoClassSummary,
+                            classProbs = TRUE)
+#set.seed(2)
+gbmFit <- train(df_hg[,-1], df_hg[,9:80],
+                method = "gbm", trControl = bootControl, verbose = FALSE,
+                bag.fraction = 0.5, tuneGrid = gbmGrid)
+# In many cases, more control over the grid of tuning parameters 
+# is needed. For example, for boosted trees using the gbm function 
+# in the gbm package (Ridgeway 2007), we can tune over the number 
+# of trees (i.e., boosting iterations), the complexity of the tree
+# (indexed by interaction.depth) and the learning rate (also known
+# as shrinkage). As an example, a user could specify a grid of 
+# values to tune over using a data frame where the rows correspond 
+# to tuning parameter combinations and the columns are the names 
+# of the tuning variables (preceded by a dot). For our data, 
+# we will generate a grid of 50 combinations and use the tuneGrid 
+# argument to the train function to use these values
+
+#gbmGrid <- expand.grid(.interaction.depth = (1:5) * 2,.n.trees = (1:10)*25, .shrinkage = .1)
+gbmGrid <- expand.grid(.interaction.depth = seq(1,5, by = 2),
+                       .n.trees = seq(100,1000, by = 50),
+                       .shrinkage = c(0.01, 0.1),
+                       .n.minobsinnode = 1)
+bootControl <- trainControl(method = "repeatedcv", repeats = 5,
+                            summaryFunction = twoClassSummary,
+                            classProbs = TRUE)
+#set.seed(2)
+gbmFit <- train(trainDescr, trainClass,
+                method = "gbm", trControl = bootControl, verbose = FALSE,
+                bag.fraction = 0.5, tuneGrid = gbmGrid)
+# A plot of the classification accuracy versus the tuning factors
+# using plot(gbmFit)
+# a plot of the Kappa statistic profiles
+#plot(gbmFit, metric = "Kappa")
+# A level plot of the accuracy values
+plot(gbmFit, plotType = "level")
+# Density plots of the 200 bootstrap estimates of accuracy and 
+# Kappa for the final model
+resampleHist(gbmFit)
+#----------------------
+# PARENTESIS: CREATING ROC Curves (from caret webinar on youtube)
+#----------------------
+library(pROC)
+gbmPred <- predict(gbmFit, testDescr, testClass, type = "raw") # SE NÃO FUNCIONAR, ACHO QUE AQUI VOU PRECISAR CBIND testDescr + testClass
+str(gbmPred)
+
+gbmProbs <- predict(gbmFit, testDescr, testClass, type = "prob") # idem
+str(gbmProbs)
+
+confusionMatrix(gbmPred,testClass)
