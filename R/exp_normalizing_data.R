@@ -19,3 +19,4 @@ plot(dfNormZ$Age,dfNormZ$Salary)
 # testando com caret (tem o mesmo resultado que uso de scale acima!!!!)
 preObj <- preProcess(df, method=c("center", "scale"))
 newData <- predict(preObj, df)
+

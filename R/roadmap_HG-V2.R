@@ -343,7 +343,7 @@ train_control <- trainControl(method = "repeatedcv", number=10, repeats = 5,
                      classProbs = TRUE,
                      summaryFunction = twoClassSummary
                      )
-model <- train(turnover~., data=trainHG, 
+tbg_model <- train(turnover~., data=trainHG, 
                nbagg = 50,
                metric = "ROC",
                preProcess=c("center", "scale"),
@@ -351,7 +351,7 @@ model <- train(turnover~., data=trainHG,
                 
 # make predictions
 #predictions <- predict(model, imbal_train[, -ncol(imbal_train)])
-predictions <- predict(model, trainHG[, -1])
+predictions <- predict(tbg_model, trainHG[, -1])
 #print(predictions)
 # summarize results
 #tb_cf <- confusionMatrix(predictions, imbal_train$Class)

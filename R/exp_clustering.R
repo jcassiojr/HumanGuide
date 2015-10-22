@@ -25,7 +25,6 @@ plot(fit) # dendogram with p values
 # add rectangles around groups highly supported by the data
 pvrect(fit, alpha=.95)
 
-# model based clustering
 # Model Based Clustering
 library(mclust)
 fit <- Mclust(mydata)
