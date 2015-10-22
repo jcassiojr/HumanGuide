@@ -5,6 +5,7 @@ require("corrplot")
 require("ggplot2")
 require("gridExtra")
 require("pROC")
+require("ROCR")
 require("doMC")
 registerDoMC(5) # parallel processing
 #############################################
@@ -16,24 +17,28 @@ registerDoMC(5) # parallel processing
 source("./R/f_simula_dados_HG2.R")
 
 df_hg <- f_simula_dados_HG2()
-turnover <- df_hg[,1] # transformando em vetor de fatores
+class <- df_hg[,1] # transformando em vetor de fatores
 descr <- df_hg[,-1] # transformando em vetor de fatores
 
+# para teste com iris datset
+#df_hg <- iris
+#class <- df_hg[,5] # transformando em vetor de fatores
+#descr <- df_hg[,-5] # transformando em vetor de fatores
 # ----- cria datasets de treino e teste
 
 set.seed(1)
 #inTrain <- createDataPartition(mutagen, p = 3/4, list = FALSE)
-inTrain <- createDataPartition(turnover, p = 3/4, list = FALSE)
+inTrain <- createDataPartition(class, p = 3/4, list = FALSE)
 
 trainDescr <- descr[inTrain,]
 testDescr  <- descr[-inTrain,]
 
-trainClass <- turnover[inTrain]
-testClass  <- turnover[-inTrain]
+trainClass <- class[inTrain]
+testClass  <- class[-inTrain]
 
 # ----- verifica balanceamento das classes nos dados de treino
 
-prop.table(table(turnover))
+prop.table(table(class))
 prop.table(table(trainClass))
 ncol(trainDescr)
 
@@ -54,7 +59,7 @@ descrCorr <- cor(trainDescr)
 #corrplot.mixed(M, col = c("black", "white"), insig = "p-value",sig.level = -1)
 corrplot.mixed(descrCorr, insig = "p-value",sig.level = -1)
 # plotando com cluster hierárquico
-corrplot(descrCorr, order = "hclust", addrect = 2)
+#corrplot(descrCorr, order = "hclust", addrect = 2)
 # função para mostrar teste de significância
 # ATENÇÃO: está com erro por deslocar valores no gráfico
 #cor.mtest <- function(mat, conf.level = 0.95) {
@@ -105,7 +110,7 @@ corrplot(descrCorr, order = "hclust", addrect = 2)
 
 # elimina colunas de features com correlação par-wise acima de 0.01, p. ex.
 
-highCorr <- findCorrelation(descrCorr, 0.05)
+highCorr <- findCorrelation(descrCorr, 0.90)
 
 trainDescr <- trainDescr[, -highCorr]
 testDescr  <-  testDescr[, -highCorr]
@@ -160,7 +165,8 @@ plot(results, type=c("g", "o"))
 # definindo os parâmetros de controle para uso nos modelos
 control <- trainControl(method="repeatedcv", number=10, repeats=3,
                         classProbs = TRUE,
-                        summaryFunction = twoClassSummary )
+                        summaryFunction = twoClassSummary # comentar para uso com iris
+                        )
 
 # no caso abaixo, usa método bootstrap como default
 # bootControl <- trainControl(number = 200)
@@ -169,7 +175,7 @@ control <- trainControl(method="repeatedcv", number=10, repeats=3,
 #---------------
 
 set.seed(2)
-svm_model <- trainNWS(
+svm_model <- train(
                 trainDescr, trainClass,
                 method = "svmRadial",
                 tuneLength = 5,
@@ -207,6 +213,8 @@ gbm_model <- train(
                 method = "gbm",
                 trControl = control,
                 verbose = FALSE,
+                metric = "ROC",
+                preProcess=c("center", "scale"),
                 bag.fraction = 0.5,                
                 tuneGrid = gbmGrid)
 
@@ -434,7 +442,7 @@ str(testProbs)
 ### ordenando as probabilidades para escolher acima de um threshold!!!
 ### Se criarmos um valor monetário para benefício (TP) ou custo (TN),
 # podemos usar como critério de corte!!!!! FAZER ISSO (ver expected value matrix)
-proValues_sort <-
+probValues_sort <-
     probValues %>%
         arrange(desc(s))
 
@@ -482,54 +490,205 @@ print (logb_cf$table) # confusion matrix as a table
 print (logb_cf$byClass) # estatistics as a matrix
 print (logb_cf$overall) # acuracy as a numeric vector
 
-#--------- analysing ROC curves
+#--------- analysing ROC curves (usando library pROC)
+# NÃO USAR POR ENQUANTO MAS ESTÁ FUNCIONANDO
+#------------- SVM
+#svmProb <- subset(testProbs, model == "svmRadial")
+#svmROC <- roc(svmProb$obs, svmProb$s)
+#str(svmROC)
+#plot(svmROC)
+#plot.roc(svmROC,  
+#         print.thres = TRUE, 
+#         main="Confidence interval of a threshold - SVM",
+#         percent=TRUE,
+#         print.auc=TRUE,
+#         col="#1c61b6")
 
-# COLOCAR AQUI TODO O TRATAMENTO DE ROC CURVE
-# SVM
-svmProb <- subset(testProbs, model == "svmRadial")
-svmROC <- roc(svmProb$obs, svmProb$s)
-str(svmROC)
-plot(svmROC)
 # GBM
-gbmProb <- subset(testProbs, model == "gbm")
-gbmROC <- roc(gbmProb$obs, gbmProb$s)
-str(gbmROC)
-plot(gbmROC)
+#gbmProb <- subset(testProbs, model == "gbm")
+#gbmROC <- roc(gbmProb$obs, gbmProb$s)
+#str(gbmROC)
+#plot.roc(gbmROC,  
+#         print.thres = TRUE, 
+#         main="Confidence interval of a threshold - SVM",
+#         percent=TRUE,
+#         print.auc=TRUE,
+#         col="#1c61b6")
+
 # TREE BAG
-tbgProb <- subset(testProbs, model == "treebag")
-tbgROC <- roc(tbgProb$obs, tbgProb$s)
-str(tbgROC)
-plot(tbgROC)
+#tbgProb <- subset(testProbs, model == "treebag")
+#tbgROC <- roc(tbgProb$obs, tbgProb$s)
+#str(tbgROC)
+
+#plot.roc(tbgROC,  
+#         print.thres = TRUE, 
+#         main="Confidence interval of a threshold - SVM",
+#         percent=TRUE,
+#         print.auc=TRUE,
+#         col="#1c61b6")
+
 # CTREE
-ctree2Prob <- subset(testProbs, model == "ctree2")
-ctree2ROC <- roc(ctree2Prob$obs, ctree2Prob$s)
-str(ctree2ROC)
-plot(ctree2ROC)
+#ctree2Prob <- subset(testProbs, model == "ctree2")
+#ctree2ROC <- roc(ctree2Prob$obs, ctree2Prob$s)
+#str(ctree2ROC)
+#plot.roc(ctree2ROC,  
+#         print.thres = TRUE, 
+#         main="Confidence interval of a threshold - SVM",
+#         percent=TRUE,
+#         print.auc=TRUE,
+#         col="#1c61b6")
+
 # BAYESIAN GLM
-bglmProb <- subset(testProbs, model == "bayesglm")
-bglmROC <- roc(bglmProb$obs, bglmProb$s)
-str(bglmROC)
-plot(bglmROC)
+#bglmProb <- subset(testProbs, model == "bayesglm")
+#bglmROC <- roc(bglmProb$obs, bglmProb$s)
+#str(bglmROC)
+#plot.roc(bglmROC,  
+##         print.thres = TRUE, 
+#         main="Confidence interval of a threshold - SVM",
+#         percent=TRUE,
+#         print.auc=TRUE,
+#         col="#1c61b6")
 # GLM
-glmProb <- subset(testProbs, model == "glm")
-glmROC <- roc(glmProb$obs, glmProb$s)
-str(glmROC)
-plot(glmROC)
+#glmProb <- subset(testProbs, model == "glm")
+#glmROC <- roc(glmProb$obs, glmProb$s)
+#str(glmROC)
+#plot.roc(glmROC,  
+#         print.thres = TRUE, 
+#         main="Confidence interval of a threshold - SVM",
+#         percent=TRUE,
+#         print.auc=TRUE,
+#         col="#1c61b6")
+
 # LOGISTIC BOOST
-logbProb <- subset(testProbs, model == "LogitBoost")
-logbROC <- roc(logbProb$obs, logbProb$s)
-str(logbROC)
-plot(logbROC)
+#logbProb <- subset(testProbs, model == "LogitBoost")
+#logbROC <- roc(logbProb$obs, logbProb$s)
+#str(logbROC)
+#plot(logbROC)
+#plot.roc(logbROC,  
+#         print.thres = TRUE, 
+#         main="Confidence interval of a threshold - SVM",
+#         percent=TRUE,
+#         print.auc=TRUE,
+#         col="#1c61b6")
 
-#------------ ADENDO -----------------------------------------------------------------------
-# obs. Colocar aqui análise de exp_uso_model.R e my_ROC.R (super completo para gerar ROC curves)!!!!!
-# aplicar o modelo a um exemplo para ver a probabilidade dele fazer parte da classe
-# usando regressão logística
-# cria fórmula de regressão (símbolo ~) para este trget variable
-#formula <- isSetosa ~ Petal.Length + Petal.Width + Sepal.Length + Sepal.Width
+#---- ROC Curves dos modelos usando library ROCR
+svmProb <- subset(testProbs, model == "svmRadial")
+pred <- prediction(svmProbs$s, svmProbs$obs)
+perf <- performance(pred, measure = "tpr", x.measure = "fpr")
+# I know, the following code is bizarre. Just go with it.
+auc <- performance(pred, measure = "auc")
+auc <- auc@y.values[[1]]
 
-# TERMINANDO COLOCAR AQUI ESTE ADENDO
+roc.data <- data.frame(fpr=unlist(perf@x.values),
+                       tpr=unlist(perf@y.values),
+                       model="gbm")
+ggplot(roc.data, aes(x=fpr, ymin=0, ymax=tpr)) +
+    geom_ribbon(alpha=0.2) +
+    geom_line(aes(y=tpr)) +
+    ggtitle(paste0("ROC Curve w/ AUC=", auc))
 
+# GBM
+gbmProbs <- subset(testProbs,model == "gbm")
+#prob <- predict(gbmPred, newdata=testPred, type="prob")
+pred <- prediction(gbmProbs$s, gbmProbs$obs)
+perf <- performance(pred, measure = "tpr", x.measure = "fpr")
+# I know, the following code is bizarre. Just go with it.
+auc <- performance(pred, measure = "auc")
+auc <- auc@y.values[[1]]
 
+roc.data <- data.frame(fpr=unlist(perf@x.values),
+                       tpr=unlist(perf@y.values),
+                       model="GBM")
+ggplot(roc.data, aes(x=fpr, ymin=0, ymax=tpr)) +
+    geom_ribbon(alpha=0.2) +
+    geom_line(aes(y=tpr)) +
+    ggtitle(paste0("ROC Curve w/ AUC=", auc))
+
+# TREE BAG
+tbgProbs <- subset(testProbs,model == "treebag")
+#prob <- predict(gbmPred, newdata=testPred, type="prob")
+pred <- prediction(tbgProbs$s, tbgProbs$obs)
+perf <- performance(pred, measure = "tpr", x.measure = "fpr")
+# I know, the following code is bizarre. Just go with it.
+auc <- performance(pred, measure = "auc")
+auc <- auc@y.values[[1]]
+
+roc.data <- data.frame(fpr=unlist(perf@x.values),
+                       tpr=unlist(perf@y.values),
+                       model="TREE BAG")
+ggplot(roc.data, aes(x=fpr, ymin=0, ymax=tpr)) +
+    geom_ribbon(alpha=0.2) +
+    geom_line(aes(y=tpr)) +
+    ggtitle(paste0("ROC Curve w/ AUC=", auc))
+
+# CTREE
+ctree2Probs <- subset(testProbs,model == "ctree2")
+#prob <- predict(gbmPred, newdata=testPred, type="prob")
+pred <- prediction(ctree2Probs$s, ctree2Probs$obs)
+perf <- performance(pred, measure = "tpr", x.measure = "fpr")
+# I know, the following code is bizarre. Just go with it.
+auc <- performance(pred, measure = "auc")
+auc <- auc@y.values[[1]]
+
+roc.data <- data.frame(fpr=unlist(perf@x.values),
+                       tpr=unlist(perf@y.values),
+                       model="TREE BAG")
+ggplot(roc.data, aes(x=fpr, ymin=0, ymax=tpr)) +
+    geom_ribbon(alpha=0.2) +
+    geom_line(aes(y=tpr)) +
+    ggtitle(paste0("ROC Curve w/ AUC=", auc))
+
+# BAYESIAN GLM
+bglmProbs <- subset(testProbs,model == "bayesglm")
+#prob <- predict(gbmPred, newdata=testPred, type="prob")
+pred <- prediction(bglmProbs$s, bglmProbs$obs)
+perf <- performance(pred, measure = "tpr", x.measure = "fpr")
+# I know, the following code is bizarre. Just go with it.
+auc <- performance(pred, measure = "auc")
+auc <- auc@y.values[[1]]
+
+roc.data <- data.frame(fpr=unlist(perf@x.values),
+                       tpr=unlist(perf@y.values),
+                       model="TREE BAG")
+ggplot(roc.data, aes(x=fpr, ymin=0, ymax=tpr)) +
+    geom_ribbon(alpha=0.2) +
+    geom_line(aes(y=tpr)) +
+    ggtitle(paste0("ROC Curve w/ AUC=", auc))
+
+# GLM
+glmProbs <- subset(testProbs,model == "glm")
+#prob <- predict(gbmPred, newdata=testPred, type="prob")
+pred <- prediction(glmProbs$s, glmProbs$obs)
+perf <- performance(pred, measure = "tpr", x.measure = "fpr")
+# I know, the following code is bizarre. Just go with it.
+auc <- performance(pred, measure = "auc")
+auc <- auc@y.values[[1]]
+
+roc.data <- data.frame(fpr=unlist(perf@x.values),
+                       tpr=unlist(perf@y.values),
+                       model="TREE BAG")
+ggplot(roc.data, aes(x=fpr, ymin=0, ymax=tpr)) +
+    geom_ribbon(alpha=0.2) +
+    geom_line(aes(y=tpr)) +
+    ggtitle(paste0("ROC Curve w/ AUC=", auc))
+
+# LOGISTIC BOOST
+logbProbs <- subset(testProbs,model == "LogitBoost")
+#prob <- predict(gbmPred, newdata=testPred, type="prob")
+pred <- prediction(logbProbs$s, logbProbs$obs)
+perf <- performance(pred, measure = "tpr", x.measure = "fpr")
+# I know, the following code is bizarre. Just go with it.
+auc <- performance(pred, measure = "auc")
+auc <- auc@y.values[[1]]
+
+roc.data <- data.frame(fpr=unlist(perf@x.values),
+                       tpr=unlist(perf@y.values),
+                       model="TREE BAG")
+ggplot(roc.data, aes(x=fpr, ymin=0, ymax=tpr)) +
+    geom_ribbon(alpha=0.2) +
+    geom_line(aes(y=tpr)) +
+    ggtitle(paste0("ROC Curve w/ AUC=", auc))
 
 #-----------------------------------------------------------------------------------
+#------------ ADENDO -----------------------------------------------------------------------
+# obs. Colocar aqui análise de exp_uso_model.R 

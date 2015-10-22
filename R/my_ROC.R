@@ -29,7 +29,7 @@ ggplot(roc.data, aes(x=fpr, ymin=0, ymax=tpr)) +
 # outros exemplos usando o pacote pROC desta vez
 #######################################################
 
-# statistical comparison
+# statistical comparison of two ROC curves
 library(pROC) 
 data(aSAH)    
 rocobj1 <- plot.roc(aSAH$outcome, aSAH$s100,  
