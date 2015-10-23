@@ -6,6 +6,7 @@ require("ggplot2")
 require("gridExtra")
 require("pROC")
 require("ROCR")
+require("xlsx")
 require("doMC")
 registerDoMC(5) # parallel processing
 #############################################
@@ -13,12 +14,18 @@ registerDoMC(5) # parallel processing
 #############################################
 
 # ----- carrega dados simulados de Human Guide
+#source("./R/f_simula_dados_HG2.R")
+#df_hg <- f_simula_dados_HG2()
 
-source("./R/f_simula_dados_HG2.R")
+# ----- carrega dados reais de Human Guide
+source("./R/f_le_dados_HG.R")
+df_hg <- f_le_dados_HG()
+# ----- calcula scores a partir dos dados originais de Human Guide
+source("./R/f_calc_scores_HG.R")
+df_scores_hg <- f_calc_scores_HG(df_hg)
 
-df_hg <- f_simula_dados_HG2()
-class <- df_hg[,1] # transformando em vetor de fatores
-descr <- df_hg[,-1] # transformando em vetor de fatores
+class <- df_scores_hg[,2] # transformando em vetor de fatores de target
+descr <- df_scores_hg[,-2] # transformando em vetor de fatores de features
 
 # para teste com iris datset
 #df_hg <- iris
@@ -37,7 +44,6 @@ trainClass <- class[inTrain]
 testClass  <- class[-inTrain]
 
 # ----- verifica balanceamento das classes nos dados de treino
-
 prop.table(table(class))
 prop.table(table(trainClass))
 ncol(trainDescr)
@@ -54,7 +60,7 @@ testDescr  <-  testDescr[, !isZV]
 # Plot #1: Basic scatterplot matrix of the four measurements
 
 #M <- cor(df_hg[,-1])
-descrCorr <- cor(trainDescr)
+descrCorr <- cor(trainDescr[,-1])
 # plotando com p-value para cada correlação
 #corrplot.mixed(M, col = c("black", "white"), insig = "p-value",sig.level = -1)
 corrplot.mixed(descrCorr, insig = "p-value",sig.level = -1)
@@ -108,7 +114,7 @@ corrplot.mixed(descrCorr, insig = "p-value",sig.level = -1)
 ## add all p-values
 #corrplot(M, p.mat = res1[[1]], insig = "p-value", sig.level = -1)
 
-# elimina colunas de features com correlação par-wise acima de 0.01, p. ex.
+# elimina colunas de features com correlação par-wise acima de 0.90, p. ex.
 
 highCorr <- findCorrelation(descrCorr, 0.90)
 
@@ -142,7 +148,8 @@ tst_nzvar <- nearZeroVar(testDescr, freqCut = 20, uniqueCut = 20)
 #----- eliminando features com menor importância
 # run the RFE algorithm
 control <- rfeControl(functions=rfFuncs, method="cv", number=10)
-results <- rfe(trainDescr, trainClass, sizes=c(1:6), rfeControl=control)
+# eliminando das features a coluna ID
+results <- rfe(trainDescr[,-1], trainClass, sizes=c(1:6), rfeControl=control)
 # summarize the results
 print(results)
 # list the chosen features
@@ -163,6 +170,12 @@ plot(results, type=c("g", "o"))
 
 ## Building and tuning models (métodos para regression (ou dual) in caret)
 # definindo os parâmetros de controle para uso nos modelos
+# default metrics to estimate best model is Kappa (great for
+# unbalanced classes) e Accuracy
+# se quisermos estimar sensitivity and specificity, ROC and AUC
+# we need to tell train to produce class probability, estimate
+# these statistics and to rank models by the ROC AUC
+# twoClassSummary function calculates all of this
 control <- trainControl(method="repeatedcv", number=10, repeats=3,
                         classProbs = TRUE,
                         summaryFunction = twoClassSummary # comentar para uso com iris
@@ -176,7 +189,7 @@ control <- trainControl(method="repeatedcv", number=10, repeats=3,
 
 set.seed(2)
 svm_model <- train(
-                trainDescr, trainClass,
+                trainDescr[,-1], trainClass,
                 method = "svmRadial",
                 tuneLength = 5,
                 preProcess = c("scale", "center"),
@@ -184,8 +197,9 @@ svm_model <- train(
                 scaled = FALSE)
 svm_model
 svm_model$finalModel
-# estimating feature importance
+ggplot(svm_model) + theme(legend.position = "top")
 
+# estimating feature importance
 svm_importance <- varImp(svm_model, scale=FALSE)
 # summarize importance
 print(svm_importance)
@@ -209,7 +223,7 @@ gbmGrid <- expand.grid(
                        .n.minobsinnode = 1)
 set.seed(2)
 gbm_model <- train(
-                trainDescr, trainClass,
+                trainDescr[,-1], trainClass,
                 method = "gbm",
                 trControl = control,
                 verbose = FALSE,
@@ -220,6 +234,8 @@ gbm_model <- train(
 
 gbm_model
 gbm_model$finalModel
+ggplot(gbm_model) + theme(legend.position = "top")
+
 # estimating feature importance
 gbm_importance <- varImp(gbm_model, scale=FALSE)
 # summarize importance
@@ -233,7 +249,7 @@ plot(gbm_importance)
 #                              classProbs = TRUE,
 #                              summaryFunction = twoClassSummary
 #)
-tbg_model <- train(trainDescr, trainClass, 
+tbg_model <- train(trainDescr[,-1], trainClass, 
                    nbagg = 50,
                    metric = "ROC",
                    preProcess=c("center", "scale"),
@@ -242,6 +258,8 @@ tbg_model <- train(trainDescr, trainClass,
 
 tbg_model
 tbg_model$finalModel
+#ggplot(tbg_model) + theme(legend.position = "top")
+
 # estimating feature importance
 tbg_importance <- varImp(tbg_model, scale=FALSE)
 # summarize importance
@@ -251,13 +269,15 @@ plot(tbg_importance)
 # CONDITIONAL INFERENCE TREE MODEL
 #-------
 
-ctree2_model <- train(trainDescr, trainClass, 
+ctree2_model <- train(trainDescr[,-1], trainClass, 
                       metric = "ROC",
                       preProcess=c("center", "scale"),
                       trControl=control, 
                       method="ctree2")
 ctree2_model
 ctree2_model$finalModel
+ggplot(ctree2_model) + theme(legend.position = "top")
+
 # estimating feature importance
 ctree2_importance <- varImp(ctree2_model, scale=FALSE)
 # summarize importance
@@ -286,13 +306,14 @@ plot(knn_importance)
 # BAYESIAN GENERALIZING LINEAR MODEL
 #----------
 
-bglm_model <- train(trainDescr, trainClass, 
+bglm_model <- train(trainDescr[,-1], trainClass, 
                     metric = "ROC",
                     preProcess=c("center", "scale"),
                     trControl=control,
                     method="bayesglm")
 bglm_model
 bglm_model$finalModel
+# ggplot(bglm_model) + theme(legend.position = "top")
 
 # estimating feature importance
 bglm_importance <- varImp(bglm_model, scale=FALSE)
@@ -304,13 +325,15 @@ plot(bglm_importance)
 # GENERALIZING LINEAR MODEL
 #----------
 
-glm_model <- train(trainDescr, trainClass, 
+glm_model <- train(trainDescr[,-1], trainClass, 
                    metric = "ROC",
                    preProcess=c("center", "scale"),
                    trControl=control, 
                    method="glm")
 glm_model
 glm_model$finalModel
+#ggplot(glm_model) + theme(legend.position = "top")
+
 # estimating feature importance
 glm_importance <- varImp(glm_model, scale=FALSE)
 # summarize importance
@@ -321,7 +344,7 @@ plot(glm_importance)
 # BOOSTED LOGISTIC REGRESSION MODEL
 #---------
 
-logb_model <- train(trainDescr, trainClass, 
+logb_model <- train(trainDescr[,-1], trainClass, 
                #nbagg = 50,
                metric = "ROC",
                preProcess=c("center", "scale"),
@@ -329,6 +352,8 @@ logb_model <- train(trainDescr, trainClass,
                method="LogitBoost")
 logb_model
 logb_model$finalModel
+ggplot(logb_model) + theme(legend.position = "top")
+
 # estimating feature importance
 logb_importance <- varImp(logb_model, scale=FALSE)
 # summarize importance
@@ -336,6 +361,26 @@ print(logb_importance)
 # plot importance
 plot(logb_importance)
 
+# NAIVE BAYES MODEL
+#---------
+
+nb_model <- train(trainDescr[,-1], trainClass, 
+                    #nbagg = 50,
+                    metric = "ROC",
+                    preProcess=c("center", "scale"),
+                    trControl=control,  
+                    method="nb")
+
+nb_model
+nb_model$finalModel
+ggplot(nb_model) + theme(legend.position = "top")
+
+# estimating feature importance
+nb_importance <- varImp(nb_model, scale=FALSE)
+# summarize importance
+print(nb_importance)
+# plot importance
+plot(nb_importance)
 # colocar aqui grid com todos os plots de importância acima!!!
 
 #par(mfrow=c(1,1))
@@ -346,6 +391,7 @@ plot(ctree2_importance)
 plot(bglm_importance)
 plot(glm_importance)
 plot(logb_importance)
+plot(nb_importance)
 ################
 ##################
 #################
@@ -369,14 +415,15 @@ models <- list(svm = svm_model,
                ctree2 = ctree2_model,
                bglm = bglm_model,
                glm = glm_model,
-               logb = logb_model)
-testPred <- predict(models, newdata = testDescr, type = "prob")
+               logb = logb_model,
+               nb = nb_model)
+testPred <- predict(models, newdata = testDescr[,-1], type = "prob")
 
 #lapply(testPred,
 #       function(x) x[1:5])
 predValues <- extractPrediction(
                                 models,
-                                testX = testDescr,
+                                testX = testDescr[,-1],
                                 testY = testClass)
 # obtém somente o subset de dados de treino
 testValues <- subset(
@@ -431,7 +478,7 @@ plotObsVsPred(predValues)
 # extraindo probabilidades das classes
 probValues <- extractProb(
                           models,
-                          testX = testDescr,
+                          testX = testDescr[,-1],
                           testY = testClass)
 
 testProbs <- subset(
@@ -489,6 +536,12 @@ logb_cf <- confusionMatrix(logbPred$pred, logbPred$obs)
 print (logb_cf$table) # confusion matrix as a table
 print (logb_cf$byClass) # estatistics as a matrix
 print (logb_cf$overall) # acuracy as a numeric vector
+
+nbPred <- subset(testValues, model == "nb")
+nb_cf <- confusionMatrix(nbPred$pred, nbPred$obs)
+print (nb_cf$table) # confusion matrix as a table
+print (nb_cf$byClass) # estatistics as a matrix
+print (nb_cf$overall) # acuracy as a numeric vector
 
 #--------- analysing ROC curves (usando library pROC)
 # NÃO USAR POR ENQUANTO MAS ESTÁ FUNCIONANDO
@@ -572,7 +625,31 @@ print (logb_cf$overall) # acuracy as a numeric vector
 #         col="#1c61b6")
 
 #---- ROC Curves dos modelos usando library ROCR
-svmProb <- subset(testProbs, model == "svmRadial")
+# These characteristics of ROC graphs have become increasingly important
+# as research continues into the areas of cost-sensitive learning and 
+# learning in the presence of unbalanced classes.
+# um ponto no espaço ROC representa um modleo que retorna true/false para
+# a pergunta se a instância pertence ou não á classe alvo
+# um ponto no espaço ROC representa uma única confusion matrix
+# (uma decision tree gera, portanto, um ponto no espaço ROC)
+# o lado direito superior do espaço ROC é considerado mais liberal
+# o lado esquerdo é considerado conservador
+# probabilistic classifiers:
+# Naive Bayes ou Neural Network classifier gera uma probabilidade ou score de cada instância
+# (grau no qual a instância pertence à classe), gerando uma curva ROC para as instâncias
+# consideradas
+# este tipo de classifier permite criar um threshold para criar um classifier binário,
+# ou seja, acima dele considera-se positivo para a classe e abaixo dele, negativo
+# baixando o threshold vou movendo da área mais conservativa para a área mais liberal.
+# Assim, seleciona-se o threshold com melhor custo x benefício ou acurácia, ou seja,
+# acima dele o modelo retorna Y e abaix N!!!
+# A classifier need not produce accurate, calibrated probability estimates; 
+# it need only produce relative accurate scores that serve to discriminate positive 
+# and negative instances
+# ROC curves have an attractive property: they are insensitive to changes in class
+# distribution.
+
+svmProbs <- subset(testProbs, model == "svmRadial", type = "prob")
 pred <- prediction(svmProbs$s, svmProbs$obs)
 perf <- performance(pred, measure = "tpr", x.measure = "fpr")
 # I know, the following code is bizarre. Just go with it.
@@ -590,6 +667,22 @@ ggplot(roc.data, aes(x=fpr, ymin=0, ymax=tpr)) +
 # GBM
 gbmProbs <- subset(testProbs,model == "gbm")
 #prob <- predict(gbmPred, newdata=testPred, type="prob")
+# ++++ ALTERNATIVA
+rocCurve <-roc(response = testClass,
+               predictor = gbmProbs[, "s"],
+               levels = rev(levels(testClass)))
+rocCurve
+plot(rocCurve)
+plot(rocCurve,
+     print.thres = c(.5,.2),
+     print.thres.pch = 16,
+     print.thres.cex = 1,2,
+     print.auc = TRUE
+)
+# plot sensitivy + specitivity x threshold (cut-off)
+plot(specificity + sensitivity ~ threshold, t(coords(rocCurve, seq(0, 1, 0.01))), type = "l")
+# ++++
+
 pred <- prediction(gbmProbs$s, gbmProbs$obs)
 perf <- performance(pred, measure = "tpr", x.measure = "fpr")
 # I know, the following code is bizarre. Just go with it.
@@ -632,7 +725,7 @@ auc <- auc@y.values[[1]]
 
 roc.data <- data.frame(fpr=unlist(perf@x.values),
                        tpr=unlist(perf@y.values),
-                       model="TREE BAG")
+                       model="CTREE")
 ggplot(roc.data, aes(x=fpr, ymin=0, ymax=tpr)) +
     geom_ribbon(alpha=0.2) +
     geom_line(aes(y=tpr)) +
@@ -649,7 +742,7 @@ auc <- auc@y.values[[1]]
 
 roc.data <- data.frame(fpr=unlist(perf@x.values),
                        tpr=unlist(perf@y.values),
-                       model="TREE BAG")
+                       model="BAYESIAN GLM")
 ggplot(roc.data, aes(x=fpr, ymin=0, ymax=tpr)) +
     geom_ribbon(alpha=0.2) +
     geom_line(aes(y=tpr)) +
@@ -666,7 +759,7 @@ auc <- auc@y.values[[1]]
 
 roc.data <- data.frame(fpr=unlist(perf@x.values),
                        tpr=unlist(perf@y.values),
-                       model="TREE BAG")
+                       model="GLM")
 ggplot(roc.data, aes(x=fpr, ymin=0, ymax=tpr)) +
     geom_ribbon(alpha=0.2) +
     geom_line(aes(y=tpr)) +
@@ -683,12 +776,48 @@ auc <- auc@y.values[[1]]
 
 roc.data <- data.frame(fpr=unlist(perf@x.values),
                        tpr=unlist(perf@y.values),
-                       model="TREE BAG")
+                       model="LOGISTIC BOOST")
 ggplot(roc.data, aes(x=fpr, ymin=0, ymax=tpr)) +
     geom_ribbon(alpha=0.2) +
     geom_line(aes(y=tpr)) +
     ggtitle(paste0("ROC Curve w/ AUC=", auc))
 
-#-----------------------------------------------------------------------------------
-#------------ ADENDO -----------------------------------------------------------------------
-# obs. Colocar aqui análise de exp_uso_model.R 
+# NAIVE BAYES
+nbProbs <- subset(testProbs,model == "nb")
+# aqui, sortear nbProbs decrescente de coluna "s" e usando threshold
+# considerar positivo "s" acima do threshold nos dados a prever!!!
+pred <- prediction(nbProbs$s, nbProbs$obs)
+perf <- performance(pred, measure = "tpr", x.measure = "fpr")
+# I know, the following code is bizarre. Just go with it.
+auc <- performance(pred, measure = "auc")
+auc <- auc@y.values[[1]]
+
+roc.data <- data.frame(fpr=unlist(perf@x.values),
+                       tpr=unlist(perf@y.values),
+                       model="NAIVE BAYES")
+ggplot(roc.data, aes(x=fpr, ymin=0, ymax=tpr)) +
+    geom_ribbon(alpha=0.2) +
+    geom_line(aes(y=tpr)) +
+    ggtitle(paste0("ROC Curve w/ AUC=", auc))
+
+# ++++ ALTERNATIVA
+rocCurve <-roc(response = testClass,
+               predictor = nbProbs[, "s"],
+               levels = rev(levels(testClass)),
+               plot = TRUE, print.auc = TRUE, 
+               print.thres = c(.5,.2),print.thres.pch = 16,
+               print.thres.cex = 1,2)
+rocCurve
+#plot(rocCurve)
+#plot(rocCurve,
+#     print.thres = c(.5,.2),
+#     print.thres.pch = 16,
+#     print.thres.cex = 1,2,
+#     print.auc = TRUE
+#)
+
+# plot sensitivy + specitivity x threshold (cut-off)
+plot(specificity + sensitivity ~ threshold, t(coords(rocCurve, seq(0, 1, 0.01))), type = "l")
+# ++++
+
+# TESTAR ESTE MODELO COM DADOS DE BREAST C E MUSHROOMS

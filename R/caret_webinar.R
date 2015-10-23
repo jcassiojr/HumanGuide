@@ -9,7 +9,7 @@ registerDoMC(5)
 data(churn)
 
 # defining vector of predictors
-#predictors <- names(churnTrain)[names(churnTrain) != "churn"]
+predictors <- names(churnTrain)[names(churnTrain) != "churn"]
 #set.seed(1)
 #inTrainingSet <- createDataPartition(allData$churn,
 #                                     p = .75, list = FALSE)
