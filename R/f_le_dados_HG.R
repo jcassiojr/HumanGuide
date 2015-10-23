@@ -1,4 +1,5 @@
 # f_le_dadosHG
+require("xlsx")
 f_le_dados_HG <- function() {
     set.seed(1)
     # ----- carrega dados reais de Human Guide
