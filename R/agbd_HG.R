@@ -819,5 +819,16 @@ rocCurve
 # plot sensitivy + specitivity x threshold (cut-off)
 plot(specificity + sensitivity ~ threshold, t(coords(rocCurve, seq(0, 1, 0.01))), type = "l")
 # ++++
+# desenvolver abaixo a tree induction
+# tree induction 
+form <- as.formula(turnover ~ .)
+tree.2 <- rpart(form,df_scores_hg)			# A more reasonable tree
+prp(tree.2)   
+# gerando probabilidades para rankear!
+# A fast plot													
+fancyRpartPlot(tree.2)				# A fancy plot from rattle
 
+
+
+# TESTE DE COST PARA FP e TP em ROC CURVE USING performence!!
 # TESTAR ESTE MODELO COM DADOS DE BREAST C E MUSHROOMS

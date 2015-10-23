@@ -120,3 +120,82 @@ rocCurve <-roc(response = testClass,
                plot = TRUE, print.auc = TRUE, 
                print.thres = c(.5,.2),print.thres.pch = 16,
                print.thres.cex = 1,2)
+# tree induction 
+form <- as.formula(sexo ~ .)
+tree.2 <- rpart(form,df_scores_hg)			# A more reasonable tree
+prp(tree.2)   
+# gerando probabilidades para rankear!
+# A fast plot													
+fancyRpartPlot(tree.2)				# A fancy plot from rattle
+# TESTE DE COST PARA FP e TP em ROC CURVE USING performence!!
+pred <- prediction(nbProbs$m, nbProbs$obs)
+perf <- performance(pred, measure = "tpr", x.measure = "fpr")
+
+library(ROCR)
+data(ROCR.simple)
+head(cbind(ROCR.simple$predictions, ROCR.simple$labels), 5)
+# making a prediction object
+pred <- prediction(ROCR.simple$predictions,ROCR.simple$labels)
+class(pred)
+slotNames(pred)
+sn = slotNames(pred)
+sapply(sn, function(x) length(slot(pred, x)))
+sapply(sn, function(x) class(slot(pred, x)))
+# multiple set of predictions
+data(ROCR.hiv)
+manypred = prediction(ROCR.hiv$hiv.nn$predictions, ROCR.hiv$hiv.nn$labels)
+sapply(sn, function(x) length(slot(manypred, x)))
+sapply(sn, function(x) class(slot(manypred, x)))
+# performance objects
+roc.perf = performance(pred, measure = "tpr", x.measure = "fpr")
+plot(roc.perf)
+abline(a=0, b= 1)
+# multiset predictions
+many.roc.perf = performance(manypred, measure = "tpr", x.measure = "fpr")
+plot(many.roc.perf, col=1:10)
+abline(a=0, b= 1)
+# para aceitar um falso positivo até um certo nível
+# exemplo: aceitar menor ou igual a 10%
+pROC = function(pred, fpr.stop){
+    perf <- performance(pred,"tpr","fpr")
+    for (iperf in seq_along(perf@x.values)){
+        ind = which(perf@x.values[[iperf]] <= fpr.stop)
+        perf@y.values[[iperf]] = perf@y.values[[iperf]][ind]
+        perf@x.values[[iperf]] = perf@x.values[[iperf]][ind]
+    }
+    return(perf)
+}
+# o gráfico abaixo mostra até onde vai o limite que queremos
+# neste caso: FPR 10% e TPR 50%
+proc.perf = pROC(pred, fpr.stop=0.1)
+plot(proc.perf)
+abline(a=0, b= 1)
+# getting optimal cut-point
+opt.cut = function(perf, pred){
+    cut.ind = mapply(FUN=function(x, y, p){
+        d = (x - 0)^2 + (y-1)^2
+        ind = which(d == min(d))
+        c(sensitivity = y[[ind]], specificity = 1-x[[ind]], 
+          cutoff = p[[ind]])
+    }, perf@x.values, perf@y.values, pred@cutoffs)
+}
+print(opt.cut(roc.perf, pred))
+# ou usando custo
+cost.perf = performance(pred, "cost")
+pred@cutoffs[[1]][which.min(cost.perf@y.values[[1]])]
+# different costs for TP and FN
+# supondo que falso positivo (tratar alguém que não tem a doença) 
+# é 2 vezes mais custoso que falso negativo (deixar de tratar alguém que tem 
+# a doença)
+cost.perf = performance(pred, "cost", cost.fp = 2, cost.fn = 1)
+pred@cutoffs[[1]][which.min(cost.perf@y.values[[1]])]
+# ou o contrário, supondo que falso positivo (tratar alguém que não tem a doença = R$100.000) 
+# é 10 vezes mais barato que falso negativo (deixar de tratar alguém que tem 
+# a doença = R$ 1.000.000)
+cost.perf = performance(pred, "cost", cost.fp = 1, cost.fn = 10)
+pred@cutoffs[[1]][which.min(cost.perf@y.values[[1]])]
+# vale para multiplos predictions
+print(opt.cut(many.roc.perf, manypred))
+# accuracy vs cuttof (cuidado se existe skew não é confiável)
+acc.perf = performance(pred, measure = "acc")
+plot(acc.perf)
