@@ -3,11 +3,12 @@
 require("caret")
 require("corrplot")
 require("ggplot2")
-require("gridExtra")
+#require("gridExtra")
 require("pROC")
 require("ROCR")
 require("xlsx")
 require("doMC")
+require("plyr")
 require("dplyr")
 registerDoMC(5) # parallel processing
 #############################################
@@ -467,8 +468,73 @@ acc = slot(acc.perf, "y.values")[[1]][ind]
 cutoff = slot(acc.perf, "x.values")[[1]][ind]
 print(c(accuracy= acc, cutoff = cutoff))
 
-# ------ o mesmo acima para multiplos modelos
+# ------ somente para o modelo svmRadial
 svmProbs <- subset(testProbs,model == "svmRadial")
+head(cbind(svmProbs$m, svmProbs$obs), 5)
+# making a prediction object
+pred <- prediction(svmProbs$m, svmProbs$obs)
+class(pred)
+slotNames(pred)
+sn = slotNames(pred)
+sapply(sn, function(x) length(slot(pred, x)))
+sapply(sn, function(x) class(slot(pred, x)))
+# performance objects
+roc.perf = performance(pred, measure = "tpr", x.measure = "fpr")
+plot(roc.perf)
+abline(a=0, b= 1)
+# para aceitar um falso positivo até um certo nível
+# exemplo: aceitar menor ou igual a 10%
+pROC = function(pred, fpr.stop){
+    perf <- performance(pred,"tpr","fpr")
+    for (iperf in seq_along(perf@x.values)){
+        ind = which(perf@x.values[[iperf]] <= fpr.stop)
+        perf@y.values[[iperf]] = perf@y.values[[iperf]][ind]
+        perf@x.values[[iperf]] = perf@x.values[[iperf]][ind]
+    }
+    return(perf)
+}
+# o gráfico abaixo mostra até onde vai o limite que queremos
+# neste caso: FPR 10% e TPR 50%
+proc.perf = pROC(pred, fpr.stop=0.1)
+plot(proc.perf)
+abline(a=0, b= 1)
+# getting optimal cut-point (melhor balanço entre TPR = max and FPR = min)
+opt.cut = function(perf, pred){
+    cut.ind = mapply(FUN=function(x, y, p){
+        d = (x - 0)^2 + (y-1)^2
+        ind = which(d == min(d))
+        c(sensitivity = y[[ind]], specificity = 1-x[[ind]], 
+          cutoff = p[[ind]])
+    }, perf@x.values, perf@y.values, pred@cutoffs)
+}
+print(opt.cut(roc.perf, pred))
+# ou usando custo que dá um resultado de cutoff acima
+cost.perf = performance(pred, "cost")
+pred@cutoffs[[1]][which.min(cost.perf@y.values[[1]])]
+
+# different costs for TP and FN
+# Target = turnover (S/N)
+# TP: deixo de contratar e daria turnover
+# FP: deixo de contratar e NÃO daria turnover
+# TN: contrata e NÃO dá turnover
+# FN: contrata e dá turnover
+# ver planilha de Projeto Human Guide-V1.90.xlsx para os custos
+# dá uma taxa de FN/TP cd 1/10 aproximadamente (pode ser refinada)
+
+cost.perf = performance(pred, "cost", cost.fp = 1, cost.fn = 10)
+pred@cutoffs[[1]][which.min(cost.perf@y.values[[1]])]
+
+# accuracy vs cuttof (cuidado se existe skew não é confiável)
+acc.perf = performance(pred, measure = "acc")
+plot(acc.perf)
+# pegamos o máximo de acurácia do objeto performance
+ind = which.max( slot(acc.perf, "y.values")[[1]] )
+acc = slot(acc.perf, "y.values")[[1]][ind]
+cutoff = slot(acc.perf, "x.values")[[1]][ind]
+print(c(accuracy= acc, cutoff = cutoff))
+
+# +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
 gbmProbs <- subset(testProbs,model == "gbm")
 tbgProbs <- subset(testProbs,model == "treebag")
 ctree2Probs <- subset(testProbs,model == "ctree2")
@@ -476,25 +542,28 @@ bglmProbs <- subset(testProbs,model == "bayesglm")
 glmProbs <- subset(testProbs,model == "glm")
 logbProbs <- subset(testProbs,model == "LogitBoost")
 nbProbs <- subset(testProbs,model == "nb")
-
+# cria lista de modelos com probabilidade
+listProbs <- list(gbm = gbmProbs, tbg = tbgProbs, ctree2 = ctree2Probs, bglm = bglmProbs,
+                  glm = glmProbs, logb = logbProbs, nb = nbProbs)
 # multiple set of predictions (aplicar depois para outros modelos!!!!)
 # para lista de modelos (TESTAR E SUBSTITUIR NO SCRIPT PRINCIPAL)
 #data(ROCR.hiv)
 #manypred = prediction(ROCR.hiv$hiv.nn$predictions, ROCR.hiv$hiv.nn$labels)
-#sapply(sn, function(x) length(slot(manypred, x)))
-#sapply(sn, function(x) class(slot(manypred, x)))
+manypred = prediction(listProbs$gbm$m, listProbs$gbm$obs)
+sapply(sn, function(x) length(slot(manypred, x)))
+sapply(sn, function(x) class(slot(manypred, x)))
 
 # multiset predictions
-#many.roc.perf = performance(manypred, measure = "tpr", x.measure = "fpr")
-#plot(many.roc.perf, col=1:10)
-#abline(a=0, b= 1)
+many.roc.perf = performance(manypred, measure = "tpr", x.measure = "fpr")
+plot(many.roc.perf, col=1:10)
+abline(a=0, b= 1)
 
 # vale para multiplos predictions
-#print(opt.cut(many.roc.perf, manypred))
+print(opt.cut(many.roc.perf, manypred))
 
 
 # vale para multiplos predictions
-#print(opt.cut(many.roc.perf, manypred))
+print(opt.cut(many.roc.perf, manypred))
 
 
 
