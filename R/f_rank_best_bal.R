@@ -33,8 +33,7 @@
 
 require("caret")
 require("pROC")
-
-f_rank_fpRate <- function(models, tipo_mod, cutoff) {
+f_rank_best_bal <- function(models, tipo_mod) {
     # obtém probabilidades dos modelos
     probValues <- extractProb(
         models,
@@ -58,30 +57,30 @@ f_rank_fpRate <- function(models, tipo_mod, cutoff) {
     
     roc.perf = performance(pred, measure = "tpr", x.measure = "fpr")
     
-    # criando o dataframe rankeado por cutoff em FP Rate
-    #-----------------------------
-    pROC = function(pred, fpr.stop){
-        perf <- performance(pred,"tpr","fpr")
-        for (iperf in seq_along(perf@x.values)){
-            ind = which(perf@x.values[[iperf]] <= fpr.stop)
-            perf@y.values[[iperf]] = perf@y.values[[iperf]][ind]
-            perf@x.values[[iperf]] = perf@x.values[[iperf]][ind]
-        }
-        return(perf)
+    
+    # getting optimal cut-point (melhor balanço entre TPR = max and FPR = min)
+    
+    opt.cut = function(perf, pred){
+        cut.ind = mapply(FUN=function(x, y, p){
+            d = (x - 0)^2 + (y-1)^2
+            ind = which(d == min(d))
+            c(sensitivity = y[[ind]], specificity = 1-x[[ind]], 
+              cutoff = p[[ind]])
+        }, perf@x.values, perf@y.values, pred@cutoffs)
     }
-    proc.perf = pROC(pred, fpr.stop=cutoff)
-    # plot(proc.perf)
-    # abline(a=0, b= 1)
+    print(opt.cut(roc.perf, pred))
     
-    # obtenho o índice de cutoff obtido da função acima
-    indice_cutoff <- length(proc.perf@x.values[[1]])
-    
+    # Criar um data.frame com as probabilidades até o índice obtido no objeto performance
+    ######################################################################################
+    # obtenho o valor de cutoff obtido da função acima
+    valor_cutoff <- opt.cut(roc.perf, pred)[3]
     # crio data frame com as probabilidades do preditor (já ordenado)
-    df_max_fpr <- data.frame (my_pred = proc.perf@alpha.values[[1]])
-    
+    df_otpm <- data.frame (my_pred = roc.perf@alpha.values[[1]])
     # obtém dataframe final apenas com as probabilidades acima do cutoff escolhido
-    df_max_fpr <- head(df_max_fpr,indice_cutoff)
+    df_otpm <-
+        df_otpm %>%
+        filter (df_otpm >= valor_cutoff)
     
     # retorna a lista
-    return(list(svm_cf, roc.perf, df_max_fpr))
+    return(list(svm_cf, roc.perf, df_otpm))
 }

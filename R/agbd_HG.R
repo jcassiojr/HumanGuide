@@ -3,13 +3,11 @@
 require("caret")
 require("corrplot")
 require("ggplot2")
-#require("gridExtra")
 require("pROC")
-#require("ROCR")
 require("xlsx")
-require("doMC")
 require("plyr")
 require("dplyr")
+require("doMC")
 registerDoMC(5) # parallel processing
 #############################################
 ## DATA PREPARATION
@@ -103,14 +101,9 @@ predictors(results)
 # plot the results
 plot(results, type=c("g", "o"))
 
-## Building and tuning models (métodos para regression (ou dual) in caret)
-# definindo os parâmetros de controle para uso nos modelos
-# default metrics to estimate best model is Kappa (great for
-# unbalanced classes) e Accuracy
-# se quisermos estimar sensitivity and specificity, ROC and AUC
-# we need to tell train to produce class probability, estimate
-# these statistics and to rank models by the ROC AUC
-# twoClassSummary function calculates all of this
+## Building and tuning models 
+
+#models <- f_apply_models(trainClass, trainDescr)
 control <- trainControl(method="repeatedcv", number=10, repeats=3,
                         classProbs = TRUE,
                         summaryFunction = twoClassSummary # comentar para uso com iris
@@ -315,209 +308,81 @@ plotObsVsPred(predValues)
 # ANALISANDO OS MODELOS COM ROC CURVES
 #--------- Realizando predições com os modelos com probabilidade de classes
 source("./R/f_rank_fpRate.R")
-# chama funcao de teste de analise
-l_res <- f_rank_fpRate(models, "svmRadial")
-# Confusion Matrix
-#-----------------
-print (l_res[[1]]$table)
-print (l_res[[1]]$byClass) # estatistics as a matrix
-print (l_res[[1]]$overall) # acuracy as a numeric vector
+source("./R/f_rank_best_bal.R")
+source("./R/f_rank_cost_dflt.R")
+source("./R/f_rank_cost_cutm.R")
+source("./R/f_rank_best_acc.R")
 
-# ----- extraindo probabilidades das classes
-# objeto probValues é dataframe de todos os modelos com as probabilidades
-# das classes binárias
-probValues <- extractProb(
-                          models,
-                          testX = testDescr,
-                          testY = testClass)
-# obtém somente o subset de dados de teste
-testProbs <- subset(
-                    probValues,
-                    dataType == "Test")
-str(testProbs)
-
-#-------------------------------------------------------------------------------------
 # MODELO SVM RADIAL
-#-------------------------------------------------------------------------------------
-svmPred <- subset(testProbs, model == "svmRadial")
-
-# Confusion Matrix
-#-----------------
-#svm_cf <- confusionMatrix(svmPred$pred, svmPred$obs)
-#print (svm_cf$table) # confusion matrix as a table
-#print (svm_cf$byClass) # estatistics as a matrix
-#print (svm_cf$overall) # acuracy as a numeric vector
-
-# CONSIDERACOES GERAIS SOBRE ROC CURVES
-# These characteristics of ROC graphs have become increasingly important
-# as research continues into the areas of cost-sensitive learning and 
-# learning in the presence of unbalanced classes.
-# um ponto no espaço ROC representa um modleo que retorna true/false para
-# a pergunta se a instância pertence ou não á classe alvo
-# um ponto no espaço ROC representa uma única confusion matrix
-# (uma decision tree gera, portanto, um ponto no espaço ROC)
-# o lado direito superior do espaço ROC é considerado mais liberal
-# o lado esquerdo é considerado conservador
-# probabilistic classifiers:
-# Naive Bayes ou Neural Network classifier gera uma probabilidade ou score de cada instância
-# (grau no qual a instância pertence à classe), gerando uma curva ROC para as instâncias
-# consideradas
-# este tipo de classifier permite criar um threshold para criar um classifier binário,
-# ou seja, acima dele considera-se positivo para a classe e abaixo dele, negativo
-# baixando o threshold vou movendo da área mais conservativa para a área mais liberal.
-# Assim, seleciona-se o threshold com melhor custo x benefício ou acurácia, ou seja,
-# acima dele o modelo retorna Y e abaix N!!!
-# A classifier need not produce accurate, calibrated probability estimates; 
-# it need only produce relative accurate scores that serve to discriminate positive 
-# and negative instances
-# ROC curves have an attractive property: they are insensitive to changes in class
-# distribution.
-# seleciona no dataframe apenas os dados de teste e do modelo svmRadial
-svmProbs <- subset(testProbs,model == "svmRadial")
-
-# making a prediction object
-pred <- prediction(svmProbs$m, svmProbs$obs)
-# ver as probabilidades das predições
-#head(pred@predictions[[1]]) # probabilidade da coluna "m" de svmProbs
-
-# lift curve
-#-------------
-# roc.perf = performance(pred, measure = "lift", x.measure = "rpp")
-# plot(roc.perf)
-# abline(a=0, b= 1)
-
-# a ROC curve creating performance object
-#------------------------------------------
-roc.perf = performance(pred, measure = "tpr", x.measure = "fpr")
-plot(roc.perf)
-abline(a=0, b= 1)
-
-# IMPORTANTE: Os valores de alpha.value do objeto performance são os mesmos dos valores
-# das probabilidades da coluna "m" de svmProbs ordenada em ordem decrescente!!! 
-# que, por sua vez são os mesmos valores de pred@predictions[[1]]
+#----------------------------------------------------------------------
 
 # SELECIONANDO DIVERSAS SAÍDAS RANKEADAS DOS DADOS DE TESTE
+
 # ABORDAGEM 1: para aceitar um falso positivo até um certo nível
 # (ex.aceitar maior ou igual a 10% de falsos positivos)
-
-pROC = function(pred, fpr.stop){
-    perf <- performance(pred,"tpr","fpr")
-    for (iperf in seq_along(perf@x.values)){
-        ind = which(perf@x.values[[iperf]] <= fpr.stop)
-        perf@y.values[[iperf]] = perf@y.values[[iperf]][ind]
-        perf@x.values[[iperf]] = perf@x.values[[iperf]][ind]
-    }
-    return(perf)
-}
-
-# o gráfico abaixo mostra até onde vai o limite que queremos
-# neste caso em particular: FPR 10% e TPR 50%
-proc.perf = pROC(pred, fpr.stop=0.1)
-plot(proc.perf)
+l_fpr <- f_rank_fpRate(models, "svmRadial", 0.1)
+# Plot roc. object (é o mesmo para todas as funções, portanto somente plota uma vez)
+#-----------------
+plot(l_fpr[[2]])
 abline(a=0, b= 1)
-#head(proc.perf@x.values[[1]], 28) 
-######################################################################################
-# DAQUI POSSO OBTER O INDICE DE CUTTOF EM RELAÇÃO A FPR (x.value)
-# Criar um dataframe com as probabilidades até o índice obtido no objeto performance
-######################################################################################
-# obtenho o índice de cutoff obtido da função acima
-indice_cutoff <- length(proc.perf@x.values[[1]])
-# crio data frame com as probabilidades do preditor (já ordenado)
-df_final <- data.frame (my_pred = proc.perf@alpha.values[[1]])
-# obtém dataframe final apenas com as probabilidades acima do cutoff escolhido
-df_final <- head(df_final,indice_cutoff)
-#--------ESTE É O RETORNO DA FUNÇÃO QUE VOU CONSTRUIR!!!!-----------------------------
+# lift curve (é o mesmo para todas as funções, portanto somente plota uma vez)
+#-------------
+#roc.perf = performance(pred, measure = "lift", x.measure = "rpp")
+#plot(roc.perf)
+#abline(a=0, b= 1)
+
+# Confusion Matrix (é o mesmo para todas as funções, portanto somente plota uma vez)
+#-----------------
+print (l_fpr[[1]]$table)
+print (l_fpr[[1]]$byClass) # estatistics as a matrix
+print (l_fpr[[1]]$overall) # acuracy as a numeric vector
+
+# Dataframe de probabilidades final rankeado por FP Rate > que %cutoff
+#----------------------------------------------------
+print(l_fpr[[3]])
 
 # ABORDAGEM 2: getting optimal cut-point (melhor balanço entre TPR = max and FPR = min)
 
-opt.cut = function(perf, pred){
-    cut.ind = mapply(FUN=function(x, y, p){
-        d = (x - 0)^2 + (y-1)^2
-        ind = which(d == min(d))
-        c(sensitivity = y[[ind]], specificity = 1-x[[ind]], 
-          cutoff = p[[ind]])
-    }, perf@x.values, perf@y.values, pred@cutoffs)
-}
-print(opt.cut(roc.perf, pred))
+l_bestBal <- f_rank_best_bal(models, "svmRadial")
 
-# Criar um data.frame com as probabilidades até o índice obtido no objeto performance
-######################################################################################
-# obtenho o valor de cutoff obtido da função acima
-valor_cutoff <- opt.cut(roc.perf, pred)[3]
-# crio data frame com as probabilidades do preditor (já ordenado)
-df_final <- data.frame (my_pred = roc.perf@alpha.values[[1]])
-# obtém dataframe final apenas com as probabilidades acima do cutoff escolhido
-df_final <-
-    df_final %>%
-    filter (df_final >= valor_cutoff)
-#--------ESTE É O RETORNO DA FUNÇÃO QUE VOU CONSTRUIR!!!!-----------------------------
+# Dataframe de probabilidades final rankeado por FP Rate > que %cutoff
+#----------------------------------------------------
+print(l_bestBal[[3]])
 
 # ABORDAGEM 3: usando custo que dá um resultado de cutoff 
 # que minimiza custo (default: cost.fp = 1 e cost.fn = 1)
 
-cost.perf = performance(pred, "cost")
+l_costDflt <- f_rank_cost_dflt(models, "svmRadial")
 
-######################################################################################
-# e criar um data.frame com as probabilidades até o índice obtido
-# no objeto performance
-######################################################################################
-# obtenho o valor de cutoff obtido da função acima
-valor_cutoff <- pred@cutoffs[[1]][which.min(cost.perf@y.values[[1]])]
-df_final <- data.frame (my_pred = roc.perf@alpha.values[[1]])
-# crio data frame com as probabilidades do preditor (já ordenado)
-# obtém dataframe final apenas com as probabilidades acima do cutoff escolhido
-df_final <-
-    df_final %>%
-    filter (df_final >= valor_cutoff)
-#--------ESTE É O RETORNO DA FUNÇÃO QUE VOU CONSTRUIR!!!!-----------------------------
+# Dataframe de probabilidades final rankeado por FP Rate > que %cutoff
+#----------------------------------------------------
+print(l_costDflt[[3]])
 
 ######################################################################################
 # ABORDAGEM 4: DAQUI POSSO OBTER O INDICE DE CUTTOF EM RELAÇÃO cutoff que minimiza custo 
 # (definindo relação cost.fp/cost.fn)
 ######################################################################################
+l_costCustm <- f_rank_cost_custm(models, "svmRadial")
 
-# different costs for TP and FN
-# Target = turnover (S/N)
-# TP: deixo de contratar e daria turnover
-# FP: deixo de contratar e NÃO daria turnover
-# TN: contrata e NÃO dá turnover
-# FN: contrata e dá turnover
-# ver planilha de Projeto Human Guide-V1.90.xlsx para os custos
-# dá uma taxa de FN/TP cd 1/10 aproximadamente (pode ser refinada)
-
-cost.perf = performance(pred, "cost", cost.fp = 1, cost.fn = 10)
-pred@cutoffs[[1]][which.min(cost.perf@y.values[[1]])]
-# obtenho o índice de cutoff obtido da função acima
-valor_cutoff <- pred@cutoffs[[1]][which.min(cost.perf@y.values[[1]])]
-df_final <- data.frame (my_pred = roc.perf@alpha.values[[1]])
-# crio data frame com as probabilidades do preditor (já ordenado)
-# obtém dataframe final apenas com as probabilidades acima do cutoff escolhido
-df_final <-
-    df_final %>%
-    filter (df_final >= valor_cutoff)
-#--------ESTE É O RETORNO DA FUNÇÃO QUE VOU CONSTRUIR!!!!-----------------------------
+# Dataframe de probabilidades final rankeado por FP Rate > que %cutoff
+#----------------------------------------------------
+print(l_costCustm[[3]])
 
 ######################################################################################
 # ABORDAGEM 5: DAQUI POSSO OBTER O INDICE DE CUTTOF EM RELAÇÃO ACURÁCIA MÁXIMA 
 # accuracy vs cuttof (CUIDADO:  se existe skew na distribuição d apopulação não é confiável)
 #####################################################################################
 # accuracy vs cuttof (cuidado se existe skew não é confiável)
-acc.perf = performance(pred, measure = "acc")
-plot(acc.perf)
-# pegamos o máximo de acurácia do objeto performance
-ind = which.max( slot(acc.perf, "y.values")[[1]] )
-acc = slot(acc.perf, "y.values")[[1]][ind]
-cutoff = slot(acc.perf, "x.values")[[1]][ind]
-print(c(accuracy= acc, cutoff = cutoff))
 
-valor_cutoff <- slot(acc.perf, "x.values")[[1]][ind]
-df_final <- data.frame (my_pred = roc.perf@alpha.values[[1]])
-# crio data frame com as probabilidades do preditor (já ordenado)
-# obtém dataframe final apenas com as probabilidades acima do cutoff escolhido
-df_final <-
-    df_final %>%
-    filter (df_final >= valor_cutoff)
-#--------ESTE É O RETORNO DA FUNÇÃO QUE VOU CONSTRUIR!!!!-----------------------------
+l_bestAcc <- f_rank_best_acc(models, "svmRadial")
+
+# Dataframe de probabilidades final rankeado
+#----------------------------------------------------
+print(l_bestAcc[[3]])
+
+# plota acurácia x cutoff
+#----------------------------------------------------
+plot(l_bestAcc[[4]])
 
 
 #-------------------------------------------------------------------------------------
