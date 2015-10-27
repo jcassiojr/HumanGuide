@@ -58,5 +58,5 @@ f_rank_best_acc <- function(models, tipo_mod) {
         filter (df_best_acc >= valor_cutoff)
     
     # retorna a lista
-    return(list(svm_cf, cost.perf, df_best_acc, acc.perf))
+    return(list(svm_cf, roc.perf, df_best_acc, acc.perf))
 }

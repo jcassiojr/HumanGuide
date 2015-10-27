@@ -15,7 +15,7 @@
 
 require("caret")
 require("pROC")
-f_rank_cost_custm <- function(models, tipo_mod) {
+f_rank_cost_custm <- function(models, tipo_mod, cost_fp, cost_fn) {
     # obtém probabilidades dos modelos
     probValues <- extractProb(
         models,
@@ -39,7 +39,7 @@ f_rank_cost_custm <- function(models, tipo_mod) {
     # obtendo objeto roc
     roc.perf = performance(pred, measure = "tpr", x.measure = "fpr")
     # melhor cuttof para relação de custo de relação cost.fp/cost.fn
-    cost.perf = performance(pred, "cost", cost.fp = 1, cost.fn = 10)
+    cost.perf = performance(pred, "cost", cost.fp = cost_fp, cost.fn = cost_fn)
     pred@cutoffs[[1]][which.min(cost.perf@y.values[[1]])]
     
     # Criar um data.frame com as probabilidades até o índice obtido no objeto performance
