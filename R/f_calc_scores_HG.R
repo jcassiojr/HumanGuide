@@ -4,6 +4,11 @@
 require(dplyr)
 
 f_calc_scores_HG <- function(i_df) {
+    # substitui valores "?" por NA ( NAO ESTÁ FUNCION)
+    # obs: como estas colunas vieram com "?"foram transformadas em Factor
+    # por isso uso as.numeric nelas abaixo)
+    i_df <- as.data.frame(lapply(i_df,function(x) if(is.character(x)|is.factor(x)) gsub("\\?",NA,x) else x))
+    # seleciona apenas as colunas necessárias
     i_df <-
         i_df %>%
         mutate(sensibility = s11 + h21 + h31 + hy41 + e51 + m61 + m71 + p81 + e91,
@@ -13,10 +18,12 @@ f_calc_scores_HG <- function(i_df) {
                structure = p15 + m25 + s35 + h45 + d55 + k65 + hy75 + m85 + k95,
                imagination = hy16 + p26 + p36 + m46 + h56 + p66 + h76 + k86 + s96,
                stability = d17 + s27 + d37 + d47 + p57 + d67 + e77 + hy87 + h97,
-               contacts = m18 + hy28 + m38 + p48 + m58 + h68 + d78 + d88 + hy98) %>%
-        select(ID, turnover, sexo, escolaridade, formacao, ramoativ, cargo, cidade, power, quality,
+               contacts = m18 + hy28 + m38 + as.numeric(p48) + m58 + h68 + d78 + d88 + as.numeric(hy98)) %>%
+        select(ID, turnover, sexo, escolaridade, formação, ramoativ, cargo, cidade, power, quality,
                exposure, structure, imagination, stability, contacts)
+    
     return(i_df)
+    
         
 
 }

@@ -1,4 +1,6 @@
 #'função de aplicação dos modelos
+
+require(caret)
 f_apply_models <- function(trainClass, trainDescr){
     ## Building and tuning models (métodos para regression (ou dual) in caret)
     # definindo os parâmetros de controle para uso nos modelos
@@ -24,6 +26,8 @@ f_apply_models <- function(trainClass, trainDescr){
         preProcess = c("scale", "center"),
         trControl = control,
         scaled = FALSE)
+    
+  
 #    svm_model
 #    svm_model$finalModel
 #    ggplot(svm_model) + theme(legend.position = "top")

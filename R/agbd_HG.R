@@ -4,10 +4,14 @@ require("caret")
 require("corrplot")
 require("ggplot2")
 require("pROC")
+require("ROCR")
 require("rpart")
-require("xlsx")
+require("rattle")					# Fancy tree plot
+require("rpart.plot")
+#require("xlsx")
 require("plyr")
 require("dplyr")
+
 require("doMC")
 registerDoMC(5) # parallel processing
 #############################################
@@ -21,7 +25,7 @@ registerDoMC(5) # parallel processing
 # ----- carrega dados reais de Human Guide
 source("./R/f_le_dados_HG.R")
 df_hg <- f_le_dados_HG()
-
+#df_hg <- na.omit(df_hg) # listwise deletion of missing
 # ----- calcula scores a partir dos dados originais de Human Guide
 # considerando target variable sexo como sendo turnover somente para teste
 source("./R/f_calc_scores_HG.R")
@@ -31,6 +35,7 @@ df_scores_hg <-
     select (sexo, power, quality,
             exposure, structure, imagination, stability, contacts) %>%
     mutate(sexo = ifelse(sexo == 1, "m", "f"))
+df_scores_hg <- na.omit(df_scores_hg) # listwise deletion of missing
 class <- as.factor(df_scores_hg[,1]) # transformando em vetor de fatores de target
 descr <- df_scores_hg[,-1] # transformando em vetor de fatores de features
 
@@ -100,13 +105,30 @@ if(length(trn_nzvar) != 0  || length(tst_nzvar) != 0) {
 # run the RFE algorithm
 control <- rfeControl(functions=rfFuncs, method="cv", number=10)
 # eliminando das features a coluna ID
-results <- rfe(trainDescr, trainClass, sizes=c(1:6), rfeControl=control)
+results <- rfe(trainDescr, trainClass, sizes=c(1:3), rfeControl=control)
 # summarize the results
 print(results)
 # list the chosen features
 predictors(results)
 # plot the results
 plot(results, type=c("g", "o"))
+
+# SELECIONANDO FEATURES
+# aqui mudar dados de treino e teste para somente as features selecionadas
+# variavesi selecionadas: imagination(col 5), stability (col 6)
+trainDescr <- trainDescr[,c(5,6)]
+testDescr  <- testDescr[,c(5,6)]
+
+# outra importante técnica de separar features importantes
+require(MASS)
+trainTotal <- cbind(sexo = trainClass,trainDescr)
+initial <- glm(sexo ~ ., data = cbind(sexo = trainClass,trainDescr), family = "binomial")
+stepAIC(initial, direction = "both")
+# analisando s saída escolhemos as fetatures que dão menor IAC
+# neste caso, escolheu stabgility (col 6) e contacts (col 7)
+trainDescr <- trainDescr[,c(6,7)]
+testDescr  <- testDescr[,c(6,7)]
+
 
 ## Building and tuning models 
 source("./R/f_apply_models.R")
@@ -130,6 +152,14 @@ nrow(testDescr)
 # plota previsto x observado
 plotObsVsPred(predValues)
 
+
+# A tree induction to observe best features
+form <- as.formula(sexo ~ .)
+tree.2 <- rpart(form,df_scores_hg)			# A more reasonable tree
+prp(tree.2)   
+# A fast plot													
+fancyRpartPlot(tree.2)				# A fancy plot from rattle
+
 # ANALISANDO OS MODELOS COM ROC CURVES
 #--------- Realizando predições com os modelos com probabilidade de classes
 source("./R/f_rank_fpRate.R")
@@ -147,7 +177,7 @@ source("./R/f_rank_best_acc.R")
 # ABORDAGEM 1: para aceitar um falso positivo até um certo nível
 # (ex.aceitar maior ou igual a 10% de falsos positivos)
 ######################################################################################
-l_fpr <- f_rank_fpRate(models, "svmRadial", 0.1)
+l_fpr <- suppressWarnings(f_rank_fpRate(models, "svmRadial", 0.1))
 # Plot roc. object (é o mesmo para todas as funções, portanto somente plota uma vez)
 #-----------------
 plot(l_fpr[[2]])
@@ -171,7 +201,7 @@ print(l_fpr[[3]])
 ######################################################################################
 # ABORDAGEM 2: getting optimal cut-point (melhor balanço entre TPR = max and FPR = min)
 ######################################################################################
-l_bestBal <- f_rank_best_bal(models, "svmRadial")
+l_bestBal <- suppressWarnings(f_rank_best_bal(models, "svmRadial"))
 
 # Dataframe de probabilidades final rankeado por FP Rate > que %cutoff
 #----------------------------------------------------
@@ -181,7 +211,7 @@ print(l_bestBal[[3]])
 # ABORDAGEM 3: usando custo que dá um resultado de cutoff 
 # que minimiza custo (default: cost.fp = 1 e cost.fn = 1)
 ######################################################################################
-l_costDflt <- f_rank_cost_dflt(models, "svmRadial")
+l_costDflt <- suppressWarnings(f_rank_cost_dflt(models, "svmRadial"))
 
 # Dataframe de probabilidades final rankeado por FP Rate > que %cutoff
 #----------------------------------------------------
@@ -191,7 +221,7 @@ print(l_costDflt[[3]])
 # ABORDAGEM 4: DAQUI POSSO OBTER O INDICE DE CUTTOF EM RELAÇÃO cutoff que minimiza custo 
 # (definindo relação cost.fp/cost.fn)
 ######################################################################################
-l_costCustm <- f_rank_cost_custm(models, "svmRadial")
+l_costCustm <- suppressWarnings(f_rank_cost_custm(models, "svmRadial", 1, 10))
 
 # Dataframe de probabilidades final rankeado por FP Rate > que %cutoff
 #----------------------------------------------------
@@ -663,20 +693,11 @@ print(l_bestAcc[[3]])
 #----------------------------------------------------
 plot(l_bestAcc[[4]])
 
-# ++++
-# desenvolver abaixo a tree induction
-# tree induction 
-form <- as.formula(sexo ~ .)
-tree.2 <- rpart(form,df_scores_hg)			# A more reasonable tree
-prp(tree.2)   
-# gerando probabilidades para rankear!
-# A fast plot													
-fancyRpartPlot(tree.2)				# A fancy plot from rattle
 
 
 # TESTE DE COST PARA FP e TP em ROC CURVE USING performence!!
 # TESTAR ESTE MODELO COM DADOS DE BREAST C E MUSHROOMS
 
-# AO FINAL CRIAR FUNÇÃO QUE RETORNA SOMENTE OS DADOS ATÉ O THRESHOLD ESCOLHIDO
-# (PARA MALA DIRETA)
 # OU RECEBE UM CANDIDATO E RETORNA SUA PROBABILIDADE DE TURNOVER
+# testar com dados dos 813 usados na tese
+# criar funcao tb p retornar apenas a probabilidade de pertencer à classe de um candidato
