@@ -1,9 +1,17 @@
-#' função que recebe a lista de modelos e o tipo a tratar e retorna lista com:
+#' função que, a partir do modelo treinado, obtem a confusion matrix, a previsao e performance
+#' segundo métrica ROC e lista de probabilidades rankeadas até um cutpoint definido
+#' por valor de FP rate máximo definido
+#' Pode ser usado para comparação de modelos, quando passados dados de teste ou
+#' para uso em dados a prever sem classe definida, quando passados estes dados
+#' Parâmetros: recebe a lista de modelos, o tipo de modelo a tratar dentro da lista,
+#' as features de treino, as classes de treino
+#' Retorno:  lista com:
 #' 1. ROC object
 #' 2. confusion matrix
 #' 3. dataframe rankeado por cutoof de fp rate
-#' 
-#' # CONSIDERACOES GERAIS SOBRE ROC CURVES
+#'  
+
+# CONSIDERACOES GERAIS SOBRE ROC CURVES
 # These characteristics of ROC graphs have become increasingly important
 # as research continues into the areas of cost-sensitive learning and 
 # learning in the presence of unbalanced classes.
@@ -34,7 +42,7 @@
 require("caret")
 require("pROC")
 
-f_rank_fpRate <- function(models, tipo_mod, cutoff) {
+f_rank_fpRate <- function(models, testClass, testDescr, tipo_mod, cutoff) {
     # obtém probabilidades dos modelos
     probValues <- extractProb(
         models,

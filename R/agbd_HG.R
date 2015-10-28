@@ -11,7 +11,6 @@ require("rpart.plot")
 #require("xlsx")
 require("plyr")
 require("dplyr")
-
 require("doMC")
 registerDoMC(5) # parallel processing
 #############################################
@@ -23,21 +22,22 @@ registerDoMC(5) # parallel processing
 #df_hg <- f_simula_dados_HG2()
 
 # ----- carrega dados reais de Human Guide
-source("./R/f_le_dados_HG.R")
-df_hg <- f_le_dados_HG()
-#df_hg <- na.omit(df_hg) # listwise deletion of missing
+# retorna lista com: dataset para treino do modelo, dataset para uso do modelo
+source("./R/f_le_raw_HG.R")
+l_df <- f_le_raw_HG()
+df_hg_train <- l_df$df_hg_train # data set a ser usado para treino dos modelos
+df_hg_use <- l_df$df_hg_use # dataset a ser usado para fazer previsões
+
 # ----- calcula scores a partir dos dados originais de Human Guide
-# considerando target variable sexo como sendo turnover somente para teste
-source("./R/f_calc_scores_HG.R")
-df_scores_hg <- f_calc_scores_HG(df_hg)
-df_scores_hg <-
-    df_scores_hg %>%
-    select (sexo, power, quality,
-            exposure, structure, imagination, stability, contacts) %>%
-    mutate(sexo = ifelse(sexo == 1, "m", "f"))
-df_scores_hg <- na.omit(df_scores_hg) # listwise deletion of missing
-class <- as.factor(df_scores_hg[,1]) # transformando em vetor de fatores de target
-descr <- df_scores_hg[,-1] # transformando em vetor de fatores de features
+
+# calcula score a partir dos dados brutos
+source("./R/f_tidy_scores_HG.R")
+df_scores_hg_train <- f_tidy_scores_HG(df_hg_train)
+df_scores_hg_use <- f_tidy_scores_HG(df_hg_use)
+
+class <- as.factor(df_scores_hg_train[,2]) # transformando em vetor de fatores de target
+descr <- df_scores_hg_train[,-c(1,2)] # transformando em dataframe de features
+descr_use <- df_scores_hg_use[,-2] # transformando em dataframe de uso sem coluna target
 
 # ----- cria datasets de treino e teste
 set.seed(1)
@@ -74,9 +74,8 @@ corrplot.mixed(descrCorr, insig = "p-value",sig.level = -1)
 #testDescr  <-  testDescr[, -highCorr]
 #ncol(trainDescr)
 
-####################
 # ALTERNATIVA AUTOMATICA PARA TIRAR NZV E CORRELACOES ENTRE FEATURES(TESTAR)
-###################
+
 #-------------------------------------------------
 # REMOVENDO NEAR ZERO VARIANCE AND CORRELATIONS (FOR CORRELATION, NUMERIC FEATURES ONLY)
 #-------------------------------------------------
@@ -113,11 +112,13 @@ predictors(results)
 # plot the results
 plot(results, type=c("g", "o"))
 
+#########################
 # SELECIONANDO FEATURES
+#########################
 # aqui mudar dados de treino e teste para somente as features selecionadas
 # variavesi selecionadas: imagination(col 5), stability (col 6)
-trainDescr <- trainDescr[,c(5,6)]
-testDescr  <- testDescr[,c(5,6)]
+# trainDescr <- trainDescr[,c(5,6)]
+# testDescr  <- testDescr[,c(5,6)]
 
 # outra importante técnica de separar features importantes
 require(MASS)
@@ -126,15 +127,22 @@ initial <- glm(sexo ~ ., data = cbind(sexo = trainClass,trainDescr), family = "b
 stepAIC(initial, direction = "both")
 # analisando s saída escolhemos as fetatures que dão menor IAC
 # neste caso, escolheu stabgility (col 6) e contacts (col 7)
-trainDescr <- trainDescr[,c(6,7)]
-testDescr  <- testDescr[,c(6,7)]
+# trainDescr <- trainDescr[,c(6,7)]
+# testDescr  <- testDescr[,c(6,7)]
 
+#######################################
+## BUILDING AND TUNING MODELS
+#######################################
 
-## Building and tuning models 
-source("./R/f_apply_models.R")
-models <- f_apply_models(trainClass, trainDescr)
-
+source("./R/f_train_models.R")
+models <- f_train_models(trainClass, trainDescr)
+# level plot of the accuracies (modelo gbm)
+plot(models$gbm, plotType = "level")
+# density plot (modelo gbm)
+resampleHist(models$gbm)
+# FALTA: aplicar para os demais modelos!!!
 #------------------------------------
+
 # PLOTANDO VALORES PREVISTOS E REALIZADOS
 # objeto predValues é dataframe é lista de todos os modelos com os valores 
 # das classes binárias
@@ -153,14 +161,17 @@ nrow(testDescr)
 plotObsVsPred(predValues)
 
 
-# A tree induction to observe best features
+# ---------------- A tree induction to observe best features
 form <- as.formula(sexo ~ .)
 tree.2 <- rpart(form,df_scores_hg)			# A more reasonable tree
 prp(tree.2)   
 # A fast plot													
 fancyRpartPlot(tree.2)				# A fancy plot from rattle
 
+#########################################
 # ANALISANDO OS MODELOS COM ROC CURVES
+#########################################
+
 #--------- Realizando predições com os modelos com probabilidade de classes
 source("./R/f_rank_fpRate.R")
 source("./R/f_rank_best_bal.R")
@@ -177,7 +188,7 @@ source("./R/f_rank_best_acc.R")
 # ABORDAGEM 1: para aceitar um falso positivo até um certo nível
 # (ex.aceitar maior ou igual a 10% de falsos positivos)
 ######################################################################################
-l_fpr <- suppressWarnings(f_rank_fpRate(models, "svmRadial", 0.1))
+l_fpr <- suppressWarnings(f_rank_fpRate(models, testClass, testDescr, "svmRadial", 0.1))
 # Plot roc. object (é o mesmo para todas as funções, portanto somente plota uma vez)
 #-----------------
 plot(l_fpr[[2]])
@@ -381,7 +392,7 @@ plot(l_bestAcc[[4]])
 # ABORDAGEM 1: para aceitar um falso positivo até um certo nível
 # (ex.aceitar maior ou igual a 10% de falsos positivos)
 #----------------------------------------------------------------
-l_fpr <- suppressWarnings(f_rank_fpRate(models, "ctree2", 0.1))
+l_fpr <- suppressWarnings(f_rank_fpRate(models, testClass, testDescr, "ctree2", 0.1))
 # Plot roc. object (é o mesmo para todas as funções, portanto somente plota uma vez)
 #-----------------
 plot(l_fpr[[2]])
@@ -693,6 +704,75 @@ print(l_bestAcc[[3]])
 #----------------------------------------------------
 plot(l_bestAcc[[4]])
 
+#########################################
+# OBTENDO PREVISÕES DE PROBABILIDADE DE CLASSES RANKEADAS
+#########################################
+
+# ABORDAGEM 1: para aceitar um falso positivo até um certo nível
+l_fpr <- suppressWarnings(f_rank_fpRate(models, testClass, testDescr, "svmRadial", 0.1))
+# Plot roc. object (é o mesmo para todas as funções, portanto somente plota uma vez)
+#-----------------
+plot(l_fpr[[2]])
+abline(a=0, b= 1)
+# lift curve (é o mesmo para todas as funções, portanto somente plota uma vez)
+#-------------
+#roc.perf = performance(pred, measure = "lift", x.measure = "rpp")
+#plot(roc.perf)
+#abline(a=0, b= 1)
+
+# Confusion Matrix (é o mesmo para todas as funções, portanto somente plota uma vez)
+#-----------------
+print (l_fpr[[1]]$table)
+print (l_fpr[[1]]$byClass) # estatistics as a matrix
+print (l_fpr[[1]]$overall) # acuracy as a numeric vector
+
+# Dataframe de probabilidades final rankeado por FP Rate > que %cutoff
+#----------------------------------------------------
+print(l_fpr[[3]])
+
+######################################################################################
+# ABORDAGEM 2: getting optimal cut-point (melhor balanço entre TPR = max and FPR = min)
+######################################################################################
+l_bestBal <- suppressWarnings(f_rank_best_bal(models, "svmRadial"))
+
+# Dataframe de probabilidades final rankeado por FP Rate > que %cutoff
+#----------------------------------------------------
+print(l_bestBal[[3]])
+
+######################################################################################
+# ABORDAGEM 3: usando custo que dá um resultado de cutoff 
+# que minimiza custo (default: cost.fp = 1 e cost.fn = 1)
+######################################################################################
+l_costDflt <- suppressWarnings(f_rank_cost_dflt(models, "svmRadial"))
+
+# Dataframe de probabilidades final rankeado por FP Rate > que %cutoff
+#----------------------------------------------------
+print(l_costDflt[[3]])
+
+######################################################################################
+# ABORDAGEM 4: DAQUI POSSO OBTER O INDICE DE CUTTOF EM RELAÇÃO cutoff que minimiza custo 
+# (definindo relação cost.fp/cost.fn)
+######################################################################################
+l_costCustm <- suppressWarnings(f_rank_cost_custm(models, "svmRadial", 1, 10))
+
+# Dataframe de probabilidades final rankeado por FP Rate > que %cutoff
+#----------------------------------------------------
+print(l_costCustm[[3]])
+
+######################################################################################
+# ABORDAGEM 5: DAQUI POSSO OBTER O INDICE DE CUTTOF EM RELAÇÃO ACURÁCIA MÁXIMA 
+# accuracy vs cuttof (CUIDADO:  se existe skew na distribuição d apopulação não é confiável)
+#####################################################################################
+
+l_bestAcc <- suppressWarnings(f_rank_best_acc(models, "svmRadial"))
+
+# Dataframe de probabilidades final rankeado
+#----------------------------------------------------
+print(l_bestAcc[[3]])
+
+# plota acurácia x cutoff
+#----------------------------------------------------
+plot(l_bestAcc[[4]])
 
 
 # TESTE DE COST PARA FP e TP em ROC CURVE USING performence!!
