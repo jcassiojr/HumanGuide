@@ -9,7 +9,7 @@ require("rpart")
 require("rattle")					# Fancy tree plot
 require("rpart.plot")
 #require("xlsx")
-require("plyr")
+#require("plyr")
 require("dplyr")
 require("doMC")
 registerDoMC(5) # parallel processing
@@ -37,14 +37,14 @@ df_scores_hg_use <- f_tidy_scores_HG(df_hg_use)
 
 class <- as.factor(df_scores_hg_train[,2]) # transformando em vetor de fatores de target
 descr <- df_scores_hg_train[,-c(1,2)] # transformando em dataframe de features
-descr_use <- df_scores_hg_use[,-2] # transformando em dataframe de uso sem coluna target
 
-# ----- cria datasets de treino e teste
+# ----- cria datasets de treino, teste e uso em previsão
 set.seed(1)
 inTrain <- createDataPartition(class, p = 3/4, list = FALSE)
 
 trainDescr <- descr[inTrain,]
 testDescr  <- descr[-inTrain,]
+useDescr  <- df_scores_hg_use[,-2] # transformando em dataframe de uso sem coluna target
 
 trainClass <- class[inTrain]
 testClass  <- class[-inTrain]
@@ -189,6 +189,7 @@ source("./R/f_rank_best_acc.R")
 # (ex.aceitar maior ou igual a 10% de falsos positivos)
 ######################################################################################
 l_fpr <- suppressWarnings(f_rank_fpRate(models, testClass, testDescr, "svmRadial", 0.1))
+
 # Plot roc. object (é o mesmo para todas as funções, portanto somente plota uma vez)
 #-----------------
 plot(l_fpr[[2]])
@@ -205,10 +206,12 @@ print (l_fpr[[1]]$table)
 print (l_fpr[[1]]$byClass) # estatistics as a matrix
 print (l_fpr[[1]]$overall) # acuracy as a numeric vector
 
-# Dataframe de probabilidades final rankeado por FP Rate > que %cutoff
+# Salva valor de cutoff para uso posterior nos dados de uso para previsão
+# a partir deste dataframe de probabilidades final rankeado retornado por
+# FP Rate > que %cutoff
 #----------------------------------------------------
 print(l_fpr[[3]])
-
+cutoff_svm <- l_fpr[[4]]
 ######################################################################################
 # ABORDAGEM 2: getting optimal cut-point (melhor balanço entre TPR = max and FPR = min)
 ######################################################################################
@@ -262,7 +265,7 @@ plot(l_bestAcc[[4]])
 # ABORDAGEM 1: para aceitar um falso positivo até um certo nível
 # (ex.aceitar maior ou igual a 10% de falsos positivos)
 #-------------------------------------------------------------------------------------
-l_fpr <- suppressWarnings(f_rank_fpRate(models, "gbm", 0.1))
+l_fpr <- suppressWarnings(f_rank_fpRate(models, testClass, testDescr, "gbm", 0.1))
 # Plot roc. object (é o mesmo para todas as funções, portanto somente plota uma vez)
 #-----------------
 plot(l_fpr[[2]])
@@ -327,7 +330,7 @@ plot(l_bestAcc[[4]])
 # ABORDAGEM 1: para aceitar um falso positivo até um certo nível
 # (ex.aceitar maior ou igual a 10% de falsos positivos)
 #----------------------------------------------------------------
-l_fpr <- suppressWarnings(f_rank_fpRate(models, "treebag", 0.1))
+l_fpr <- suppressWarnings(f_rank_fpRate(models, testClass, testDescr, "treebag", 0.1))
 # Plot roc. object (é o mesmo para todas as funções, portanto somente plota uma vez)
 #-----------------
 plot(l_fpr[[2]])
@@ -457,7 +460,7 @@ plot(l_bestAcc[[4]])
 # ABORDAGEM 1: para aceitar um falso positivo até um certo nível
 # (ex.aceitar maior ou igual a 10% de falsos positivos)
 #----------------------------------------------------------------
-l_fpr <- suppressWarnings(f_rank_fpRate(models, "bayesglm", 0.1))
+l_fpr <- suppressWarnings(f_rank_fpRate(models, testClass, testDescr, "bayesglm", 0.1))
 # Plot roc. object (é o mesmo para todas as funções, portanto somente plota uma vez)
 #-----------------
 plot(l_fpr[[2]])
@@ -521,7 +524,7 @@ plot(l_bestAcc[[4]])
 # ABORDAGEM 1: para aceitar um falso positivo até um certo nível
 # (ex.aceitar maior ou igual a 10% de falsos positivos)
 #----------------------------------------------------------------
-l_fpr <- suppressWarnings(f_rank_fpRate(models, "glm", 0.1))
+l_fpr <- suppressWarnings(f_rank_fpRate(models, testClass, testDescr, "glm", 0.1))
 # Plot roc. object (é o mesmo para todas as funções, portanto somente plota uma vez)
 #-----------------
 plot(l_fpr[[2]])
@@ -585,7 +588,7 @@ plot(l_bestAcc[[4]])
 # ABORDAGEM 1: para aceitar um falso positivo até um certo nível
 # (ex.aceitar maior ou igual a 10% de falsos positivos)
 #----------------------------------------------------------------
-l_fpr <- suppressWarnings(f_rank_fpRate(models, "LogitBoost", 0.1))
+l_fpr <- suppressWarnings(f_rank_fpRate(models, testClass, testDescr, "LogitBoost", 0.1))
 # Plot roc. object (é o mesmo para todas as funções, portanto somente plota uma vez)
 #-----------------
 plot(l_fpr[[2]])
@@ -649,7 +652,7 @@ plot(l_bestAcc[[4]])
 # ABORDAGEM 1: para aceitar um falso positivo até um certo nível
 # (ex.aceitar maior ou igual a 10% de falsos positivos)
 #----------------------------------------------------------------
-l_fpr <- suppressWarnings(f_rank_fpRate(models, "nb", 0.1))
+l_fpr <- suppressWarnings(f_rank_fpRate(models, testClass, testDescr, "nb", 0.1))
 # Plot roc. object (é o mesmo para todas as funções, portanto somente plota uma vez)
 #-----------------
 plot(l_fpr[[2]])
@@ -704,16 +707,17 @@ print(l_bestAcc[[3]])
 #----------------------------------------------------
 plot(l_bestAcc[[4]])
 
-#########################################
+##########################################################
 # OBTENDO PREVISÕES DE PROBABILIDADE DE CLASSES RANKEADAS
-#########################################
+##########################################################
 
 # ABORDAGEM 1: para aceitar um falso positivo até um certo nível
-l_fpr <- suppressWarnings(f_rank_fpRate(models, testClass, testDescr, "svmRadial", 0.1))
+source("./R/f_prev_fpRate.R")
+df_fpr <- suppressWarnings(f_prev_fpRate(models, useDescr, "svmRadial", cutoff_svm))
 # Plot roc. object (é o mesmo para todas as funções, portanto somente plota uma vez)
 #-----------------
-plot(l_fpr[[2]])
-abline(a=0, b= 1)
+#plot(l_fpr[[2]])
+#abline(a=0, b= 1)
 # lift curve (é o mesmo para todas as funções, portanto somente plota uma vez)
 #-------------
 #roc.perf = performance(pred, measure = "lift", x.measure = "rpp")
@@ -722,13 +726,13 @@ abline(a=0, b= 1)
 
 # Confusion Matrix (é o mesmo para todas as funções, portanto somente plota uma vez)
 #-----------------
-print (l_fpr[[1]]$table)
-print (l_fpr[[1]]$byClass) # estatistics as a matrix
-print (l_fpr[[1]]$overall) # acuracy as a numeric vector
+#print (l_fpr[[1]]$table)
+#print (l_fpr[[1]]$byClass) # estatistics as a matrix
+#print (l_fpr[[1]]$overall) # acuracy as a numeric vector
 
 # Dataframe de probabilidades final rankeado por FP Rate > que %cutoff
 #----------------------------------------------------
-print(l_fpr[[3]])
+print(df_fpr)
 
 ######################################################################################
 # ABORDAGEM 2: getting optimal cut-point (melhor balanço entre TPR = max and FPR = min)
@@ -781,3 +785,8 @@ plot(l_bestAcc[[4]])
 # OU RECEBE UM CANDIDATO E RETORNA SUA PROBABILIDADE DE TURNOVER
 # testar com dados dos 813 usados na tese
 # criar funcao tb p retornar apenas a probabilidade de pertencer à classe de um candidato
+
+
+# ESCOLHIDO O MODELO AQUI, CRIAR FUNCAO QUE USA O MODELO ESCOLHIDO RECEBENDO
+# OS DADOS A PREVER, GERANDO O MODELO E RETORNANDO O DATAFRAME DE 
+# PROBABILIDADE DE CLASSES

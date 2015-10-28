@@ -35,6 +35,8 @@
 # and negative instances
 # ROC curves have an attractive property: they are insensitive to changes in class
 # distribution.
+
+
 # IMPORTANTE: Os valores de alpha.value do objeto performance são os mesmos dos valores
 # das probabilidades da coluna "m" de svmProbs ordenada em ordem decrescente!!! 
 # que, por sua vez são os mesmos valores de pred@predictions[[1]]
@@ -87,9 +89,13 @@ f_rank_fpRate <- function(models, testClass, testDescr, tipo_mod, cutoff) {
     # crio data frame com as probabilidades do preditor (já ordenado)
     df_max_fpr <- data.frame (my_pred = proc.perf@alpha.values[[1]])
     
+    # salva o valor da probabilidade de cutoff para posterior identificação
+    # da probabilidade de corte quando chamar a função de previsão 
+    # f_prev_FPrate()
+    valor_cutoff <- df_max_fpr[indice_cutoff,]
     # obtém dataframe final apenas com as probabilidades acima do cutoff escolhido
     df_max_fpr <- head(df_max_fpr,indice_cutoff)
     
     # retorna a lista
-    return(list(svm_cf, roc.perf, df_max_fpr))
+    return(list(svm_cf, roc.perf, df_max_fpr, valor_cutoff))
 }
