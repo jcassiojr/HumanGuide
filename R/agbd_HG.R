@@ -173,610 +173,318 @@ fancyRpartPlot(tree.2)				# A fancy plot from rattle
 #########################################
 
 #--------- Realizando predições com os modelos com probabilidade de classes
-source("./R/f_rank_fpRate.R")
-source("./R/f_rank_best_bal.R")
-source("./R/f_rank_cost_dflt.R")
-source("./R/f_rank_cost_custm.R")
-source("./R/f_rank_best_acc.R")
+source("./R/f_rank_fpRate_models.R")
+source("./R/f_rank_bestBal_models.R")
+source("./R/f_rank_dfltCost_models.R")
+source("./R/f_rank_custmCost_models.R")
+source("./R/f_rank_bestAcc_models.R")
 
-# MODELO SVM RADIAL
-#----------------------------------------------------------------------
-
-# SELECIONANDO DIVERSAS SAÍDAS RANKEADAS DOS DADOS DE TESTE
-
-######################################################################################
-# ABORDAGEM 1: para aceitar um falso positivo até um certo nível
-# (ex.aceitar maior ou igual a 10% de falsos positivos)
-######################################################################################
-l_fpr <- suppressWarnings(f_rank_fpRate(models, testClass, testDescr, "svmRadial", 0.1))
-
-# Plot roc. object (é o mesmo para todas as funções, portanto somente plota uma vez)
-#-----------------
-plot(l_fpr[[2]])
-abline(a=0, b= 1)
-# lift curve (é o mesmo para todas as funções, portanto somente plota uma vez)
-#-------------
-#roc.perf = performance(pred, measure = "lift", x.measure = "rpp")
-#plot(roc.perf)
-#abline(a=0, b= 1)
-
-# Confusion Matrix (é o mesmo para todas as funções, portanto somente plota uma vez)
-#-----------------
-print (l_fpr[[1]]$table)
-print (l_fpr[[1]]$byClass) # estatistics as a matrix
-print (l_fpr[[1]]$overall) # acuracy as a numeric vector
-
-# Salva valor de cutoff para uso posterior nos dados de uso para previsão
-# a partir deste dataframe de probabilidades final rankeado retornado por
-# FP Rate > que %cutoff
-#----------------------------------------------------
-print(l_fpr[[3]])
-cutoff_svm <- l_fpr[[4]]
-######################################################################################
-# ABORDAGEM 2: getting optimal cut-point (melhor balanço entre TPR = max and FPR = min)
-######################################################################################
-l_bestBal <- suppressWarnings(f_rank_best_bal(models, "svmRadial"))
-
-# Dataframe de probabilidades final rankeado por FP Rate > que %cutoff
-#----------------------------------------------------
-print(l_bestBal[[3]])
-
-######################################################################################
-# ABORDAGEM 3: usando custo que dá um resultado de cutoff 
-# que minimiza custo (default: cost.fp = 1 e cost.fn = 1)
-######################################################################################
-l_costDflt <- suppressWarnings(f_rank_cost_dflt(models, "svmRadial"))
-
-# Dataframe de probabilidades final rankeado por FP Rate > que %cutoff
-#----------------------------------------------------
-print(l_costDflt[[3]])
-
-######################################################################################
-# ABORDAGEM 4: DAQUI POSSO OBTER O INDICE DE CUTTOF EM RELAÇÃO cutoff que minimiza custo 
-# (definindo relação cost.fp/cost.fn)
-######################################################################################
-l_costCustm <- suppressWarnings(f_rank_cost_custm(models, "svmRadial", 1, 10))
-
-# Dataframe de probabilidades final rankeado por FP Rate > que %cutoff
-#----------------------------------------------------
-print(l_costCustm[[3]])
-
-######################################################################################
-# ABORDAGEM 5: DAQUI POSSO OBTER O INDICE DE CUTTOF EM RELAÇÃO ACURÁCIA MÁXIMA 
-# accuracy vs cuttof (CUIDADO:  se existe skew na distribuição d apopulação não é confiável)
-#####################################################################################
-
-l_bestAcc <- suppressWarnings(f_rank_best_acc(models, "svmRadial"))
-
-# Dataframe de probabilidades final rankeado
-#----------------------------------------------------
-print(l_bestAcc[[3]])
-
-# plota acurácia x cutoff
-#----------------------------------------------------
-plot(l_bestAcc[[4]])
-
-######################################################################################
-# MODELO GBM
-######################################################################################
-
-# SELECIONANDO DIVERSAS SAÍDAS RANKEADAS DOS DADOS DE TESTE
-
-# ABORDAGEM 1: para aceitar um falso positivo até um certo nível
-# (ex.aceitar maior ou igual a 10% de falsos positivos)
-#-------------------------------------------------------------------------------------
-l_fpr <- suppressWarnings(f_rank_fpRate(models, testClass, testDescr, "gbm", 0.1))
-# Plot roc. object (é o mesmo para todas as funções, portanto somente plota uma vez)
-#-----------------
-plot(l_fpr[[2]])
-abline(a=0, b= 1)
-
-# Confusion Matrix (é o mesmo para todas as funções, portanto somente plota uma vez)
-#-----------------
-print (l_fpr[[1]]$table)
-print (l_fpr[[1]]$byClass) # estatistics as a matrix
-print (l_fpr[[1]]$overall) # acuracy as a numeric vector
-
-# Dataframe de probabilidades final rankeado por FP Rate > que %cutoff
-#----------------------------------------------------
-print(l_fpr[[3]])
-
-# ABORDAGEM 2: getting optimal cut-point (melhor balanço entre TPR = max and FPR = min)
-#-------------------------------------------------------------------------------------
-l_bestBal <- suppressWarnings(f_rank_best_bal(models, "gbm"))
-
-# Dataframe de probabilidades final rankeado por FP Rate > que %cutoff
-#----------------------------------------------------
-print(l_bestBal[[3]])
-
-# ABORDAGEM 3: usando custo que dá um resultado de cutoff 
-# que minimiza custo (default: cost.fp = 1 e cost.fn = 1)
-#-------------------------------------------------------------------------------------
-l_costDflt <- suppressWarnings(f_rank_cost_dflt(models, "gbm"))
-
-# Dataframe de probabilidades final rankeado por FP Rate > que %cutoff
-#----------------------------------------------------
-print(l_costDflt[[3]])
-
-# ABORDAGEM 4: DAQUI POSSO OBTER O INDICE DE CUTTOF EM RELAÇÃO cutoff que minimiza custo 
-# (definindo relação cost.fp/cost.fn)
-#-------------------------------------------------------------------------------------
-l_costCustm <- suppressWarnings(f_rank_cost_custm(models, "gbm", 1, 10))
-
-# Dataframe de probabilidades final rankeado por FP Rate > que %cutoff
-#----------------------------------------------------
-print(l_costCustm[[3]])
-
-
-# ABORDAGEM 5: DAQUI POSSO OBTER O INDICE DE CUTTOF EM RELAÇÃO ACURÁCIA MÁXIMA 
-# accuracy vs cuttof (CUIDADO:  se existe skew na distribuição da população não é confiável)
-#----------------------------------------------------------------------------------------
-
-l_bestAcc <- suppressWarnings(f_rank_best_acc(models, "gbm"))
-
-# Dataframe de probabilidades final rankeado
-#----------------------------------------------------
-print(l_bestAcc[[3]])
-
-# plota acurácia x cutoff
-#----------------------------------------------------
-plot(l_bestAcc[[4]])
-
-######################################################################################
-# MODELO TREE BAG
-######################################################################################
-# SELECIONANDO DIVERSAS SAÍDAS RANKEADAS DOS DADOS DE TESTE
+# SELECIONANDO DIVERSAS SAÍDAS RANKEADAS DOS DADOS DE TREINO
 
 # ABORDAGEM 1: para aceitar um falso positivo até um certo nível
 # (ex.aceitar maior ou igual a 10% de falsos positivos)
 #----------------------------------------------------------------
-l_fpr <- suppressWarnings(f_rank_fpRate(models, testClass, testDescr, "treebag", 0.1))
-# Plot roc. object (é o mesmo para todas as funções, portanto somente plota uma vez)
+# retorna lista com duas listas: de confusion matrix e de valores de cuttof 
+# para cada modelo
+l_fpr <- suppressWarnings(f_rank_fpRate_models(models, testClass, testDescr, 0.1))
+
+# Plot roc. objects (para cada modelo)
+# DEPOIS COLOCAR EM GRID!!!
 #-----------------
-plot(l_fpr[[2]])
+plot(l_fpr$rocPerf$svmRadial )
+abline(a=0, b= 1)
+plot(l_fpr$rocPerf$gbm )
+abline(a=0, b= 1)
+plot(l_fpr$rocPerf$treebag)
+abline(a=0, b= 1)
+plot(l_fpr$rocPerf$ctree2)
+abline(a=0, b= 1)
+plot(l_fpr$rocPerf$bayesglm)
+abline(a=0, b= 1)
+plot(l_fpr$rocPerf$glm)
+abline(a=0, b= 1)
+plot(l_fpr$rocPerf$LogitBoost)
+abline(a=0, b= 1)
+plot(l_fpr$rocPerf$nb)
 abline(a=0, b= 1)
 
 # Confusion Matrix (é o mesmo para todas as funções, portanto somente plota uma vez)
 #-----------------
-print (l_fpr[[1]]$table)
-print (l_fpr[[1]]$byClass) # estatistics as a matrix
-print (l_fpr[[1]]$overall) # acuracy as a numeric vector
+print(l_fpr$cf$svmRadial$table)
+print(l_fpr$cf$gbm$table)
+print(l_fpr$cf$treebag$table)
+print(l_fpr$cf$ctree2$table)
+print(l_fpr$cf$bayesglm$table)
+print(l_fpr$cf$glm$table)
+print(l_fpr$cf$LogitBoost$table)
+print(l_fpr$cf$nb$table)
 
-# Dataframe de probabilidades final rankeado por FP Rate > que %cutoff
-#----------------------------------------------------
-print(l_fpr[[3]])
+# estatistics as a matrix
+print(l_fpr$cf$svmRadial$byClass)
+print(l_fpr$cf$gbm$byClass)
+print(l_fpr$cf$treebag$byClass)
+print(l_fpr$cf$ctree2$byClass)
+print(l_fpr$cf$bayesglm$byClass)
+print(l_fpr$cf$glm$byClass)
+print(l_fpr$cf$LogitBoost$byClass)
+print(l_fpr$cf$nb$byClass)
+
+# acuracy as a numeric vector
+print(l_fpr$cf$svmRadial$overall)
+print(l_fpr$cf$gbm$overall)
+print(l_fpr$cf$treebag$overall)
+print(l_fpr$cf$ctree2$overall)
+print(l_fpr$cf$bayesglm$overall)
+print(l_fpr$cf$glm$overall)
+print(l_fpr$cf$LogitBoost$overall)
+print(l_fpr$cf$nb$overall)
+
 
 # ABORDAGEM 2: getting optimal cut-point (melhor balanço entre TPR = max and FPR = min)
 #--------------------------------------------------------------------------------------
-l_bestBal <- suppressWarnings(f_rank_best_bal(models, "treebag"))
+#l_bestBal <- suppressWarnings(f_rank_best_bal(models, "svmRadial"))
+# retorna lista com duas listas: de confusion matrix e de valores de cuttof 
+# para cada modelo
+l_bestBal <- suppressWarnings(f_rank_bestBal_models(models, testClass, testDescr))
 
-# Dataframe de probabilidades final rankeado por FP Rate > que %cutoff
-#----------------------------------------------------
-print(l_bestBal[[3]])
-
-# ABORDAGEM 3: usando custo que dá um resultado de cutoff 
-# que minimiza custo (default: cost.fp = 1 e cost.fn = 1)
-#--------------------------------------------------------------------------------------
-l_costDflt <- suppressWarnings(f_rank_cost_dflt(models, "treebag"))
-
-# Dataframe de probabilidades final rankeado por FP Rate > que %cutoff
-#----------------------------------------------------
-print(l_costDflt[[3]])
-
-# ABORDAGEM 4: DAQUI POSSO OBTER O INDICE DE CUTTOF EM RELAÇÃO cutoff que minimiza custo 
-# (definindo relação cost.fp/cost.fn)
-#--------------------------------------------------------------------------------------
-l_costCustm <- suppressWarnings(f_rank_cost_custm(models, "treebag", 1, 10))
-
-# Dataframe de probabilidades final rankeado por FP Rate > que %cutoff
-#----------------------------------------------------
-print(l_costCustm[[3]])
-
-# ABORDAGEM 5: DAQUI POSSO OBTER O INDICE DE CUTTOF EM RELAÇÃO ACURÁCIA MÁXIMA 
-# accuracy vs cuttof (CUIDADO:  se existe skew na distribuição d apopulação não é confiável)
-#--------------------------------------------------------------------------------------
-
-l_bestAcc <- suppressWarnings(f_rank_best_acc(models, "treebag"))
-
-# Dataframe de probabilidades final rankeado
-#----------------------------------------------------
-print(l_bestAcc[[3]])
-
-# plota acurácia x cutoff
-#----------------------------------------------------
-plot(l_bestAcc[[4]])
-
-
-######################################################################################
-# MODELO CTREE 2
-######################################################################################
-# SELECIONANDO DIVERSAS SAÍDAS RANKEADAS DOS DADOS DE TESTE
-
-# ABORDAGEM 1: para aceitar um falso positivo até um certo nível
-# (ex.aceitar maior ou igual a 10% de falsos positivos)
-#----------------------------------------------------------------
-l_fpr <- suppressWarnings(f_rank_fpRate(models, testClass, testDescr, "ctree2", 0.1))
-# Plot roc. object (é o mesmo para todas as funções, portanto somente plota uma vez)
+# Plot roc. objects (para cada modelo)
 #-----------------
-plot(l_fpr[[2]])
+plot(l_bestBal$rocPerf$svmRadial )
+abline(a=0, b= 1)
+plot(l_bestBal$rocPerf$gbm )
+abline(a=0, b= 1)
+plot(l_bestBal$rocPerf$treebag)
+abline(a=0, b= 1)
+plot(l_bestBal$rocPerf$ctree2)
+abline(a=0, b= 1)
+plot(l_bestBal$rocPerf$bayesglm)
+abline(a=0, b= 1)
+plot(l_bestBal$rocPerf$glm)
+abline(a=0, b= 1)
+plot(l_bestBal$rocPerf$LogitBoost)
+abline(a=0, b= 1)
+plot(l_bestBal$rocPerf$nb)
 abline(a=0, b= 1)
 
 # Confusion Matrix (é o mesmo para todas as funções, portanto somente plota uma vez)
 #-----------------
-print (l_fpr[[1]]$table)
-print (l_fpr[[1]]$byClass) # estatistics as a matrix
-print (l_fpr[[1]]$overall) # acuracy as a numeric vector
+print(l_bestBal$cf$svmRadial$table)
+print(l_bestBal$cf$gbm$table)
+print(l_bestBal$cf$treebag$table)
+print(l_bestBal$cf$ctree2$table)
+print(l_bestBal$cf$bayesglm$table)
+print(l_bestBal$cf$glm$table)
+print(l_bestBal$cf$LogitBoost$table)
+print(l_bestBal$cf$nb$table)
 
-# Dataframe de probabilidades final rankeado por FP Rate > que %cutoff
-#----------------------------------------------------
-print(l_fpr[[3]])
+# estatistics as a matrix
+print(l_bestBal$cf$svmRadial$byClass)
+print(l_bestBal$cf$gbm$byClass)
+print(l_bestBal$cf$treebag$byClass)
+print(l_bestBal$cf$ctree2$byClass)
+print(l_bestBal$cf$bayesglm$byClass)
+print(l_bestBal$cf$glm$byClass)
+print(l_bestBal$cf$LogitBoost$byClass)
+print(l_bestBal$cf$nb$byClass)
 
-# ABORDAGEM 2: getting optimal cut-point (melhor balanço entre TPR = max and FPR = min)
-#--------------------------------------------------------------------------------------
-l_bestBal <- suppressWarnings(f_rank_best_bal(models, "ctree2"))
-
-# Dataframe de probabilidades final rankeado por FP Rate > que %cutoff
-#----------------------------------------------------
-print(l_bestBal[[3]])
+# acuracy as a numeric vector
+print(l_bestBal$cf$svmRadial$overall)
+print(l_bestBal$cf$gbm$overall)
+print(l_bestBal$cf$treebag$overall)
+print(l_bestBal$cf$ctree2$overall)
+print(l_bestBal$cf$bayesglm$overall)
+print(l_bestBal$cf$glm$overall)
+print(l_bestBal$cf$LogitBoost$overall)
+print(l_bestBal$cf$nb$overall)
 
 # ABORDAGEM 3: usando custo que dá um resultado de cutoff 
 # que minimiza custo (default: cost.fp = 1 e cost.fn = 1)
-#--------------------------------------------------------------------------------------
-l_costDflt <- suppressWarnings(f_rank_cost_dflt(models, "ctree2"))
+#----------------------------------------------------------
+l_costDflt <- suppressWarnings(f_rank_dfltCost_models(models, testClass, testDescr))
 
-# Dataframe de probabilidades final rankeado por FP Rate > que %cutoff
-#----------------------------------------------------
-print(l_costDflt[[3]])
-
-# ABORDAGEM 4: DAQUI POSSO OBTER O INDICE DE CUTTOF EM RELAÇÃO cutoff que minimiza custo 
-# (definindo relação cost.fp/cost.fn)
-#--------------------------------------------------------------------------------------
-l_costCustm <- suppressWarnings(f_rank_cost_custm(models, "ctree2", 1, 10))
-
-# Dataframe de probabilidades final rankeado por FP Rate > que %cutoff
-#----------------------------------------------------
-print(l_costCustm[[3]])
-
-# ABORDAGEM 5: DAQUI POSSO OBTER O INDICE DE CUTTOF EM RELAÇÃO ACURÁCIA MÁXIMA 
-# accuracy vs cuttof (CUIDADO:  se existe skew na distribuição d apopulação não é confiável)
-#--------------------------------------------------------------------------------------
-
-l_bestAcc <- suppressWarnings(f_rank_best_acc(models, "ctree2"))
-
-# Dataframe de probabilidades final rankeado
-#----------------------------------------------------
-print(l_bestAcc[[3]])
-
-# plota acurácia x cutoff
-#----------------------------------------------------
-plot(l_bestAcc[[4]])
-
-
-######################################################################################
-# MODELO BAYES GLM
-######################################################################################
-# SELECIONANDO DIVERSAS SAÍDAS RANKEADAS DOS DADOS DE TESTE
-
-# ABORDAGEM 1: para aceitar um falso positivo até um certo nível
-# (ex.aceitar maior ou igual a 10% de falsos positivos)
-#----------------------------------------------------------------
-l_fpr <- suppressWarnings(f_rank_fpRate(models, testClass, testDescr, "bayesglm", 0.1))
-# Plot roc. object (é o mesmo para todas as funções, portanto somente plota uma vez)
+# Plot roc. objects (para cada modelo)
 #-----------------
-plot(l_fpr[[2]])
+plot(l_costDflt$rocPerf$svmRadial )
+abline(a=0, b= 1)
+plot(l_costDflt$rocPerf$gbm )
+abline(a=0, b= 1)
+plot(l_costDflt$rocPerf$treebag)
+abline(a=0, b= 1)
+plot(l_costDflt$rocPerf$ctree2)
+abline(a=0, b= 1)
+plot(l_costDflt$rocPerf$bayesglm)
+abline(a=0, b= 1)
+plot(l_costDflt$rocPerf$glm)
+abline(a=0, b= 1)
+plot(l_costDflt$rocPerf$LogitBoost)
+abline(a=0, b= 1)
+plot(l_costDflt$rocPerf$nb)
 abline(a=0, b= 1)
 
 # Confusion Matrix (é o mesmo para todas as funções, portanto somente plota uma vez)
 #-----------------
-print (l_fpr[[1]]$table)
-print (l_fpr[[1]]$byClass) # estatistics as a matrix
-print (l_fpr[[1]]$overall) # acuracy as a numeric vector
+print(l_costDflt$cf$svmRadial$table)
+print(l_costDflt$cf$gbm$table)
+print(l_costDflt$cf$treebag$table)
+print(l_costDflt$cf$ctree2$table)
+print(l_costDflt$cf$bayesglm$table)
+print(l_costDflt$cf$glm$table)
+print(l_costDflt$cf$LogitBoost$table)
+print(l_costDflt$cf$nb$table)
 
-# Dataframe de probabilidades final rankeado por FP Rate > que %cutoff
-#----------------------------------------------------
-print(l_fpr[[3]])
+# estatistics as a matrix
+print(l_costDflt$cf$svmRadial$byClass)
+print(l_costDflt$cf$gbm$byClass)
+print(l_costDflt$cf$treebag$byClass)
+print(l_costDflt$cf$ctree2$byClass)
+print(l_costDflt$cf$bayesglm$byClass)
+print(l_costDflt$cf$glm$byClass)
+print(l_costDflt$cf$LogitBoost$byClass)
+print(l_costDflt$cf$nb$byClass)
 
-# ABORDAGEM 2: getting optimal cut-point (melhor balanço entre TPR = max and FPR = min)
-#--------------------------------------------------------------------------------------
-l_bestBal <- suppressWarnings(f_rank_best_bal(models, "bayesglm"))
-
-# Dataframe de probabilidades final rankeado por FP Rate > que %cutoff
-#----------------------------------------------------
-print(l_bestBal[[3]])
-
-# ABORDAGEM 3: usando custo que dá um resultado de cutoff 
-# que minimiza custo (default: cost.fp = 1 e cost.fn = 1)
-#--------------------------------------------------------------------------------------
-l_costDflt <- suppressWarnings(f_rank_cost_dflt(models, "bayesglm"))
-
-# Dataframe de probabilidades final rankeado por FP Rate > que %cutoff
-#----------------------------------------------------
-print(l_costDflt[[3]])
+# acuracy as a numeric vector
+print(l_costDflt$cf$svmRadial$overall)
+print(l_costDflt$cf$gbm$overall)
+print(l_costDflt$cf$treebag$overall)
+print(l_costDflt$cf$ctree2$overall)
+print(l_costDflt$cf$bayesglm$overall)
+print(l_costDflt$cf$glm$overall)
+print(l_costDflt$cf$LogitBoost$overall)
+print(l_costDflt$cf$nb$overall)
 
 # ABORDAGEM 4: DAQUI POSSO OBTER O INDICE DE CUTTOF EM RELAÇÃO cutoff que minimiza custo 
 # (definindo relação cost.fp/cost.fn)
-#--------------------------------------------------------------------------------------
-l_costCustm <- suppressWarnings(f_rank_cost_custm(models, "bayesglm", 1, 10))
+#----------------------------------------------------------
+l_costCustm <- suppressWarnings(f_rank_custmCost_models(models, testClass, testDescr,1, 10))
 
-# Dataframe de probabilidades final rankeado por FP Rate > que %cutoff
-#----------------------------------------------------
-print(l_costCustm[[3]])
-
-# ABORDAGEM 5: DAQUI POSSO OBTER O INDICE DE CUTTOF EM RELAÇÃO ACURÁCIA MÁXIMA 
-# accuracy vs cuttof (CUIDADO:  se existe skew na distribuição d apopulação não é confiável)
-#--------------------------------------------------------------------------------------
-
-l_bestAcc <- suppressWarnings(f_rank_best_acc(models, "bayesglm"))
-
-# Dataframe de probabilidades final rankeado
-#----------------------------------------------------
-print(l_bestAcc[[3]])
-
-# plota acurácia x cutoff
-#----------------------------------------------------
-plot(l_bestAcc[[4]])
-
-######################################################################################
-# MODELO GLM
-######################################################################################
-# SELECIONANDO DIVERSAS SAÍDAS RANKEADAS DOS DADOS DE TESTE
-
-# ABORDAGEM 1: para aceitar um falso positivo até um certo nível
-# (ex.aceitar maior ou igual a 10% de falsos positivos)
-#----------------------------------------------------------------
-l_fpr <- suppressWarnings(f_rank_fpRate(models, testClass, testDescr, "glm", 0.1))
-# Plot roc. object (é o mesmo para todas as funções, portanto somente plota uma vez)
+# Plot roc. objects (para cada modelo)
 #-----------------
-plot(l_fpr[[2]])
+plot(l_costCustm$rocPerf$svmRadial )
+abline(a=0, b= 1)
+plot(l_costCustm$rocPerf$gbm )
+abline(a=0, b= 1)
+plot(l_costCustm$rocPerf$treebag)
+abline(a=0, b= 1)
+plot(l_costCustm$rocPerf$ctree2)
+abline(a=0, b= 1)
+plot(l_costCustm$rocPerf$bayesglm)
+abline(a=0, b= 1)
+plot(l_costCustm$rocPerf$glm)
+abline(a=0, b= 1)
+plot(l_costCustm$rocPerf$LogitBoost)
+abline(a=0, b= 1)
+plot(l_costCustm$rocPerf$nb)
 abline(a=0, b= 1)
 
 # Confusion Matrix (é o mesmo para todas as funções, portanto somente plota uma vez)
 #-----------------
-print (l_fpr[[1]]$table)
-print (l_fpr[[1]]$byClass) # estatistics as a matrix
-print (l_fpr[[1]]$overall) # acuracy as a numeric vector
+print(l_costCustm$cf$svmRadial$table)
+print(l_costCustm$cf$gbm$table)
+print(l_costCustm$cf$treebag$table)
+print(l_costCustm$cf$ctree2$table)
+print(l_costCustm$cf$bayesglm$table)
+print(l_costCustm$cf$glm$table)
+print(l_costCustm$cf$LogitBoost$table)
+print(l_costCustm$cf$nb$table)
 
-# Dataframe de probabilidades final rankeado por FP Rate > que %cutoff
-#----------------------------------------------------
-print(l_fpr[[3]])
+# estatistics as a matrix
+print(l_costCustm$cf$svmRadial$byClass)
+print(l_costCustm$cf$gbm$byClass)
+print(l_costCustm$cf$treebag$byClass)
+print(l_costCustm$cf$ctree2$byClass)
+print(l_costCustm$cf$bayesglm$byClass)
+print(l_costCustm$cf$glm$byClass)
+print(l_costCustm$cf$LogitBoost$byClass)
+print(l_costCustm$cf$nb$byClass)
 
-# ABORDAGEM 2: getting optimal cut-point (melhor balanço entre TPR = max and FPR = min)
-#--------------------------------------------------------------------------------------
-l_bestBal <- suppressWarnings(f_rank_best_bal(models, "glm"))
-
-# Dataframe de probabilidades final rankeado por FP Rate > que %cutoff
-#----------------------------------------------------
-print(l_bestBal[[3]])
-
-# ABORDAGEM 3: usando custo que dá um resultado de cutoff 
-# que minimiza custo (default: cost.fp = 1 e cost.fn = 1)
-#--------------------------------------------------------------------------------------
-l_costDflt <- suppressWarnings(f_rank_cost_dflt(models, "glm"))
-
-# Dataframe de probabilidades final rankeado por FP Rate > que %cutoff
-#----------------------------------------------------
-print(l_costDflt[[3]])
-
-# ABORDAGEM 4: DAQUI POSSO OBTER O INDICE DE CUTTOF EM RELAÇÃO cutoff que minimiza custo 
-# (definindo relação cost.fp/cost.fn)
-#--------------------------------------------------------------------------------------
-l_costCustm <- suppressWarnings(f_rank_cost_custm(models, "glm", 1, 10))
-
-# Dataframe de probabilidades final rankeado por FP Rate > que %cutoff
-#----------------------------------------------------
-print(l_costCustm[[3]])
+# acuracy as a numeric vector
+print(l_costCustm$cf$svmRadial$overall)
+print(l_costCustm$cf$gbm$overall)
+print(l_costCustm$cf$treebag$overall)
+print(l_costCustm$cf$ctree2$overall)
+print(l_costCustm$cf$bayesglm$overall)
+print(l_costCustm$cf$glm$overall)
+print(l_costCustm$cf$LogitBoost$overall)
+print(l_costCustm$cf$nb$overall)
 
 # ABORDAGEM 5: DAQUI POSSO OBTER O INDICE DE CUTTOF EM RELAÇÃO ACURÁCIA MÁXIMA 
 # accuracy vs cuttof (CUIDADO:  se existe skew na distribuição d apopulação não é confiável)
-#--------------------------------------------------------------------------------------
-
-l_bestAcc <- suppressWarnings(f_rank_best_acc(models, "glm"))
-
-# Dataframe de probabilidades final rankeado
-#----------------------------------------------------
-print(l_bestAcc[[3]])
-
-# plota acurácia x cutoff
-#----------------------------------------------------
-plot(l_bestAcc[[4]])
-
-######################################################################################
-# MODELO LOGISTIC BOOST
-######################################################################################
-# SELECIONANDO DIVERSAS SAÍDAS RANKEADAS DOS DADOS DE TESTE
-
-# ABORDAGEM 1: para aceitar um falso positivo até um certo nível
-# (ex.aceitar maior ou igual a 10% de falsos positivos)
-#----------------------------------------------------------------
-l_fpr <- suppressWarnings(f_rank_fpRate(models, testClass, testDescr, "LogitBoost", 0.1))
-# Plot roc. object (é o mesmo para todas as funções, portanto somente plota uma vez)
+#----------------------------------------------------------
+l_bestAcc <- suppressWarnings(f_rank_bestAcc_models(models, testClass, testDescr))
+# Plot roc. objects (para cada modelo)
 #-----------------
-plot(l_fpr[[2]])
+plot(l_bestAcc$rocPerf$svmRadial)
+abline(a=0, b= 1)
+plot(l_bestAcc$rocPerf$gbm )
+abline(a=0, b= 1)
+plot(l_bestAcc$rocPerf$treebag)
+abline(a=0, b= 1)
+plot(l_bestAcc$rocPerf$ctree2)
+abline(a=0, b= 1)
+plot(l_bestAcc$rocPerf$bayesglm)
+abline(a=0, b= 1)
+plot(l_bestAcc$rocPerf$glm)
+abline(a=0, b= 1)
+plot(l_bestAcc$rocPerf$LogitBoost)
+abline(a=0, b= 1)
+plot(l_bestAcc$rocPerf$nb)
 abline(a=0, b= 1)
 
 # Confusion Matrix (é o mesmo para todas as funções, portanto somente plota uma vez)
 #-----------------
-print (l_fpr[[1]]$table)
-print (l_fpr[[1]]$byClass) # estatistics as a matrix
-print (l_fpr[[1]]$overall) # acuracy as a numeric vector
+print(l_bestAcc$cf$svmRadial$table)
+print(l_bestAcc$cf$gbm$table)
+print(l_bestAcc$cf$treebag$table)
+print(l_bestAcc$cf$ctree2$table)
+print(l_bestAcc$cf$bayesglm$table)
+print(l_bestAcc$cf$glm$table)
+print(l_bestAcc$cf$LogitBoost$table)
+print(l_bestAcc$cf$nb$table)
 
-# Dataframe de probabilidades final rankeado por FP Rate > que %cutoff
-#----------------------------------------------------
-print(l_fpr[[3]])
+# estatistics as a matrix
+print(l_bestAcc$cf$svmRadial$byClass)
+print(l_bestAcc$cf$gbm$byClass)
+print(l_bestAcc$cf$treebag$byClass)
+print(l_bestAcc$cf$ctree2$byClass)
+print(l_bestAcc$cf$bayesglm$byClass)
+print(l_bestAcc$cf$glm$byClass)
+print(l_bestAcc$cf$LogitBoost$byClass)
+print(l_bestAcc$cf$nb$byClass)
 
-# ABORDAGEM 2: getting optimal cut-point (melhor balanço entre TPR = max and FPR = min)
-#--------------------------------------------------------------------------------------
-l_bestBal <- suppressWarnings(f_rank_best_bal(models, "LogitBoost"))
-
-# Dataframe de probabilidades final rankeado por FP Rate > que %cutoff
-#----------------------------------------------------
-print(l_bestBal[[3]])
-
-# ABORDAGEM 3: usando custo que dá um resultado de cutoff 
-# que minimiza custo (default: cost.fp = 1 e cost.fn = 1)
-#--------------------------------------------------------------------------------------
-l_costDflt <- suppressWarnings(f_rank_cost_dflt(models, "LogitBoost"))
-
-# Dataframe de probabilidades final rankeado por FP Rate > que %cutoff
-#----------------------------------------------------
-print(l_costDflt[[3]])
-
-# ABORDAGEM 4: DAQUI POSSO OBTER O INDICE DE CUTTOF EM RELAÇÃO cutoff que minimiza custo 
-# (definindo relação cost.fp/cost.fn)
-#--------------------------------------------------------------------------------------
-l_costCustm <- suppressWarnings(f_rank_cost_custm(models, "LogitBoost", 1, 10))
-
-# Dataframe de probabilidades final rankeado por FP Rate > que %cutoff
-#----------------------------------------------------
-print(l_costCustm[[3]])
-
-# ABORDAGEM 5: DAQUI POSSO OBTER O INDICE DE CUTTOF EM RELAÇÃO ACURÁCIA MÁXIMA 
-# accuracy vs cuttof (CUIDADO:  se existe skew na distribuição d apopulação não é confiável)
-#--------------------------------------------------------------------------------------
-
-l_bestAcc <- suppressWarnings(f_rank_best_acc(models, "LogitBoost"))
-
-# Dataframe de probabilidades final rankeado
-#----------------------------------------------------
-print(l_bestAcc[[3]])
-
-# plota acurácia x cutoff
-#----------------------------------------------------
-plot(l_bestAcc[[4]])
-
-######################################################################################
-# MODELO NAIVE BAYES
-######################################################################################
-# SELECIONANDO DIVERSAS SAÍDAS RANKEADAS DOS DADOS DE TESTE
-
-# ABORDAGEM 1: para aceitar um falso positivo até um certo nível
-# (ex.aceitar maior ou igual a 10% de falsos positivos)
-#----------------------------------------------------------------
-l_fpr <- suppressWarnings(f_rank_fpRate(models, testClass, testDescr, "nb", 0.1))
-# Plot roc. object (é o mesmo para todas as funções, portanto somente plota uma vez)
-#-----------------
-plot(l_fpr[[2]])
-abline(a=0, b= 1)
-
-# Confusion Matrix (é o mesmo para todas as funções, portanto somente plota uma vez)
-#-----------------
-print (l_fpr[[1]]$table)
-print (l_fpr[[1]]$byClass) # estatistics as a matrix
-print (l_fpr[[1]]$overall) # acuracy as a numeric vector
-
-# Dataframe de probabilidades final rankeado por FP Rate > que %cutoff
-#----------------------------------------------------
-print(l_fpr[[3]])
-
-# ABORDAGEM 2: getting optimal cut-point (melhor balanço entre TPR = max and FPR = min)
-#--------------------------------------------------------------------------------------
-l_bestBal <- suppressWarnings(f_rank_best_bal(models, "nb"))
-
-# Dataframe de probabilidades final rankeado por FP Rate > que %cutoff
-#----------------------------------------------------
-print(l_bestBal[[3]])
-
-# ABORDAGEM 3: usando custo que dá um resultado de cutoff 
-# que minimiza custo (default: cost.fp = 1 e cost.fn = 1)
-#--------------------------------------------------------------------------------------
-l_costDflt <- suppressWarnings(f_rank_cost_dflt(models, "nb"))
-
-# Dataframe de probabilidades final rankeado por FP Rate > que %cutoff
-#----------------------------------------------------
-print(l_costDflt[[3]])
-
-# ABORDAGEM 4: DAQUI POSSO OBTER O INDICE DE CUTTOF EM RELAÇÃO cutoff que minimiza custo 
-# (definindo relação cost.fp/cost.fn)
-#--------------------------------------------------------------------------------------
-l_costCustm <- suppressWarnings(f_rank_cost_custm(models, "nb", 1, 10))
-
-# Dataframe de probabilidades final rankeado por FP Rate > que %cutoff
-#----------------------------------------------------
-print(l_costCustm[[3]])
-
-# ABORDAGEM 5: DAQUI POSSO OBTER O INDICE DE CUTTOF EM RELAÇÃO ACURÁCIA MÁXIMA 
-# accuracy vs cuttof (CUIDADO:  se existe skew na distribuição d apopulação não é confiável)
-#--------------------------------------------------------------------------------------
-l_bestAcc <- suppressWarnings(f_rank_best_acc(models, "nb"))
-
-# Dataframe de probabilidades final rankeado
-#----------------------------------------------------
-print(l_bestAcc[[3]])
-
-# plota acurácia x cutoff
-#----------------------------------------------------
-plot(l_bestAcc[[4]])
+# acuracy as a numeric vector
+print(l_bestAcc$cf$svmRadial$overall)
+print(l_bestAcc$cf$gbm$overall)
+print(l_bestAcc$cf$treebag$overall)
+print(l_bestAcc$cf$ctree2$overall)
+print(l_bestAcc$cf$bayesglm$overall)
+print(l_bestAcc$cf$glm$overall)
+print(l_bestAcc$cf$LogitBoost$overall)
+print(l_bestAcc$cf$nb$overall)
 
 ##########################################################
 # OBTENDO PREVISÕES DE PROBABILIDADE DE CLASSES RANKEADAS
 ##########################################################
 
+# De acordo com a abordagem selecionada no tuning dos modelos
+# seleciona o dataframe rankeado de probabilidade de classificador
+# para a lista de modelos candidatos
+source("./R/f_prev_rank_class.R")
+
 # ABORDAGEM 1: para aceitar um falso positivo até um certo nível
-source("./R/f_prev_fpRate.R")
-df_fpr <- suppressWarnings(f_prev_fpRate(models, useDescr, "svmRadial", cutoff_svm))
-# Plot roc. object (é o mesmo para todas as funções, portanto somente plota uma vez)
-#-----------------
-#plot(l_fpr[[2]])
-#abline(a=0, b= 1)
-# lift curve (é o mesmo para todas as funções, portanto somente plota uma vez)
-#-------------
-#roc.perf = performance(pred, measure = "lift", x.measure = "rpp")
-#plot(roc.perf)
-#abline(a=0, b= 1)
+l_rank_fpr <- suppressWarnings(f_prev_rank_class(models, useDescr, l_fpr$cutoff))
 
-# Confusion Matrix (é o mesmo para todas as funções, portanto somente plota uma vez)
-#-----------------
-#print (l_fpr[[1]]$table)
-#print (l_fpr[[1]]$byClass) # estatistics as a matrix
-#print (l_fpr[[1]]$overall) # acuracy as a numeric vector
+# ABORDAGEM 2: melhor balanço entre TPR = max and FPR = min
+l_rank_bestBal <- suppressWarnings(f_prev_rank_class(models, useDescr, l_bestBal$cutoff))
 
-# Dataframe de probabilidades final rankeado por FP Rate > que %cutoff
-#----------------------------------------------------
-print(df_fpr)
-
-######################################################################################
-# ABORDAGEM 2: getting optimal cut-point (melhor balanço entre TPR = max and FPR = min)
-######################################################################################
-l_bestBal <- suppressWarnings(f_rank_best_bal(models, "svmRadial"))
-
-# Dataframe de probabilidades final rankeado por FP Rate > que %cutoff
-#----------------------------------------------------
-print(l_bestBal[[3]])
-
-######################################################################################
 # ABORDAGEM 3: usando custo que dá um resultado de cutoff 
-# que minimiza custo (default: cost.fp = 1 e cost.fn = 1)
-######################################################################################
-l_costDflt <- suppressWarnings(f_rank_cost_dflt(models, "svmRadial"))
+l_rank_dfltCost <- suppressWarnings(f_prev_rank_class(models, useDescr, l_costDflt$cutoff))
 
-# Dataframe de probabilidades final rankeado por FP Rate > que %cutoff
-#----------------------------------------------------
-print(l_costDflt[[3]])
+# ABORDAGEM 4: usando custo segundo relação cost.fp/cost.fn)
+l_rank_custmCost <- suppressWarnings(f_prev_rank_class(models, useDescr, l_costCustm$cutoff))
 
-######################################################################################
-# ABORDAGEM 4: DAQUI POSSO OBTER O INDICE DE CUTTOF EM RELAÇÃO cutoff que minimiza custo 
-# (definindo relação cost.fp/cost.fn)
-######################################################################################
-l_costCustm <- suppressWarnings(f_rank_cost_custm(models, "svmRadial", 1, 10))
-
-# Dataframe de probabilidades final rankeado por FP Rate > que %cutoff
-#----------------------------------------------------
-print(l_costCustm[[3]])
-
-######################################################################################
-# ABORDAGEM 5: DAQUI POSSO OBTER O INDICE DE CUTTOF EM RELAÇÃO ACURÁCIA MÁXIMA 
-# accuracy vs cuttof (CUIDADO:  se existe skew na distribuição d apopulação não é confiável)
-#####################################################################################
-
-l_bestAcc <- suppressWarnings(f_rank_best_acc(models, "svmRadial"))
-
-# Dataframe de probabilidades final rankeado
-#----------------------------------------------------
-print(l_bestAcc[[3]])
-
-# plota acurácia x cutoff
-#----------------------------------------------------
-plot(l_bestAcc[[4]])
+# ABORDAGEM 5: usando melhor accurácia vs cuttof (CUIDADO:se existe skew na 
+# distribuição da população não é confiável)
+l_rank_bestAcc <- suppressWarnings(f_prev_rank_class(models, useDescr, l_bestAcc$cutoff))
 
 
 # TESTE DE COST PARA FP e TP em ROC CURVE USING performence!!

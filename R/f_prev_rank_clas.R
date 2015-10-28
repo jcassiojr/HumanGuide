@@ -3,16 +3,19 @@
 require("caret")
 require("pROC")
 
-f_prev_fpRate <- function(i_models, i_useDescr, i_tipo_mod, i_valor_cutoff) {
+f_prev_rank_class <- function(i_model, i_useDescr, i_valor_cutoff) {
    
     # criando vetor com os identificadores
     v_id <- i_useDescr[,1]
     # obtendo as probabilidades
-    probValues <- extractProb(i_models, unkX = i_useDescr[,-1]) # OK
+    #probValues <- extractProb(i_models, unkX = i_useDescr[,-1]) # OK
+    # +++TESTE
+    probValues <- predict(i_model, useDescr[,-1], type = "prob")
+    # +++
     # seleciona apenas o subset com o modelo desejado
-    probValues <- subset(
-        probValues,
-        model == i_tipo_mod)
+    #probValues <- subset(
+    #    probValues,
+    #    model == i_tipo_mod)
     # monta data.frame com ID e probabilidade positiva (classe = "m")
     df_prob <- data.frame(ID = v_id, probClass = probValues$m)
     # ordenando em ordem decrescente as probabilidades

@@ -82,5 +82,5 @@ f_rank_best_bal <- function(models, tipo_mod) {
         filter (df_otpm >= valor_cutoff)
     
     # retorna a lista
-    return(list(svm_cf, roc.perf, df_otpm))
+    return(list(svm_cf, roc.perf, df_otpm, valor_cutoff))
 }

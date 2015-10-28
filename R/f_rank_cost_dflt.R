@@ -71,5 +71,5 @@ f_rank_cost_dflt <- function(models, tipo_mod) {
         filter (df_cost_dftl >= valor_cutoff)
     
     # retorna a lista
-    return(list(svm_cf, cost.perf, df_cost_dftl))
+    return(list(svm_cf, cost.perf, df_cost_dftl, valor_cutoff))
 }
