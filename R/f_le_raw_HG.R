@@ -28,6 +28,6 @@ f_le_raw_HG <- function() {
     # OBS: TESTAR CRIACAO DE DADOS CATEGORICOS A PARTIR DA COLUNA IDADE USANDO:
     # creating categorical variables
     # restData$zipGroups = cut(restData$zipCode,breaks=quantile(restData$zipCode))
-    
+    df_hg_train$Grupoidade = cut(df_hg_train$idade,breaks=quantile(df_hg_train$idade))
     return (l_df)
 }

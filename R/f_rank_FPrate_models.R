@@ -89,6 +89,12 @@ f_rank_fpRate_models <- function(i_models, i_testClass, i_testDescr, cutoff) {
         # obtendo o valor de cutoff
         proc.perf = pROC(pred, fpr.stop=cutoff)
         
+        # crio data frame com as probabilidades do preditor (já ordenado)
+        df_max_fpr <- data.frame (my_pred = proc.perf@alpha.values[[1]])
+        
+        # obtenho o índice de cutoff obtido da função acima
+        indice_cutoff <- length(proc.perf@x.values[[1]])
+        
         # f_prev_FPrate()
         l_valor_cutoff[[i]] <- df_max_fpr[indice_cutoff,]
     }

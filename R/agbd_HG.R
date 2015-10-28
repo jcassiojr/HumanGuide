@@ -28,6 +28,10 @@ l_df <- f_le_raw_HG()
 df_hg_train <- l_df$df_hg_train # data set a ser usado para treino dos modelos
 df_hg_use <- l_df$df_hg_use # dataset a ser usado para fazer previsões
 
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# OBS: testar com GrupoIdade que criai como target numérico!!!
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
 # ----- calcula scores a partir dos dados originais de Human Guide
 
 # calcula score a partir dos dados brutos
