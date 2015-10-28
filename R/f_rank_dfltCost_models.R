@@ -14,13 +14,13 @@
 require("caret")
 require("pROC")
 
-f_rank_dfltCost_models <- function(models, testClass, testDescr) {
+f_rank_dfltCost_models <- function(i_models, i_testClass, i_testDescr) {
     
     # obtém probabilidades dos modelos
     probValues <- extractProb(
-        models,
-        testX = testDescr,
-        testY = testClass)
+        i_models,
+        testX = i_testDescr,
+        testY = i_testClass)
     # getting optimal cut-point (melhor balanço entre TPR = max and FPR = min)
     #--------------------------------------------------------------------------
 

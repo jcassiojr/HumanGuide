@@ -14,13 +14,13 @@
 require("caret")
 require("pROC")
 
-f_rank_bestBal_models <- function(models, testClass, testDescr) {
+f_rank_bestBal_models <- function(i_models, i_testClass, i_testDescr) {
     
     # obtém probabilidades dos modelos
     probValues <- extractProb(
-        models,
-        testX = testDescr,
-        testY = testClass)
+        i_models,
+        testX = i_testDescr,
+        testY = i_testClass)
     # getting optimal cut-point (melhor balanço entre TPR = max and FPR = min)
     #--------------------------------------------------------------------------
     opt.cut = function(perf, pred){
@@ -32,20 +32,6 @@ f_rank_bestBal_models <- function(models, testClass, testDescr) {
         }, perf@x.values, perf@y.values, pred@cutoffs)
     }
     
-    # ++ +TESTE
-    # carrega lista com um data.frame de probabilidades de classe para cada modelo
-    #for (i in 1:length(i_models)) {
-    #print (i_models[[i]])
-    #    df_probs <- predict(i_models[[i]], i_useDescr[,-1], type = "prob") 
-    # monta lista de data.frames com ID e probabilidade positiva (classe = "m")
-    #    l_id_probs[[i]] <- data.frame(ID = v_id, probClass = df_probs$m)
-    # ordenando em ordem decrescente as probabilidades
-    # e aplicando cutoff ao dataframe
-    #    l_id_probs[[i]] <-
-    #        l_id_probs[[i]] %>%
-    #        arrange(desc(probClass)) %>%
-    #        filter(probClass >= i_valor_cutoff) # filtra dados até valor de cutoff
-    #}
     # trabalha os dados para cada modelo da lista
     l_cf <- list() # cria lista de confusion matrix
     l_rocPerf <- list() # cria lista de objetos de performance ROC
@@ -70,22 +56,7 @@ f_rank_bestBal_models <- function(models, testClass, testDescr) {
         l_rocPerf [[i]] = performance(pred, measure = "tpr", x.measure = "fpr")
         
         # obtendo o valor de cutoff
-        #proc.perf = pROC(pred, fpr.stop=cutoff)
-        #print(opt.cut(l_roc.perf[[i]], pred))
-        # obtenho o índice de cutoff obtido da função acima
         l_valor_cutoff[[i]] <- opt.cut(l_rocPerf[[i]], pred)[3]
-        #indice_cutoff <- length(proc.perf@x.values[[1]])
-        
-        # crio data frame com as probabilidades do preditor (já ordenado)
-        #df_max_fpr <- data.frame (my_pred = proc.perf@alpha.values[[1]])
-        #df_otpm <- data.frame (my_pred = l_rocPerf[[i]]@alpha.values[[1]])
-        
-        # salva o valor da probabilidade de cutoff para posterior identificação
-        # da probabilidade de corte quando chamar a função de previsão 
-        # f_prev_FPrate()
-        #l_valor_cutoff[[i]] <- df_otpm[indice_cutoff,]
-        # obtém dataframe final apenas com as probabilidades acima do cutoff escolhido
-        #df_max_fpr <- head(df_max_fpr,indice_cutoff)
     }
     
     # retorna a lista de lista por modelo
