@@ -21,6 +21,13 @@ registerDoMC(5) # parallel processing
 #source("./R/f_simula_dados_HG2.R")
 #df_hg <- f_simula_dados_HG2()
 
+# ----- carrega dados de teste de breast c
+#source("./R/f_le_wdbc.R")
+#df_hg <- f_le_wdbc()
+#class <- as.factor(df_hg[,2]) # transformando em vetor de fatores de target
+#descr <- df_hg[,-c(1:2)] # transformando em dataframe de features
+# daqui pular direto para criar data sets de treinao, teste e uso
+
 # ----- carrega dados reais de Human Guide
 # retorna lista com: dataset para treino do modelo, dataset para uso do modelo
 source("./R/f_le_raw_HG.R")
@@ -36,6 +43,8 @@ df_hg_use <- l_df$df_hg_use # dataset a ser usado para fazer previsões
 
 # calcula score a partir dos dados brutos
 source("./R/f_tidy_scores_HG.R")
+# ATENÇÃO: ESTÁ DANDO ERRO DEPENDENDO DA ORDEM DE CARGA DE PACOTE dplyr
+# SOLUÇÃO: desatachar e reatachar pacote dplyr
 df_scores_hg_train <- f_tidy_scores_HG(df_hg_train)
 df_scores_hg_use <- f_tidy_scores_HG(df_hg_use)
 
@@ -65,7 +74,7 @@ ncol(trainDescr)
 #trainDescr <- trainDescr[, !isZV]
 #testDescr  <-  testDescr[, !isZV]
 
-# -------- analisando correlações entre as features
+# -------- analisando correlações entre as features (só funciona com features numéricas)
 # Plot #1: Basic scatterplot matrix of the four measurements
 descrCorr <- cor(trainDescr)
 # plotando com p-value para cada correlação
@@ -104,11 +113,11 @@ if(length(trn_nzvar) != 0  || length(tst_nzvar) != 0) {
     testDescr <- testDescr[,-(tst_nzvar)]
 }
 
-#----- eliminando features com menor importância
+#----- eliminando features com menor importância (funciona com features numéricas ou categóricas)
 # run the RFE algorithm
 control <- rfeControl(functions=rfFuncs, method="cv", number=10)
 # eliminando das features a coluna ID
-results <- rfe(trainDescr, trainClass, sizes=c(1:3), rfeControl=control)
+results <- rfe(trainDescr, trainClass, sizes=c(1:30), rfeControl=control)
 # summarize the results
 print(results)
 # list the chosen features
@@ -126,8 +135,8 @@ plot(results, type=c("g", "o"))
 
 # outra importante técnica de separar features importantes
 require(MASS)
-trainTotal <- cbind(sexo = trainClass,trainDescr)
-initial <- glm(sexo ~ ., data = cbind(sexo = trainClass,trainDescr), family = "binomial")
+#trainTotal <- cbind(sexo = trainClass,trainDescr)
+initial <- glm(Diagnosis ~ ., data = cbind(Diagnosis = trainClass,trainDescr), family = "binomial")
 stepAIC(initial, direction = "both")
 # analisando s saída escolhemos as fetatures que dão menor IAC
 # neste caso, escolheu stabgility (col 6) e contacts (col 7)
@@ -467,12 +476,18 @@ print(l_bestAcc$cf$nb$overall)
 
 ##########################################################
 # OBTENDO PREVISÕES DE PROBABILIDADE DE CLASSES RANKEADAS
+# ATENÇÃO: aqui, para efeito de análise, sõ usados todos
+# os modelos gerados. No entento, em um caso real de 
+# previsão, deve-se escolher o melhor modelo e aplicar
+# a análise abaixo somente a este modelo
+# para previsao usar f_agbd_previsao (a desenvolver)
 ##########################################################
 
 # De acordo com a abordagem selecionada no tuning dos modelos
 # seleciona o dataframe rankeado de probabilidade de classificador
 # para a lista de modelos candidatos
 source("./R/f_prev_rank_class.R")
+source("./R/f_prev_class_id.R")
 
 # ABORDAGEM 1: para aceitar um falso positivo até um certo nível
 l_rank_fpr <- suppressWarnings(f_prev_rank_class(models, useDescr, l_fpr$cutoff))
@@ -490,6 +505,17 @@ l_rank_custmCost <- suppressWarnings(f_prev_rank_class(models, useDescr, l_costC
 # distribuição da população não é confiável)
 l_rank_bestAcc <- suppressWarnings(f_prev_rank_class(models, useDescr, l_bestAcc$cutoff))
 
+# ABORDAGEM 6: retornando a probabilidade prevista de classe de um id específico
+# testes com ID = 2 e ID = 133
+l_prev_id <- suppressWarnings(f_prev_class_id(models, useDescr, 4))
+# flattening a list of dataframes into one dataframe and ploting
+df_temp <- do.call("rbind", l_prev_id)
+# inserting model names column
+df_temp <- cbind(model = names(models), df_temp)
+# removing the ID
+df_temp <- df_temp[, -2]
+# ploting de probabilities vs model
+plot(df_temp)
 
 # TESTE DE COST PARA FP e TP em ROC CURVE USING performence!!
 # TESTAR ESTE MODELO COM DADOS DE BREAST C E MUSHROOMS
@@ -497,7 +523,6 @@ l_rank_bestAcc <- suppressWarnings(f_prev_rank_class(models, useDescr, l_bestAcc
 # OU RECEBE UM CANDIDATO E RETORNA SUA PROBABILIDADE DE TURNOVER
 # testar com dados dos 813 usados na tese
 # criar funcao tb p retornar apenas a probabilidade de pertencer à classe de um candidato
-
 
 # ESCOLHIDO O MODELO AQUI, CRIAR FUNCAO QUE USA O MODELO ESCOLHIDO RECEBENDO
 # OS DADOS A PREVER, GERANDO O MODELO E RETORNANDO O DATAFRAME DE 
