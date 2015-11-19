@@ -62,7 +62,7 @@ useDescr  <- df_scores_hg_use[,-2] # transformando em dataframe de uso sem colun
 trainClass <- class[inTrain]
 testClass  <- class[-inTrain]
 
-# ----- verifica balanceamento das classes nos dados de treino
+# ----- verifica balanceamento das classes nos dados de treino vs população
 prop.table(table(class))
 prop.table(table(trainClass))
 ncol(trainDescr)
@@ -176,7 +176,7 @@ plotObsVsPred(predValues)
 
 # ---------------- A tree induction to observe best features
 form <- as.formula(sexo ~ .)
-tree.2 <- rpart(form,df_scores_hg)			# A more reasonable tree
+tree.2 <- rpart(form,df_scores_hg_train[,-1])			# A more reasonable tree
 prp(tree.2)   
 # A fast plot													
 fancyRpartPlot(tree.2)				# A fancy plot from rattle
@@ -232,7 +232,7 @@ print(l_fpr$cf$glm$table)
 print(l_fpr$cf$LogitBoost$table)
 print(l_fpr$cf$nb$table)
 
-# estatistics as a matrix
+# estatistics as a matrix (idem)
 print(l_fpr$cf$svmRadial$byClass)
 print(l_fpr$cf$gbm$byClass)
 print(l_fpr$cf$treebag$byClass)
@@ -240,9 +240,10 @@ print(l_fpr$cf$ctree2$byClass)
 print(l_fpr$cf$bayesglm$byClass)
 print(l_fpr$cf$glm$byClass)
 print(l_fpr$cf$LogitBoost$byClass)
+
 print(l_fpr$cf$nb$byClass)
 
-# acuracy as a numeric vector
+# acuracy as a numeric vector (idem)
 print(l_fpr$cf$svmRadial$overall)
 print(l_fpr$cf$gbm$overall)
 print(l_fpr$cf$treebag$overall)
@@ -262,22 +263,22 @@ l_bestBal <- suppressWarnings(f_rank_bestBal_models(models, testClass, testDescr
 
 # Plot roc. objects (para cada modelo)
 #-----------------
-plot(l_bestBal$rocPerf$svmRadial )
-abline(a=0, b= 1)
-plot(l_bestBal$rocPerf$gbm )
-abline(a=0, b= 1)
-plot(l_bestBal$rocPerf$treebag)
-abline(a=0, b= 1)
-plot(l_bestBal$rocPerf$ctree2)
-abline(a=0, b= 1)
-plot(l_bestBal$rocPerf$bayesglm)
-abline(a=0, b= 1)
-plot(l_bestBal$rocPerf$glm)
-abline(a=0, b= 1)
-plot(l_bestBal$rocPerf$LogitBoost)
-abline(a=0, b= 1)
-plot(l_bestBal$rocPerf$nb)
-abline(a=0, b= 1)
+#plot(l_bestBal$rocPerf$svmRadial )
+#abline(a=0, b= 1)
+#plot(l_bestBal$rocPerf$gbm )
+#abline(a=0, b= 1)
+#plot(l_bestBal$rocPerf$treebag)
+#abline(a=0, b= 1)
+#plot(l_bestBal$rocPerf$ctree2)
+#abline(a=0, b= 1)
+#plot(l_bestBal$rocPerf$bayesglm)
+#abline(a=0, b= 1)
+#plot(l_bestBal$rocPerf$glm)
+#abline(a=0, b= 1)
+#plot(l_bestBal$rocPerf$LogitBoost)
+#abline(a=0, b= 1)
+#plot(l_bestBal$rocPerf$nb)
+#abline(a=0, b= 1)
 
 # Confusion Matrix (é o mesmo para todas as funções, portanto somente plota uma vez)
 #-----------------
@@ -476,8 +477,8 @@ print(l_bestAcc$cf$nb$overall)
 
 ##########################################################
 # OBTENDO PREVISÕES DE PROBABILIDADE DE CLASSES RANKEADAS
-# ATENÇÃO: aqui, para efeito de análise, sõ usados todos
-# os modelos gerados. No entento, em um caso real de 
+# ATENÇÃO: aqui, para efeito de análise, são usados todos
+# os modelos gerados. No entanto, em um caso real de 
 # previsão, deve-se escolher o melhor modelo e aplicar
 # a análise abaixo somente a este modelo
 # para previsao usar f_agbd_previsao (a desenvolver)
@@ -527,3 +528,9 @@ plot(df_temp)
 # ESCOLHIDO O MODELO AQUI, CRIAR FUNCAO QUE USA O MODELO ESCOLHIDO RECEBENDO
 # OS DADOS A PREVER, GERANDO O MODELO E RETORNANDO O DATAFRAME DE 
 # PROBABILIDADE DE CLASSES
+
+
+# USAR OS FEATIRES MAIS IMPORTANTES 
+# CRIAR COMO PARAMETROS INTERATIVOS NO SHINY, CHAMANDO A PREVISAO
+# E MOSTRANDO A PROBABILIDADE
+# ABRIR MODELO SALVO PREVIAMENTE E APLCIAR FUNCAO PREDICAO

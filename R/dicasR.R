@@ -21,3 +21,11 @@ mod <- ksvm(x = tr[,-1],
 pred <- predict(mod, 
                 ts[,-1]
 )
+
+# disparar stop condicional dentro de funcão
+stopifnot("age" %in% names(newdata))
+
+
+# para não iniciar automaticamente o X11 quando carrega library ggplot2
+library(devtools)
+install_version("colorspace", "1.2-4")
