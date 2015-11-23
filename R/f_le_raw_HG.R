@@ -1,5 +1,5 @@
 # f_le_dadosHG
-require("dplyr")
+require("dplyr", quietly = TRUE, warn.conflicts = FALSE)
 f_le_raw_HG <- function() {
     set.seed(1)
     # ----- carrega dados reais de Human Guide

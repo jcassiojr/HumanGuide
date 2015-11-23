@@ -1,7 +1,7 @@
 #' prepara dataset de scores a partir dos dados originais HG
 #' param: i_df -> dataframe com dados do teste HG e coluna de turnover
 #' return: dataframe com scores calculados
-require(dplyr)
+#require(dplyr)
 
 f_tidy_scores_HG <- function(df_in) {
     # substitui valores "?" por NA
