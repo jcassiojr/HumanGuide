@@ -1,7 +1,7 @@
 # Este é o roadmap para fazer as análises dos dados do Human Guide
 # supondo que as features sejam os 8 fatores
 require("caret")
-require("corrplot")
+#require("corrplot")
 require("ggplot2")
 require("pROC")
 require("ROCR")
@@ -10,7 +10,7 @@ require("rattle")					# Fancy tree plot
 require("rpart.plot")
 #require("xlsx")
 #require("plyr")
-require("dplyr")
+#require("dplyr")
 require("doMC")
 registerDoMC(5) # parallel processing
 #############################################
@@ -29,9 +29,18 @@ registerDoMC(5) # parallel processing
 # daqui pular direto para criar data sets de treinao, teste e uso
 
 # ----- carrega dados reais de Human Guide
-# retorna lista com: dataset para treino do modelo, dataset para uso do modelo
+# retorna dataset para análise do modelo
 source("./R/f_le_raw_HG.R")
-l_df <- f_le_raw_HG()
+df_raw_hg <- f_le_raw_HG()
+
+# passa dataset raw com pontuação no teste HG para função 
+# que gera dataset com scores HG
+source("./R/f_tidy_scores_HG.R")
+df_tidy_hg <- f_tidy_scores_HG(df_raw_hg)
+
+# passa dataset para função de análise PCA
+f_pca_HG(df_tidy_hg)
+
 df_hg_train <- l_df$df_hg_train # data set a ser usado para treino dos modelos
 df_hg_use <- l_df$df_hg_use # dataset a ser usado para fazer previsões
 
@@ -47,6 +56,9 @@ source("./R/f_tidy_scores_HG.R")
 # SOLUÇÃO: desatachar e reatachar pacote dplyr
 df_scores_hg_train <- f_tidy_scores_HG(df_hg_train)
 df_scores_hg_use <- f_tidy_scores_HG(df_hg_use)
+
+# Principal Component Analysis
+f_pca_HG(df_scores_hg_train)
 
 class <- as.factor(df_scores_hg_train[,2]) # transformando em vetor de fatores de target
 descr <- df_scores_hg_train[,-c(1,2)] # transformando em dataframe de features
