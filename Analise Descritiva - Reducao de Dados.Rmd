@@ -1,0 +1,101 @@
+---
+title: "Análise Descritiva"
+author: "José Cassio"
+date: "November 23, 2015"
+output: html_document
+---
+
+Este documento descreve a análise descritiva realizada com o objetivo de reduzir as dimensões dos dados do teste **Human Guide** por meio da técnica de análise de componentes principais.
+
+### Preparação dos dados ###
+Foram obtidos os dados brutos das seguintes fontes:
+
+* goe_20151121_0154.csv
+* kroton_20151121_0125.csv
+* rh99_20151121_0002.csv
+
+Os arquivos acima foram concatenados, gerando 116.603 observações. 
+Sobre estes dados brutos, foram aplicadas as fórmulas para a obtenção dos 8 fatores relevantes para a análise de componentes principais, gerando um arquivo de dados processados, cujas primeiras cinco linhas são mostradas abaixo:
+
+```{r,echo=FALSE}
+require("corrplot", quietly = TRUE, warn.conflicts = FALSE)
+source("./R/f_le_raw_HG.R")
+source("./R/f_tidy_scores_HG.R")
+df_raw_hg <- f_le_raw_HG()
+df_tidy_hg <- f_tidy_scores_HG(df_raw_hg)
+head(df_tidy_hg)
+```
+
+#### Análise de Correlação do Fatores ####
+
+A primeira análise a ser realizada foi uma análise de correlação entre os 8 fatores, conforme o plot abaixo:
+
+```{r, echo=FALSE}
+my.cor <- cor(df_tidy_hg[,2:9])
+corrplot.mixed(my.cor, insig = "p-value", sig.level = -1, is.corr = TRUE)
+```
+
+O plot mostra na metade superior a força da correlação entre os fatores, expressa por meio do tamanho do círculo e da intensidade de sua cor. Na parte inferior o **p-value** relcionado a medida de correlação.
+
+#### Análise de Componentes Principais ####
+
+A análise de PCA foi implementada aos dados processados, gerando oito componentes, associados aos seguintes resultados:
+
+##### Desvio Padrão associados aos Componentes #####
+
+```{r, echo=FALSE}
+pca1 = prcomp(df_tidy_hg[,2:9], scale. = TRUE, center = TRUE)
+print (pca1$sdev)
+```
+
+##### *Loadings* ou *Rotations* ##### 
+Cada componente sendo uma combinação linear das variáveis (8 fatores). Os coeficientes indicando o quanto cada variável está correlacionada com o componentes específico
+```{r, echo=FALSE}
+    pca1$rotation
+```
+
+##### Scores ##### 
+Os scores são calculados a partir da recombinação dos originais 8 fatores nos novos componentes. Abaixo são mostrados os cinco primjeiros scores de todas as observaçoes, associados aos novos componentes:
+```{r, echo=FALSE}
+    head(pca1$x)
+```
+
+##### Sumário da análise PCA ##### 
+Abaixo está o sumário da análise PCA executada, mostrando a importância da contribuição de cada componente:
+```{r, echo=FALSE}
+    summary(pca1)
+```
+
+#### Redução dos Componentes Principais ####
+##### Redução pelo critério de Kayser ##### 
+Um critério que pode ser usado para reduzir os componentes é o de selecionar apenas aqueles com eingevalues maior que 1 (critério de Kayser):
+```{r, echo=FALSE}
+    my.kayser.crit <- pca1$sdev ^ 2
+    print(my.kayser.crit)
+```
+
+##### Redução pelo Scree plot ##### 
+Um outro critário que pode ser usado para reduzir os componentes é o plotar as variações dos componentes e visualmente selecionar aqueles que têm a maior contribuição nesta variação:
+
+```{r, echo=FALSE}
+    screeplot(pca1, main = "Scree Plot - Human Guide", type = "lines")
+```
+
+##### Aplicando a rotação varimax ##### 
+O objetivo desta rotação é o de mudar as corrdenadas de forma a maximizar a soma das variâncias dos quadrados dos *loadings*, desta formarealizando uma "limpeza" nas rotações obtidas originalmente na análise PCA.
+São considerados nesta rotação somente os 4 componentes com maior contribuição, cobrindo **64%** da variação total da amostra:
+
+```{r, echo=FALSE}
+    varimax4 <- varimax(pca1$rotation[,1:4], normalize = TRUE)
+    print(varimax4)
+```
+
+##### Plotando os fatores de acordo com os componentes ##### 
+FALTA ALTERAR ABAIXO
+O plot abaixo mostra os eingevectors dos fatores em relação aos pares de componentes encontrados.
+###### Componentes PC1 e PC2
+
+```{r, echo=FALSE}
+    varimax4 <- varimax(pca1$rotation[,1:4], normalize = TRUE)
+    print(varimax4)
+```
