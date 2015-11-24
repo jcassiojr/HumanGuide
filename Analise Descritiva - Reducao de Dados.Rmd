@@ -91,11 +91,92 @@ São considerados nesta rotação somente os 4 componentes com maior contribuiç
 ```
 
 ##### Plotando os fatores de acordo com os componentes ##### 
-FALTA ALTERAR ABAIXO
+
 O plot abaixo mostra os eingevectors dos fatores em relação aos pares de componentes encontrados.
-###### Componentes PC1 e PC2
+
+###### Componentes PC1 e PC2 ######
 
 ```{r, echo=FALSE}
-    varimax4 <- varimax(pca1$rotation[,1:4], normalize = TRUE)
-    print(varimax4)
+    require("ggplot2", quietly = TRUE, warn.conflicts = FALSE)
+    # circle of correlations
+    circle <- function(center = c(0, 0), npoints = 100) {
+        r <- 1
+        tt <-  seq(0, 2 * pi, length = npoints) 
+        xx <- center[1] + r * cos(tt)
+        yy <-  center[1] + r * sin(tt) 
+        return(data.frame(x = xx, y = yy))
+    }
+    corcir = circle(c(0, 0), npoints = 100)
+    # create data frame with correlations between variables and PCs
+    correlations = as.data.frame(cor(df_tidy_hg[,2:9], pca1$x))
+    # data frame with arrows coordinates
+    arrows <- data.frame(x1 = c(0, 0, 0, 0), y1 = c(0, 0, 0, 0), x2 = correlations$PC1,
+                         y2 = correlations$PC2)
+    # geom_path will do open circles
+    ggplot() + geom_path(data = corcir, aes(x = x, y = y), colour = "gray65") +
+        geom_segment(data = arrows, aes(x = x1, y = y1, xend = x2, yend = y2), colour = "gray65") +
+        geom_text(data = correlations, aes(x = PC1, y = PC2, label = rownames(correlations))) +
+        geom_hline(yintercept = 0, colour = "gray65") + geom_vline(xintercept = 0,
+                                                                   colour = "gray65") + 
+        xlim(-1.1, 1.1) +
+        ylim(-1.1, 1.1) +
+        labs(x = "pc1 axis", y = "pc2 axis") + ggtitle("Circle of correlations")
+```
+
+###### Componentes PC1 e PC3 ######
+
+```{r, echo=FALSE}
+    require("ggplot2", quietly = TRUE, warn.conflicts = FALSE)
+    # circle of correlations
+    circle <- function(center = c(0, 0), npoints = 100) {
+        r <- 1
+        tt <-  seq(0, 2 * pi, length = npoints) 
+        xx <- center[1] + r * cos(tt)
+        yy <-  center[1] + r * sin(tt) 
+        return(data.frame(x = xx, y = yy))
+    }
+    corcir = circle(c(0, 0), npoints = 100)
+    # create data frame with correlations between variables and PCs
+    correlations = as.data.frame(cor(df_tidy_hg[,2:9], pca1$x))
+    # data frame with arrows coordinates
+    arrows <- data.frame(x1 = c(0, 0, 0, 0), y1 = c(0, 0, 0, 0), x2 = correlations$PC1,
+                         y2 = correlations$PC3)
+    # geom_path will do open circles
+    ggplot() + geom_path(data = corcir, aes(x = x, y = y), colour = "gray65") +
+        geom_segment(data = arrows, aes(x = x1, y = y1, xend = x2, yend = y2), colour = "gray65") +
+        geom_text(data = correlations, aes(x = PC1, y = PC3, label = rownames(correlations))) +
+        geom_hline(yintercept = 0, colour = "gray65") + geom_vline(xintercept = 0,
+                                                                   colour = "gray65") + 
+        xlim(-1.1, 1.1) +
+        ylim(-1.1, 1.1) +
+        labs(x = "pc1 axis", y = "pc3 axis") + ggtitle("Circle of correlations")
+```
+
+###### Componentes PC2 e PC3 ######
+
+```{r, echo=FALSE}
+    require("ggplot2", quietly = TRUE, warn.conflicts = FALSE)
+    # circle of correlations
+    circle <- function(center = c(0, 0), npoints = 100) {
+        r <- 1
+        tt <-  seq(0, 2 * pi, length = npoints) 
+        xx <- center[1] + r * cos(tt)
+        yy <-  center[1] + r * sin(tt) 
+        return(data.frame(x = xx, y = yy))
+    }
+    corcir = circle(c(0, 0), npoints = 100)
+    # create data frame with correlations between variables and PCs
+    correlations = as.data.frame(cor(df_tidy_hg[,2:9], pca1$x))
+    # data frame with arrows coordinates
+    arrows <- data.frame(x1 = c(0, 0, 0, 0), y1 = c(0, 0, 0, 0), x2 = correlations$PC2,
+                         y2 = correlations$PC3)
+    # geom_path will do open circles
+    ggplot() + geom_path(data = corcir, aes(x = x, y = y), colour = "gray65") +
+        geom_segment(data = arrows, aes(x = x1, y = y1, xend = x2, yend = y2), colour = "gray65") +
+        geom_text(data = correlations, aes(x = PC2, y = PC3, label = rownames(correlations))) +
+        geom_hline(yintercept = 0, colour = "gray65") + geom_vline(xintercept = 0,
+                                                                   colour = "gray65") + 
+        xlim(-1.1, 1.1) +
+        ylim(-1.1, 1.1) +
+        labs(x = "pc2 axis", y = "pc3 axis") + ggtitle("Circle of correlations")
 ```

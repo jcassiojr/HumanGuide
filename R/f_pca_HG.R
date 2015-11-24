@@ -254,6 +254,64 @@ f_pca_HG <- function(df_in) {
     # salvar os gráficos acima para cada par de componentes (para 4 componentes)
     # ANÁLISE TERMINA AQUI. PARA BAIXO SÃO ALTERNATIVAS
     
+    # scores só dos primeiros 10.000 obs
+    # plot(pca3)
+    
+    plot(pca1, type = "l")
+    summary(pca1)
+    
+    # predizendo scores de nova amostra
+    predict(pca1, newdata=tail(df_in[,2:9], 2))
+    
+    # plot
+    require(ggplot2)
+    
+    theta <- seq(0,2*pi,length.out = 100)
+    circle <- data.frame(x = cos(theta), y = sin(theta))
+    p <- ggplot(circle,aes(x,y)) + geom_path()
+    
+    loadings <- data.frame(pca1$rotation, 
+                           .names = row.names(pca1$rotation))
+    p + geom_text(data=loadings, 
+                  mapping=aes(x = PC1, y = PC2, label = .names, colour = .names)) +
+        coord_fixed(ratio=1) +
+        labs(x = "PC1", y = "PC2")
+    
+    # usando caret
+    require(caret)
+    trans = preProcess(df_in[,2:9], 
+                       method=c("BoxCox", "center", 
+                                "scale", "pca"))
+    PC = predict(trans, df_in[,2:9])
+    # Retained PCs
+    head(PC, 3)
+    # Loadings
+    trans$rotation   
+    #plot de correlação
+    require("corrplot")
+    descrCorr <- cor(df_in[,2:9])
+    # plotando com p-value para cada correlação
+    # interessante para ver correlação entre os componentes!!
+    corrplot.mixed(descrCorr, insig = "p-value",sig.level = -1)
+    
+    # passar para aqui o gráficos 3D abaixo para teste
+    # ver se vale a pena usar caret (comparar valores com prcomp para ver se batem)
+    # plot
+    library(rgl)
+    scores = as.data.frame(head(pca1$x, n = 100))
+    pairs(scores[2:4])
+    plot3d(scores[2:4])  # great
+    
+    # colorido (usar este) 
+    library(mclust)
+    fit <- Mclust(scores[1:4], G=4, modelNames = "EEV")
+    plot3d(scores[1:4], col = fit$classification) 
+    
+    
+    
+    
+    
+    #++++++++++++++++++++++++++++++++++++++++++++++++++++++
     
     # scree plot
     #screeplot(pca1, type = "lines")
@@ -272,8 +330,9 @@ f_pca_HG <- function(df_in) {
     # PCs (aka scores)
     head(pca3$ind$coord)
     
-    
-    
+    #res.pca <- PCA(head(df_in[,2:9], n = 10000))
+    #barplot(res.pca$eig[,1],main="Eigenvalues",names.arg=1:nrow(res.pca$eig))
+    #summary(res.pca)
     
     #-------------------------
     # another with iris
@@ -300,7 +359,7 @@ f_pca_HG <- function(df_in) {
     # We can use the predict function if we observe new data and want to predict
     # their PCs values. Just for illustration pretend the last two rows of the 
     # iris data has just arrived and we want to see what is their PCs values:
-    # Predict PCs
+    # Predict PCs scores
     predict(ir.pca, newdata=tail(log.ir, 2))
     
     # plotting
