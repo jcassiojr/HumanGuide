@@ -1,7 +1,7 @@
 # f_le_dadosHG
 # Esta função lê os dados originais para teste do HG
-require("xlsx")
-require("dplyr")
+require("xlsx", quietly = TRUE, warn.conflicts = FALSE)
+require("dplyr", quietly = TRUE, warn.conflicts = FALSE)
 f_le_raw_HG_ori <- function() {
     #set.seed(1)
     # ----- carrega dados reais de Human Guide

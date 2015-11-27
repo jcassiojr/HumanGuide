@@ -19,45 +19,114 @@ Sobre estes dados brutos, foram aplicadas as fórmulas para a obtenção dos 8 f
 
 ```{r,echo=FALSE}
 require("corrplot", quietly = TRUE, warn.conflicts = FALSE)
-source("./R/f_le_raw_HG.R")
+require("doMC", quietly = TRUE, warn.conflicts = FALSE)
+
+#source("./R/f_le_raw_HG_ori.R") # usar esta função para ler os dados originais da tese. 
+source("./R/f_le_raw_HG.R") # usar esta função para ler os dados novos. 
 source("./R/f_tidy_scores_HG.R")
-df_raw_hg <- f_le_raw_HG()
+
+registerDoMC(5) # parallel processing
+#df_raw_hg <- f_le_raw_HG_ori() # retorna colunas: ID, sexo, pontos
+df_raw_hg <- f_le_raw_HG() # retorna colunas: todas
 df_tidy_hg <- f_tidy_scores_HG(df_raw_hg)
-head(df_tidy_hg)
+#head(df_tidy_hg)
+knitr::kable(head(df_tidy_hg))
+```
+
+### Análises Estatísticas Iniciais ###
+
+A primeira análise a ser realizada consiste na obtenção de valores estatísticos básicos da amostra original:
+
+#### Estatísticas Básicas da Amostra ####
+
+```{r, echo=FALSE}
+require("psych", quietly = TRUE, warn.conflicts = FALSE)
+my.descr <- describe(df_tidy_hg[,3:10])
+#print(my.descr)
+knitr::kable(my.descr)
+# hist(df_tidy_hg$power)
 ```
 
 #### Análise de Correlação do Fatores ####
 
-A primeira análise a ser realizada foi uma análise de correlação entre os 8 fatores, conforme o plot abaixo:
+É realizada uma análise de correlação entre os 8 fatores, conforme os plots abaixo.
 
 ```{r, echo=FALSE}
-my.cor <- cor(df_tidy_hg[,2:9])
+my.cor <- cor(df_tidy_hg[,3:10])
 corrplot.mixed(my.cor, insig = "p-value", sig.level = -1, is.corr = TRUE)
 ```
 
-O plot mostra na metade superior a força da correlação entre os fatores, expressa por meio do tamanho do círculo e da intensidade de sua cor. Na parte inferior o **p-value** relcionado a medida de correlação.
+O plot acima mostra na metade superior a força da correlação entre os fatores, expressa por meio do tamanho do círculo e da intensidade de sua cor. Na parte inferior o **p-value** relcionado a medida de correlação.
+A partir da tabela acima, pode ser observado um agrupamento aparente inicial:
+
+    * G1: sensibility, exposure, structure e power
+    * G2: imagination e stability
+    * G3: contacts, quality e exposure
+
+#### Outra Abordagem de Matriz de Correlação ####
+
+```{r, echo=FALSE}
+#pairs(df_tidy_hg[,3:10], main = "Matriz de Dispersão (feminino: green, masculino: red)", 
+#          pch=21, bg=c("green3","red")[unclass(df_tidy_hg$sexo)])
+pairs(df_tidy_hg[,3:10], main = "Matriz de Dispersão (FUNC PUBLICO: green, KROTON: red, INDEFINIDO: blue, AMBEV: yellow)", 
+          pch=21, bg=c("green3","red", "blue", "yellow")[unclass(df_tidy_hg$TIPOUSER)])
+```
+
+#### Análise de Correlação do Fatores ####
+
+É realizada uma análise de correlação entre os 8 fatores, conforme os plots abaixo:
+
+```{r, echo=FALSE}
+# correlação de spearman
+    my.cor <- cor(df_tidy_hg[,3:10], method = "spearman")
+    #print(my.cor, digits = 4)
+    knitr::kable(my.cor)
+```
+
+#### Análise Cluster ####
+
+É aplicada à amostra uma análise de cluster para complementar as análises prévias:
+
+```{r, echo=FALSE}
+    ic <- iclust(my.cor, nclusters = 4) # usa Pearson correlation
+    # summary(ic)
+    print(ic)
+```
+
+A partir do resultado acima, pode-se também considerar a seguinte alternativa de agrupamento:
+
+    * G1: structure e power
+    * G2: sensibility e quality
+    * G3: exposure e contacts
+    * G4: imagination e stability
 
 #### Análise de Componentes Principais ####
 
-A análise de PCA foi implementada aos dados processados, gerando oito componentes, associados aos seguintes resultados:
+A análise de PCA foi implementada aos dados processados, gerando oito componentes, associados aos seguintes resultados normalizados:
 
-##### Desvio Padrão associados aos Componentes #####
+##### Desvio Padrão associado aos Componentes #####
 
 ```{r, echo=FALSE}
-pca1 = prcomp(df_tidy_hg[,2:9], scale. = TRUE, center = TRUE)
-print (pca1$sdev)
+    pca1 = prcomp(df_tidy_hg[,3:10], scale. = TRUE, center = TRUE)
+    print (pca1$sdev)
+    #knitr::kable(pca1$sdev)
 ```
 
 ##### *Loadings* ou *Rotations* ##### 
-Cada componente sendo uma combinação linear das variáveis (8 fatores). Os coeficientes indicando o quanto cada variável está correlacionada com o componentes específico
+
+Cada componente sendo uma combinação linear das variáveis (8 fatores). Os coeficientes indicando o quanto cada variável está correlacionada com os componentes específicos:
+
 ```{r, echo=FALSE}
-    pca1$rotation
+    # pca1$rotation
+    knitr::kable(pca1$rotation)
 ```
 
 ##### Scores ##### 
-Os scores são calculados a partir da recombinação dos originais 8 fatores nos novos componentes. Abaixo são mostrados os cinco primjeiros scores de todas as observaçoes, associados aos novos componentes:
+Os scores são calculados a partir da recombinação dos originais 8 fatores nos novos componentes. Abaixo são mostrados os cinco primeiros scores de todas as observações, associados aos novos componentes:
 ```{r, echo=FALSE}
-    head(pca1$x)
+    # head(pca1$x)
+    #knitr::kable(head(pca1$x), digits = 4)
+    knitr::kable(head(pca1$x))
 ```
 
 ##### Sumário da análise PCA ##### 
@@ -67,116 +136,159 @@ Abaixo está o sumário da análise PCA executada, mostrando a importância da c
 ```
 
 #### Redução dos Componentes Principais ####
-##### Redução pelo critério de Kayser ##### 
-Um critério que pode ser usado para reduzir os componentes é o de selecionar apenas aqueles com eingevalues maior que 1 (critério de Kayser):
+
+##### Redução pelo critério de Kaiser ##### 
+
+Um critério que pode ser usado para reduzir os componentes é o de selecionar apenas aqueles com eigenvalues maior que 1 (critério de Kayser).
 ```{r, echo=FALSE}
     my.kayser.crit <- pca1$sdev ^ 2
+    #knitr::kable(my.kayser.crit)
     print(my.kayser.crit)
 ```
 
+Caso se opte pelo critério acima, deve-se considerar os cinco primeiros componentes no prosseguimento da análise 
+
 ##### Redução pelo Scree plot ##### 
-Um outro critário que pode ser usado para reduzir os componentes é o plotar as variações dos componentes e visualmente selecionar aqueles que têm a maior contribuição nesta variação:
+
+Um outro critério que pode ser usado para reduzir os componentes é o plotar as variações dos componentes e visualmente selecionar aqueles que têm a maior contribuição nesta variação:
 
 ```{r, echo=FALSE}
     screeplot(pca1, main = "Scree Plot - Human Guide", type = "lines")
 ```
 
-##### Aplicando a rotação varimax ##### 
-O objetivo desta rotação é o de mudar as corrdenadas de forma a maximizar a soma das variâncias dos quadrados dos *loadings*, desta formarealizando uma "limpeza" nas rotações obtidas originalmente na análise PCA.
-São considerados nesta rotação somente os 4 componentes com maior contribuição, cobrindo **64%** da variação total da amostra:
+Nesta abordagem, nos dados originais pode-se identificar um patamar inicial com os três primeiros componentes sendo mais significativos. Neste caso, verifica-se que estes componentes são responsáveis por cerca de *52 %* da variação dos dados. 
+Para os dados novos, este padrão não é tão destacado, mas se optou por considerar ainda 3 componentes, contribuindo com *49.4 %* da variação, neste caso.
+
+#### Aplicando a rotação Varimax para interpretar os componentes ####
+
+A rotação muda as coordenadas de forma a maximizar a soma das variâncias dos quadrados dos *loadings*, desta forma realizando uma "limpeza" nas rotações obtidas originalmente na análise PCA.
+Esta rotação é usada para ajudar na melhor interpretação dos componentes, de forma a identificar significado nos mesmos.
+
+Opta-se, neste caso, pelo uso de 3 componentes para a rotação, de acordo com o observado no scree plot e de forma a manter a coerência com a escolha original do trabalho.
 
 ```{r, echo=FALSE}
-    varimax4 <- varimax(pca1$rotation[,1:4], normalize = TRUE)
-    print(varimax4)
+    varimax3 <- varimax(pca1$rotation[,1:3], normalize = TRUE)
+    print (varimax3$loadings)
 ```
 
-##### Plotando os fatores de acordo com os componentes ##### 
+##### Plotando os fatores de acordo com os componentes após a rotação ##### 
 
-O plot abaixo mostra os eingevectors dos fatores em relação aos pares de componentes encontrados.
+O plot abaixo mostra os eigenvalues dos fatores em relação aos pares de componentes encontrados.
 
-###### Componentes PC1 e PC2 ######
-
-```{r, echo=FALSE}
-    require("ggplot2", quietly = TRUE, warn.conflicts = FALSE)
-    # circle of correlations
-    circle <- function(center = c(0, 0), npoints = 100) {
-        r <- 1
-        tt <-  seq(0, 2 * pi, length = npoints) 
-        xx <- center[1] + r * cos(tt)
-        yy <-  center[1] + r * sin(tt) 
-        return(data.frame(x = xx, y = yy))
-    }
-    corcir = circle(c(0, 0), npoints = 100)
-    # create data frame with correlations between variables and PCs
-    correlations = as.data.frame(cor(df_tidy_hg[,2:9], pca1$x))
-    # data frame with arrows coordinates
-    arrows <- data.frame(x1 = c(0, 0, 0, 0), y1 = c(0, 0, 0, 0), x2 = correlations$PC1,
-                         y2 = correlations$PC2)
-    # geom_path will do open circles
-    ggplot() + geom_path(data = corcir, aes(x = x, y = y), colour = "gray65") +
-        geom_segment(data = arrows, aes(x = x1, y = y1, xend = x2, yend = y2), colour = "gray65") +
-        geom_text(data = correlations, aes(x = PC1, y = PC2, label = rownames(correlations))) +
-        geom_hline(yintercept = 0, colour = "gray65") + geom_vline(xintercept = 0,
-                                                                   colour = "gray65") + 
-        xlim(-1.1, 1.1) +
-        ylim(-1.1, 1.1) +
-        labs(x = "pc1 axis", y = "pc2 axis") + ggtitle("Circle of correlations")
-```
-
-###### Componentes PC1 e PC3 ######
+##### Componentes PC1 e PC2 #####
 
 ```{r, echo=FALSE}
     require("ggplot2", quietly = TRUE, warn.conflicts = FALSE)
-    # circle of correlations
-    circle <- function(center = c(0, 0), npoints = 100) {
-        r <- 1
-        tt <-  seq(0, 2 * pi, length = npoints) 
-        xx <- center[1] + r * cos(tt)
-        yy <-  center[1] + r * sin(tt) 
-        return(data.frame(x = xx, y = yy))
-    }
-    corcir = circle(c(0, 0), npoints = 100)
-    # create data frame with correlations between variables and PCs
-    correlations = as.data.frame(cor(df_tidy_hg[,2:9], pca1$x))
-    # data frame with arrows coordinates
-    arrows <- data.frame(x1 = c(0, 0, 0, 0), y1 = c(0, 0, 0, 0), x2 = correlations$PC1,
-                         y2 = correlations$PC3)
-    # geom_path will do open circles
-    ggplot() + geom_path(data = corcir, aes(x = x, y = y), colour = "gray65") +
-        geom_segment(data = arrows, aes(x = x1, y = y1, xend = x2, yend = y2), colour = "gray65") +
-        geom_text(data = correlations, aes(x = PC1, y = PC3, label = rownames(correlations))) +
-        geom_hline(yintercept = 0, colour = "gray65") + geom_vline(xintercept = 0,
-                                                                   colour = "gray65") + 
-        xlim(-1.1, 1.1) +
-        ylim(-1.1, 1.1) +
-        labs(x = "pc1 axis", y = "pc3 axis") + ggtitle("Circle of correlations")
+    my.var_load <- varimax3$loadings[1:8,]
+    loadings <- data.frame(my.var_load, .names = row.names(pca1$rotation))
+    theta <- seq(0,2*pi,length.out = 100)
+    circle <- data.frame(x = cos(theta), y = sin(theta))
+    
+    # plot após rotação PC1 x PC2
+    #----------------------------
+    p <- ggplot(circle,aes(x,y)) + geom_path()
+    p + geom_text(data=loadings, 
+              mapping=aes(x = PC1, y = PC2, label = "a", colour = .names)) +
+    coord_fixed(ratio=1) +
+    labs(x = "PC1", y = "PC2")
 ```
 
-###### Componentes PC2 e PC3 ######
+##### Componentes PC2 e PC3 #####
 
 ```{r, echo=FALSE}
-    require("ggplot2", quietly = TRUE, warn.conflicts = FALSE)
-    # circle of correlations
-    circle <- function(center = c(0, 0), npoints = 100) {
-        r <- 1
-        tt <-  seq(0, 2 * pi, length = npoints) 
-        xx <- center[1] + r * cos(tt)
-        yy <-  center[1] + r * sin(tt) 
-        return(data.frame(x = xx, y = yy))
-    }
-    corcir = circle(c(0, 0), npoints = 100)
-    # create data frame with correlations between variables and PCs
-    correlations = as.data.frame(cor(df_tidy_hg[,2:9], pca1$x))
-    # data frame with arrows coordinates
-    arrows <- data.frame(x1 = c(0, 0, 0, 0), y1 = c(0, 0, 0, 0), x2 = correlations$PC2,
-                         y2 = correlations$PC3)
-    # geom_path will do open circles
-    ggplot() + geom_path(data = corcir, aes(x = x, y = y), colour = "gray65") +
-        geom_segment(data = arrows, aes(x = x1, y = y1, xend = x2, yend = y2), colour = "gray65") +
-        geom_text(data = correlations, aes(x = PC2, y = PC3, label = rownames(correlations))) +
-        geom_hline(yintercept = 0, colour = "gray65") + geom_vline(xintercept = 0,
-                                                                   colour = "gray65") + 
-        xlim(-1.1, 1.1) +
-        ylim(-1.1, 1.1) +
-        labs(x = "pc2 axis", y = "pc3 axis") + ggtitle("Circle of correlations")
+    p <- ggplot(circle,aes(x,y)) + geom_path()
+    p + geom_text(data=loadings, 
+                  mapping=aes(x = PC2, y = PC3, label = "a", colour = .names)) +
+        coord_fixed(ratio=1) +
+        labs(x = "PC2", y = "PC3")
 ```
+
+##### Componentes PC3 e PC4 #####
+
+```{r, echo=FALSE}
+    p <- ggplot(circle,aes(x,y)) + geom_path()
+    p + geom_text(data=loadings, 
+                  mapping=aes(x = PC1, y = PC3, label = "a", colour = .names)) +
+        coord_fixed(ratio=1) +
+        labs(x = "PC1", y = "PC3")
+```
+
+#### Plotando os fatores de acordo com os componentes após a rotação em formato 3D ####
+
+##### Base PC3 #####
+
+```{r, echo=FALSE}
+    library(scatterplot3d)
+    df_varload <- as.data.frame(my.var_load)
+    with(df_varload, {
+        s3d <- scatterplot3d(PC1, PC2, PC3,        # x y and z axis
+                             color="blue", pch=19,        # filled blue circles
+                             type="h",                    # vertical lines to the x-y plane
+                             main="3-D Component Plot in Rotated Space (Base PC3)",
+                             xlab="PC1",
+                             ylab="PC2",
+                             zlab="PC3")
+        s3d.coords <- s3d$xyz.convert(PC1, PC2, PC3) # convert 3D coords to 2D projection
+        text(s3d.coords$x, s3d.coords$y,             # x and y coordinates
+             labels=row.names(df_varload),               # text to plot
+             cex=.5, pos=4)           # shrink text 50% and place to right of points)
+    })
+```
+
+##### Base PC2 #####
+
+```{r, echo=FALSE}
+      with(df_varload, {
+        s3d <- scatterplot3d(PC3, PC1, PC2,         # x y and z axis
+                             color="blue", pch=19,        # filled blue circles
+                             type="h",                    # vertical lines to the x-y plane
+                             main="3-D Component Plot in Rotated Space (Base PC2)",
+                             xlab="PC3",
+                             ylab="PC1",
+                             zlab="PC2")
+        s3d.coords <- s3d$xyz.convert(PC3, PC1, PC2) # convert 3D coords to 2D projection
+        text(s3d.coords$x, s3d.coords$y,             # x and y coordinates
+             labels=row.names(df_varload),               # text to plot
+             cex=.5, pos=4)           # shrink text 50% and place to right of points)
+    })
+```
+
+##### Base PC1 #####
+
+```{r, echo=FALSE}
+    with(df_varload, {
+        s3d <- scatterplot3d(PC2, PC3, PC1,         # x y and z axis
+                             color="blue", pch=19,        # filled blue circles
+                             type="h",                    # vertical lines to the x-y plane
+                             main="3-D Component Plot in Rotated Space (Base PC1)",
+                             xlab="PC2",
+                             ylab="PC3",
+                             zlab="PC1")
+        s3d.coords <- s3d$xyz.convert(PC2, PC3, PC1) # convert 3D coords to 2D projection
+        text(s3d.coords$x, s3d.coords$y,             # x and y coordinates
+             labels=row.names(df_varload),               # text to plot
+             cex=.5, pos=4)           # shrink text 50% and place to right of points)
+    })
+```
+
+### Prevendo Scores de Novas Amostras ###
+
+A partir do modelo obtido com a Análise de Componentes Principais é possível posicionar novos candidatos em relação a seus scores nos componentes, conforme exemplificado abaixo.
+
+Considerando a pontuação dos cinco candidatos abaixo:
+
+```{r, echo=FALSE}
+    my.newdata <- head(df_tidy_hg[,c(1,3:10)])
+    #print (my.newdata)
+    knitr::kable(my.newdata)
+```
+
+Aplicando o modelo, podemos obter os seguintes scores:
+```{r, echo=FALSE}
+    my.prev <- as.data.frame(predict(pca1, newdata=my.newdata))
+    my.prev <- cbind(my.newdata, PC1 = my.prev$PC1, PC2 = my.prev$PC2, PC3 = my.prev$PC3)
+    #print(my.prev[,c(1,10:12)])
+    knitr::kable(my.prev[,c(1,10:12)])
+```
+
+A saída acima pode ser aplicada a um algoritmo para classificar candidato nos componentes associados.

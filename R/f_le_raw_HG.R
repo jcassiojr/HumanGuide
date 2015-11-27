@@ -1,7 +1,6 @@
 # f_le_dadosHG
 require("dplyr", quietly = TRUE, warn.conflicts = FALSE)
 f_le_raw_HG <- function() {
-    set.seed(1)
     # ----- carrega dados reais de Human Guide
     # estes dados são os obtidos pelo sistema HG
     df_goe <- read.csv2("./data/goe_20151121_0154.csv", encoding = "UTF-8", 
@@ -11,12 +10,17 @@ f_le_raw_HG <- function() {
     # eliminando linhas erradas, com TIPOUSER = "SP" ou "DF"
     df_rh99 <- read.csv2("./data/rh99_20151121_0002.csv", encoding = "UTF-8", 
                            sep = "\t", header = TRUE)
+    # elimina linhas com dados que estavam na coluna errada
     df_rh99 <-
         df_rh99 %>%
         filter(TIPOUSER != "SP" & TIPOUSER != "DF")
         
     # concatena as 3 bases 
     df_out <- rbind(df_goe, df_kroton, df_rh99)
+    
+    # refactoring
+    df_out$TIPOUSER <- factor(df_out$TIPOUSER)
+    
     # eliminando coluna "X"
     df_out <-
         df_out %>%

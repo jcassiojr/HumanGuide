@@ -8,87 +8,6 @@ require("FactoMineR")
 library(psych)
 
 f_pca_HG <- function(df_in) {
-    # data("USArrests")
-    
-    # initial cluster analysis (aplicar para os 8 fatores!!)
-    #my.abs <- abs(cor(df_in[,15:86]))
-    # # PCA with function prcomp
-    
-    #pca1 = prcomp(USArrests, scale. = TRUE) # para teste de circle plot!!
-    
-    #-----------------------------------------------------
-    # PCA sobre os dados brutos das respostas das questões
-    #-----------------------------------------------------
-    #pca1_raw = prcomp(df_raw_in[,15:86], scale. = TRUE) # analise para as 72 questões 
-    
-    
-    # total de variância acumulada antes de aplicar viramax
-    #------------------------------------------------------------------
-    # resultados muito similares aos da tese (tabela 22 - após viramax)
-    #summary(pca1_raw)
-    
-    # obtendo os eigenvalues para saber quantos componentes a manter
-    #-------------------------------------------------------------------
-    # primeiro critério: usando Kayser criterion: manter eingevalues maior que 1
-    # neste caso, manter até o componente 26
-    #pca1_raw$sdev ^ 2
-    # segundo critério: usando scree plot
-    #screeplot(pca1_raw, main = "Scree Plot - Human Guide", xlab = "Components")
-    # ou com linhas
-    #screeplot(pca1_raw, main = "Scree Plot - Human Guide", type = "lines")
-    
-    # examinando as rotações (ou loadings) usando dotplot (antes de Varimax)
-    # para cada cmponente. Ex. PC1
-    #load <- pca1_raw$rotation
-    #sorted.loadings = load[order(load[,1]),1]
-    #Main="Loadings plot for PC1"
-    #xlabs = "Variable Loadings"
-    #dotplot(sorted.loadings, main = Main, xlab = xlabs)
-   
-    # usando biplot (obs: usar nos 8 fatores!!)
-    # o cosseno entre os vetores representa a correlação entre os mesmos
-    # variáveis (s11, etc.) como vetores e observações como pontos
-    # observando os pontos distribuídos no eixo (componente), podemos
-    # ver quais são relacionados direta ou indiretamente
-    #biplot(pca1, cex = c(1,07))
-    
-    # Varimax rotation com convergência na sétima rotação (change of coordinates
-    # that maximizes the sum of the variances of the squared loadings)
-    # o objetivo é um alimpeza nas rotações que encontramos em prcomp call
-    # tomando somente os 4 primeiros componentes
-    #varimax4 <- varimax(pca1_raw$rotation[,1:4])
-    # obtendo matriz de loadings
-    #mt_rot <- varimax4$loadings[1:72,1:4]
-    # examinando as rotações (ou loadings) usando dotplot (após de Varimax)
-    #load <- varimax4$loadings
-    #sorted.loadings = load[order(load[,1]),1]
-    #Main="Loadings plot for PC1"
-    #xlabs = "Variable Loadings"
-    #dotplot(sorted.loadings, main = Main, xlab = xlabs)
-    
-    # sqrt of eigenvalues
-    #pca1_raw$sdev
-    # loadings or rotations: cada compontnes é uma combinação
-    # linear das variáveis (HG quantions). Aqui estão os coeficientes chamados 
-    # loadings ou rotations (indicam o quanto cada variável está correlacionada
-    # com o componentes especifico, nas colunas)
-    #head(pca1_raw$rotation)
-    # PCs (aka scores)
-    #head(pca1_raw$x)
- 
-    
-    #-----------------------------------------------------
-    # PCA sobre os dados processados dos 8 fatores
-    #-----------------------------------------------------
-    
-    # criando dataframe de analise descritiva para media, desvio padrão, maximo e minimo
-    #v_mean <- colMeans(df_in[,3:10])
-    #v_stdvev <- colSds(as.matrix(df_in[,3:10]))
-    #v_max <- colMaxs(as.matrix(df_in[,3:10]))
-    #v_min <- colMins(as.matrix(df_in[,3:10]))
-    #df_andesc <- data.frame( mean = v_mean, stddev = v_stdvev, max = v_max, min = v_min)
-    # print semelhante a analise da tela, mas valores bem diferentes    
-    #print (df_andesc, digits = 6)
     
     #-----------
     # ANÁLISE 1 - Estatísticas básicas
@@ -133,7 +52,7 @@ f_pca_HG <- function(df_in) {
     #ord <- corrMatOrder(my.cor, order="FPC")
     #my.cor2 <- my.cor[ord,ord]
     #par (ask=TRUE)
-    corrplot.mixed(my.cor, main = "Correlação Ordenada por Componentes Principais")
+    #corrplot.mixed(my.cor, main = "Correlação Ordenada por Componentes Principais")
     # The P value answers this question:
     # If there really is no correlation between X and Y overall,
     # what is the chance that random sampling would result in a
@@ -367,8 +286,8 @@ f_pca_HG <- function(df_in) {
              cex=.5, pos=4)           # shrink text 50% and place to right of points)
     })
     # ou em 3D (Base PC2)
-    library(scatterplot3d)
-    df_varload <- as.data.frame(my.var_load)
+   
+
     with(df_varload, {
         s3d <- scatterplot3d(PC3, PC1, PC2,         # x y and z axis
                              color="blue", pch=19,        # filled blue circles
@@ -383,8 +302,7 @@ f_pca_HG <- function(df_in) {
              cex=.5, pos=4)           # shrink text 50% and place to right of points)
     })
     # ou em 3D (Base PC1)
-    library(scatterplot3d)
-    df_varload <- as.data.frame(my.var_load)
+ 
     with(df_varload, {
         s3d <- scatterplot3d(PC2, PC3, PC1,         # x y and z axis
                              color="blue", pch=19,        # filled blue circles
@@ -634,7 +552,7 @@ f_pca_HG <- function(df_in) {
     #p <- ggplot(circle,aes(x,y)) + geom_path()
     
     #loadings <- data.frame(pca1$rotation, 
-                           .names = row.names(pca1$rotation))
+    #                       .names = row.names(pca1$rotation))
     #p + geom_text(data=loadings, 
     #              mapping=aes(x = PC1, y = PC2, label = .names, colour = .names)) +
     #    coord_fixed(ratio=1) +
@@ -788,5 +706,8 @@ f_pca_HG <- function(df_in) {
     fit <- Mclust(scores[2:4], G=4, modelNames = "EEV")
     plot3d(scores[2:4], col = fit$classification) 
     
+    
+    l_out <- list(my.descr, my.sumar,)
+    return (l_out)
 
 }
