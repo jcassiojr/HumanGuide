@@ -30,13 +30,38 @@ registerDoMC(5) # parallel processing
 
 # ----- carrega dados reais de Human Guide
 # retorna dataset para análise do modelo com dados reais
-source("./R/f_le_raw_HG.R")
-df_raw_hg <- f_le_raw_HG()
+#source("./R/f_le_raw_HG.R")
+#df_raw_hg <- f_le_raw_HG()
+# retorna dataset para análise do modelo com dados originsia da tese
+source("./R/f_le_raw_HG_ori.R")
+df_raw_hg <- f_le_raw_HG_ori()
 
 # passa dataset raw com pontuação no teste HG para função 
 # que gera dataset com scores HG
-source("./R/f_tidy_scores_HG.R")
-df_tidy_hg <- f_tidy_scores_HG(df_raw_hg)
+source("./R/f_tidy_scores_HG_ori.R")
+df_tidy_hg <- f_tidy_scores_HG_ori(df_raw_hg)
+
+# checando se tem dados fora do range
+sum(df_tidy_hg$sensibility < -9)
+sum(df_tidy_hg$power < -9)
+sum(df_tidy_hg$quality < -9)
+sum(df_tidy_hg$exposure < -9)
+sum(df_tidy_hg$structure < -9)
+sum(df_tidy_hg$imagination < -9)
+sum(df_tidy_hg$stability < -9)
+sum(df_tidy_hg$contacts < -9)
+
+sum(df_tidy_hg$sensibility > 9)
+sum(df_tidy_hg$power > 9)
+sum(df_tidy_hg$quality > 9)
+sum(df_tidy_hg$exposure < -9)
+sum(df_tidy_hg$structure > 9)
+sum(df_tidy_hg$imagination > 9)
+sum(df_tidy_hg$stability > 9)
+sum(df_tidy_hg$contacts > 13)
+
+# OBS: 48 ocorrências de valores acima de 9 na dimensão contato
+# 1 = 13, 3 = 12, 9 = 11 e 30 = 10
 
 # passa dataset para função de análise PCA
 f_pca_HG(df_tidy_hg)
