@@ -4,7 +4,7 @@ library(ggplot2)
 library(gclus)
 library(Hmisc)
 require("corrplot", quietly = TRUE, warn.conflicts = FALSE)
-require("FactoMiner")
+require("FactoMineR")
 library(psych)
 
 f_pca_HG <- function(df_in) {
@@ -89,13 +89,18 @@ f_pca_HG <- function(df_in) {
     #df_andesc <- data.frame( mean = v_mean, stddev = v_stdvev, max = v_max, min = v_min)
     # print semelhante a analise da tela, mas valores bem diferentes    
     #print (df_andesc, digits = 6)
-    describe(df_in[,3:10])
     
-    # PRIMEIRA ANÁLISE: correlação entre os 8 fatores
-    # obs: primeiro fazer com aprte dos dados pois demora muito!
-    # scatterplots de correlacões
-    #pairs(df_in[,2:9])
-    # salvar como PNG
+    #-----------
+    # ANÁLISE 1 - Estatísticas básicas
+    #-----------
+    my.descr <- describe(df_in[,3:10])
+    my.sumar <- summary(df_in[,3:10])
+    
+    #-----------
+    # ANÁLISE 2 - correlações
+    # importante remover variáveis perfeitamente correlacionadas
+    # correlações acima de 0.3 são bons indicadores de que obteremos resultados 
+    #-----------
     # obs: colocar aqui cores para diferenciar sexo (falta carregar nos dados)
     # colocar no documento de saída
     pairs(df_in[,3:10], main = "Matriz de Dispersão (feminino: green, masculino: red)", 
@@ -104,11 +109,22 @@ f_pca_HG <- function(df_in) {
     my.cor <- cor(df_in[,3:10], method = "spearman")
     print(my.cor, digits = 4)
     
-    # Cluster analysis
+    # Agrupamentos aparentes das correlações na análise dos dados originais: 
+    # G1: structure, sensibility, power
+    # G2: exposure, contacts, imagination e stability
+    
+    # ANÁLISE 3: Cluster analysis
     #+++++++++++++++++++
-    ic <- iclust(my.cor, nclusters = 3) # usa Pearson correlation
+    ic <- iclust(my.cor, nclusters = 4) # usa Pearson correlation
     summary(ic)
     print(ic)
+    
+    # Agrupamentos aparentes na análise de clusters dos dados originais: 
+    # G1: structure e power
+    # G2: sensibility e quality
+    # G3: exposure e contacts
+    # G4: imagination e stability
+    
     ## Compare this to
     #my.corrS <- cor.test(df_in[,3:10], method = "spearm", alternative = "g")
     #my.cor1 <- rcorr(as.matrix(df_in[,3:10]),type=c("spearman"))
@@ -166,14 +182,15 @@ f_pca_HG <- function(df_in) {
     
     #print(my.fa$loadings, digits = 4)
 
-    #+++++++++++++++++++++
-    # Principal Component Analysis (PCA)
-    
+ 
+    # ANÁLISE 4 - Principal Component Analysis (PCA)
+    # extrair fatores maiores que 1 (Kaiser)
+    #-----------------
     pca1 = prcomp(df_in[,3:10], scale = TRUE, center = TRUE) # analise para os 8 fatores
     pca2 = princomp(df_in[,3:10], cor = TRUE)
     pca3 = PCA(df_in[,3:10], graph = TRUE)
-    # não aplicar rotação varimax pois passa a não ser mais PCA! É controverso na literatura
-    pca4 <- principal(my.cor,4,rotate="none", scores = TRUE) # sem rotation bate com os demais acima!!!!
+    # talvez escolher abaixo, mas com varimax, desde q consig aobter os scores
+    pca4 <- principal(my.cor,nfactors = 5,rotate="none", scores = TRUE) # sem rotation bate com os demais acima!!!!
     
     # análise de cluster (alternativa à Factor Analysis)
     # correlacoes entre variáveis refletem que cada item carrega em no máximo um cluster
@@ -191,12 +208,17 @@ f_pca_HG <- function(df_in) {
     #+++++++++++++++++++++
     #my.vss <- vss(my.cor,title="Very Simple Structure of Human Guide")
     #print(my.vss)
-    # sqrt of eigenvalues
-    pca1$sdev
+    
+    # sqrt of eigenvalues (Standard Deviations)
+    # por kaisen , extrai os 5 primeiros componentes dos dados originais para os 4 casos abaixo
+    #---------------------
+    pca1$sdev 
     pca2$sdev
     sqrt(pca3$eig$eigenvalue)
     sqrt(pca4$values) # apresenta ligeira diferença em relação as abordagens acima
+    
     # loadings or rotations: cada compontnes é uma combinação
+    #---------------------
     # linear das variáveis (HG quantions). Aqui estão os coeficientes chamados 
     # loadings ou rotations (indicam o quanto cada variável está correlacionada
     # com o componentes especifico, nas colunas)
@@ -209,42 +231,16 @@ f_pca_HG <- function(df_in) {
     dotplot(sorted.loadings, main = Main, xlab = xlabs)
     
     pca2$loadings
-    pca3$var$coord
-    pca4$loadings # apresenta ligeira diferença em relação as abordagens acima
-    # PCs (aka scores)
-    head(pca1$x)
+    pca3$var$coord # PCA já escolhe somente os 5 primeiros componentes
+    pca4$loadings # escolhi 5 primeiros componentes. Apresenta ligeira diferença em relação as abordagens acima
     
-    # plotando os pontos previstos no biplot
+    # plotando os pontos previstos no biplot e no círculo de correlações
+    # na plotagem fica claro o caráter oposto do agrupamento pela análise das correlações
+    #-------------------------------------
     biplot(pca1, xlabs = rep(".", nrow(pca1$x)))
     
-    head(pca2$scores)
-    head(pca3$ind$coord) # aqui já aplica o critério de Kaiser e só mostra os 5 comp princ
-    #head(pca4$r.scores)
-    # total de variância acumulada antes de aplicar viramax
-    #------------------------------------------------------------------
-    # resultados muito similares aos da tese (tabela 22 - após viramax)
-    summary(pca1)
-    summary(pca2)
-    summary(pca3)
-    summary(pca4)
-    #my.importance <- summary(pca1)$importance # salvar como matriz
-    #print(my.importance, digits = 4)
-    
-    # obtendo os eigenvalues para saber quantos componentes a manter
-    #-------------------------------------------------------------------
-    # primeiro critério: usando Kayser criterion: manter eingevalues maior 
-    # que 1. 
-    # Neste caso, manter até o componente 5
-    my.kayser.crit <- pca1$sdev ^ 2
-    # segundo critério: usando scree plot
-    screeplot(pca1, main = "Scree Plot - Human Guide", xlab = "Components")
-    screeplot(pca2, main = "Scree Plot - Human Guide", xlab = "Components")
-    
-    # ou com linhas
-    # Neste caso, manter até o componente 7
-    screeplot(pca1, main = "Scree Plot - Human Guide", type = "lines")
-    screeplot(pca2, main = "Scree Plot - Human Guide", type = "lines")
-    
+    # círculo de correlações por par de componentes
+    #--------------------------
     circle <- function(center = c(0, 0), npoints = 100) {
         r <- 1
         tt <-  seq(0, 2 * pi, length = npoints) 
@@ -269,16 +265,170 @@ f_pca_HG <- function(df_in) {
         ylim(-1.1, 1.1) +
         labs(x = "pc1 aixs", y = "pc2 axis") + ggtitle("Circle of correlations")
     
+    # PCs (aka scores)
+    #----------------------
+    head(pca1$x)
+    head(pca2$scores)
+    head(pca3$ind$coord) # aqui já aplica o critério de Kaiser e só mostra os 5 comp princ
+    #head(pca4$r.scores) # NÃO ESTÁ FUNCIONANDO!!!!
+    # total de variância acumulada antes de aplicar viramax
+    #------------------------------------------------------------------
+    # resultados muito similares aos da tese (tabela 22 - após viramax)
+    summary(pca1)
+    summary(pca2)
+    summary(pca3)
+    summary(pca4)
+    #my.importance <- summary(pca1)$importance # salvar como matriz
+    #print(my.importance, digits = 4)
     
+    # eigenvalues - para saber quantos componentes a manter
+    #-------------------------------------------------------------------
+    # primeiro critério: usando Kayser criterion: manter eingevalues maior 
+    # que 1. 
+    # Neste caso, manter até o componente 5
+    my.kayser.crit <- pca1$sdev ^ 2
+    # segundo critério: usando scree plot
+    screeplot(pca1, main = "Scree Plot - Human Guide", xlab = "Components")
+    #screeplot(pca2, main = "Scree Plot - Human Guide", xlab = "Components")
     
-    # aplicando Varimax para os 4 primeiros componentes
-    # Varimax rotation com convergência na sétima rotação (change of coordinates
+    # ou com linhas
+    # Neste caso, manter até o componente 7
+    screeplot(pca1, main = "Scree Plot - Human Guide", type = "lines")
+    #screeplot(pca2, main = "Scree Plot - Human Guide", type = "lines")
+
+    # ANÁLISE 5 - Aplicando rotação Varimax para interpretar os componentes
+    #-----------------------------------------------------------------------
+    # aplicando Varimax para os 5 primeiros componentes
+    # Apesar dos dados sugerirem 5 componentes vou usar os 3 originais da tese
+    # Varimax rotation (change of coordinates
     # that maximizes the sum of the variances of the squared loadings)
-    # o objetivo é um alimpeza nas rotações que encontramos em prcomp call
+    varimax3 <- varimax(pca1$rotation[,1:3], normalize = TRUE)
+    print (varimax3$loadings)
+    #my.var_load <- as.data.frame(varimax3$loadings[1:8,])
+    my.var_load <- varimax3$loadings[1:8,]
     
-    # tomando somente os 4 primeiros componentes
-    # NAO VOU APLCIAR VARIMAX POIS DÁ VALORES DIFERENTES PARA CADA TECNICA PCA
-    #varimax3_1 <- varimax(pca1$rotation[,1:4], normalize = TRUE)
+    
+    my.cutoff <- .1 # valor mínimo para aparecer na tabela de loadings
+    print(loadings(varimax3),cutoff=my.cutoff)
+    
+    # interpretação dos loadings após rotação
+    #-----------------
+    # PC1: imagination e quality alto, stability baixo
+    # PC2: contacts alto, exposure baixo
+    # PC3: structure alto, power baixo
+    # plotar 3D nos 3 fatores (1 eixo por componente) os 8 fatores
+    # de forma a interpretar como se distribuem nos 3 fatores
+    # usar data frame de loadinsgs de varimax
+    
+    #library(rgl)
+    #plot3d(my.var_load, type = "s")  # great
+    
+    loadings <- data.frame(my.var_load, .names = row.names(pca1$rotation))
+    theta <- seq(0,2*pi,length.out = 100)
+    circle <- data.frame(x = cos(theta), y = sin(theta))
+    # plot após rotação PC1 x PC2
+    #----------------------------
+    p <- ggplot(circle,aes(x,y)) + geom_path()
+    p + geom_text(data=loadings, 
+              mapping=aes(x = PC1, y = PC2, label = "a", colour = .names)) +
+    coord_fixed(ratio=1) +
+    labs(x = "PC1", y = "PC2")
+    
+    # plot após rotação PC2 x PC3
+    #----------------------------
+    p <- ggplot(circle,aes(x,y)) + geom_path()
+    p + geom_text(data=loadings, 
+                  mapping=aes(x = PC2, y = PC3, label = "a", colour = .names)) +
+        coord_fixed(ratio=1) +
+        labs(x = "PC2", y = "PC3")
+    
+    # plot após rotação PC1 x PC3
+    #----------------------------
+    p <- ggplot(circle,aes(x,y)) + geom_path()
+    p + geom_text(data=loadings, 
+                  mapping=aes(x = PC1, y = PC3, label = "a", colour = .names)) +
+        coord_fixed(ratio=1) +
+        labs(x = "PC1", y = "PC3")
+    
+    # ou em 3D (Base PC3)
+    library(scatterplot3d)
+    df_varload <- as.data.frame(my.var_load)
+    with(df_varload, {
+        s3d <- scatterplot3d(PC1, PC2, PC3,        # x y and z axis
+                             color="blue", pch=19,        # filled blue circles
+                             type="h",                    # vertical lines to the x-y plane
+                             main="3-D Component Plot in Rotated Space (Base PC3)",
+                             xlab="PC1",
+                             ylab="PC2",
+                             zlab="PC3")
+        s3d.coords <- s3d$xyz.convert(PC1, PC2, PC3) # convert 3D coords to 2D projection
+        text(s3d.coords$x, s3d.coords$y,             # x and y coordinates
+             labels=row.names(df_varload),               # text to plot
+             cex=.5, pos=4)           # shrink text 50% and place to right of points)
+    })
+    # ou em 3D (Base PC2)
+    library(scatterplot3d)
+    df_varload <- as.data.frame(my.var_load)
+    with(df_varload, {
+        s3d <- scatterplot3d(PC3, PC1, PC2,         # x y and z axis
+                             color="blue", pch=19,        # filled blue circles
+                             type="h",                    # vertical lines to the x-y plane
+                             main="3-D Component Plot in Rotated Space (Base PC3)",
+                             xlab="PC3",
+                             ylab="PC1",
+                             zlab="PC2")
+        s3d.coords <- s3d$xyz.convert(PC3, PC1, PC2) # convert 3D coords to 2D projection
+        text(s3d.coords$x, s3d.coords$y,             # x and y coordinates
+             labels=row.names(df_varload),               # text to plot
+             cex=.5, pos=4)           # shrink text 50% and place to right of points)
+    })
+    # ou em 3D (Base PC1)
+    library(scatterplot3d)
+    df_varload <- as.data.frame(my.var_load)
+    with(df_varload, {
+        s3d <- scatterplot3d(PC2, PC3, PC1,         # x y and z axis
+                             color="blue", pch=19,        # filled blue circles
+                             type="h",                    # vertical lines to the x-y plane
+                             main="3-D Component Plot in Rotated Space (Base PC3)",
+                             xlab="PC2",
+                             ylab="PC3",
+                             zlab="PC1")
+        s3d.coords <- s3d$xyz.convert(PC2, PC3, PC1) # convert 3D coords to 2D projection
+        text(s3d.coords$x, s3d.coords$y,             # x and y coordinates
+             labels=row.names(df_varload),               # text to plot
+             cex=.5, pos=4)           # shrink text 50% and place to right of points)
+    })
+    
+
+    
+    # ANÁLISE 6 - PREVISÕES VIA SCORES
+    #----------------------------------
+    # scores obtidos antes da previsão (my.prev) e coeficientes após rotação (varimax3$loadings)
+    # Ex. PC1 = 
+    my.newdata <- head(df_in[,c(1,3:10)])
+    my.prev <- as.data.frame(predict(pca1, newdata=my.newdata))
+    # obtendo previsao dos 3 primeiros componentes
+    my.prev <- cbind(my.newdata, PC1 = my.prev$PC1, PC2 = my.prev$PC2, PC3 = my.prev$PC3)
+
+    # A PARTIR DAQUI IMPLEMENTAREMOS O ALGORITMO QUE CLASSIFICARÁ O CANDIDATO
+    # DE ACORDO COM O SCORE OBTIDO ACIMA
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    # ATE AQUI
+    
+    
+    
+    
+    
     #varimax3_2 <- varimax(pca2$loadings[,1:4], normalize = TRUE)
     
     # salvando matriz de loadings/rotations
@@ -377,6 +527,11 @@ f_pca_HG <- function(df_in) {
         geom_text(colour = "tomato", alpha = 0.8, size = 4) +
         ggtitle("PCA plot of Human Guide - Fatores") 
     
+    
+    # ACIMA PLOTA SCORES de componentes para ver sua distribuicão
+    # deve estar em torno de zero (normalizado)
+    
+    
     # circle of correlations
     #circle <- function(center = c(0, 0), npoints = 100) {
     #   r <- 1
@@ -429,21 +584,29 @@ f_pca_HG <- function(df_in) {
     # obtemos um valor
     
     # USO DO score: calculo os scores como acima para cada componente do candidato, obtendo como ele pontua em cada!!
+    # colocar algoritmo aqui!!!
     
+    
+    
+    
+    
+    
+    
+    # ++++++++++++++++++++++++++++++
 
     # ROTATION TO GIVE MEANING TO THE FACTORS ??!! (Varimax!!)
     # ver texto de Robin Beaumont,An introduction to Principal Component Analysys &
     # Factor Analysys, pg 9
     
     # NAO VOU APLCIAR VARIMAX POIS DÁ VALORES DIFERENTES PARA CADA TECNICA PCA
-    varimax4 <- varimax(pca1$rotation[,1:4], normalize = TRUE)
+   # varimax4 <- varimax(pca1$rotation[,1:4], normalize = TRUE)
 
     
     # salvando matriz de loadings/rotations
-    my_var.load <- varimax3_1$loadings[1:8,]
+    #my_var.load <- varimax3_1$loadings[1:8,]
     
-    my.cutoff <- .1 # valor mínimo para aparecer na tabela de loadings
-    print(loadings(varimax4),cutoff=my.cutoff)
+    #my.cutoff <- .1 # valor mínimo para aparecer na tabela de loadings
+    #print(loadings(varimax4),cutoff=my.cutoff)
     
     # obtendo os scores para cada individuo após varimax???
     # USO: a partir dos scores, identifico onde candidato pontua em cada um
@@ -466,12 +629,12 @@ f_pca_HG <- function(df_in) {
     # plot
 
     
-    #theta <- seqx(0,2*pi,length.out = 100)
+    #theta <- seq(0,2*pi,length.out = 100)
     #circle <- data.frame(x = cos(theta), y = sin(theta))
     #p <- ggplot(circle,aes(x,y)) + geom_path()
     
     #loadings <- data.frame(pca1$rotation, 
-    #                       .names = row.names(pca1$rotation))
+                           .names = row.names(pca1$rotation))
     #p + geom_text(data=loadings, 
     #              mapping=aes(x = PC1, y = PC2, label = .names, colour = .names)) +
     #    coord_fixed(ratio=1) +
@@ -479,29 +642,29 @@ f_pca_HG <- function(df_in) {
     
     # usando caret
     require(caret)
-    trans = preProcess(df_in[,2:9], 
+    trans = preProcess(df_in[,3:10], 
                        method=c("BoxCox", "center", 
                                 "scale", "pca"))
     
-    PC = predict(trans, df_in[,2:9])
+    PC = predict(trans, df_in[,3:10])
     # Retained PCs
     head(PC, 3)
     # Loadings
     trans$rotation   
     #plot de correlação
-    require("corrplot")
-    descrCorr <- cor(df_in[,2:9])
+    #require("corrplot")
+    #descrCorr <- cor(df_in[,2:9])
     # plotando com p-value para cada correlação
     # interessante para ver correlação entre os componentes!!
-    corrplot.mixed(descrCorr, insig = "p-value",sig.level = -1)
+    #corrplot.mixed(descrCorr, insig = "p-value",sig.level = -1)
     
     # passar para aqui o gráficos 3D abaixo para teste
     # ver se vale a pena usar caret (comparar valores com prcomp para ver se batem)
     # plot
     library(rgl)
     scores = as.data.frame(head(pca1$x, n = 100))
-    pairs(scores[2:4])
-    plot3d(scores[2:4])  # great
+    pairs(scores[1:3])
+    plot3d(scores[1:3])  # great
     
     # colorido (usar este) 
     library(mclust)
