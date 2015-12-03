@@ -65,8 +65,6 @@ A partir da tabela acima, pode ser observado um agrupamento aparente inicial:
     * G2: imagination e stability
     * G3: contacts, quality e exposure
 
-#### Outra Abordagem de Matriz de Correlação ####
-
 ```{r, echo=FALSE}
 #pairs(df_tidy_hg[,3:10], main = "Matriz de Dispersão (feminino: green, masculino: red)", 
 #          pch=21, bg=c("green3","red")[unclass(df_tidy_hg$sexo)])
@@ -75,9 +73,9 @@ A partir da tabela acima, pode ser observado um agrupamento aparente inicial:
 #          pch=21, bg=c("green3","red", "blue", "yellow")[unclass(df_tidy_hg$TIPOUSER)])
 ```
 
-#### Análise de Correlação do Fatores ####
+#### Análise de Correlação dos Fatores ####
 
-É realizada uma análise de correlação entre os 8 fatores, conforme os plots abaixo:
+É realizada uma análise de correlação entre os 8 fatores.
 
 ```{r, echo=FALSE}
 # correlação de spearman
@@ -85,6 +83,75 @@ A partir da tabela acima, pode ser observado um agrupamento aparente inicial:
     #print(my.cor, digits = 4)
     knitr::kable(my.cor)
 ```
+
+#### P-values e Intervalos de Confiança da Correlação dos Fatores ####
+
+Abaixo a tabela de p-values e intervalos de confiança da correlação entre os 8 fatores.
+
+```{r, echo=FALSE}
+    require("nlme", quietly = TRUE, warn.conflicts = FALSE)
+    require("MASS", quietly = TRUE, warn.conflicts = FALSE)
+    require("psychometric", quietly = TRUE, warn.conflicts = FALSE)
+    require("dplyr", quietly = TRUE, warn.conflicts = FALSE)
+    
+# Tabela de p-values e intervalos de confiança
+# if the P value is small, you can reject the idea that the correlation is due to random sampling.
+# If the P value is large, the data do not give you any reason to conclude that the correlation is real.
+l_cor <- list()
+l_cor[[1]] <- cor.test(~ sensibility + power, data = df_tidy_hg, method = "spearman", exact = FALSE)
+l_cor[[2]] <- cor.test(~ sensibility + quality, data = df_tidy_hg, method = "spearman", exact = FALSE)
+l_cor[[3]] <- cor.test(~ sensibility + exposure , data = df_tidy_hg, method = "spearman", exact = FALSE)
+l_cor[[4]] <- cor.test(~ sensibility + structure, data = df_tidy_hg, method = "spearman", exact = FALSE)
+l_cor[[5]] <- cor.test(~ sensibility + imagination, data = df_tidy_hg, method = "spearman", exact = FALSE)
+l_cor[[6]] <- cor.test(~ sensibility + stability, data = df_tidy_hg, method = "spearman", exact = FALSE)
+l_cor[[7]] <- cor.test(~ sensibility + contacts, data = df_tidy_hg, method = "spearman", exact = FALSE)
+
+l_cor[[8]] <- cor.test(~ power + quality, data = df_tidy_hg, method = "spearman", exact = FALSE)
+l_cor[[9]] <- cor.test(~ power + exposure , data = df_tidy_hg, method = "spearman", exact = FALSE)
+l_cor[[10]] <- cor.test(~ power + structure, data = df_tidy_hg, method = "spearman", exact = FALSE)
+l_cor[[11]] <- cor.test(~ power + imagination, data = df_tidy_hg, method = "spearman", exact = FALSE)
+l_cor[[13]] <- cor.test(~ power + contacts, data = df_tidy_hg, method = "spearman", exact = FALSE)
+
+l_cor[[14]] <- cor.test(~ quality + exposure , data = df_tidy_hg, method = "spearman", exact = FALSE)
+l_cor[[15]] <- cor.test(~ quality + structure, data = df_tidy_hg, method = "spearman", exact = FALSE)
+l_cor[[16]] <- cor.test(~ quality + imagination, data = df_tidy_hg, method = "spearman", exact = FALSE)
+l_cor[[17]] <- cor.test(~ quality + stability, data = df_tidy_hg, method = "spearman", exact = FALSE)
+l_cor[[18]] <- cor.test(~ quality + contacts, data = df_tidy_hg, method = "spearman", exact = FALSE)
+
+l_cor[[19]] <- cor.test(~ exposure + structure, data = df_tidy_hg, method = "spearman", exact = FALSE)
+l_cor[[20]] <- cor.test(~ exposure + imagination, data = df_tidy_hg, method = "spearman", exact = FALSE)
+l_cor[[21]] <- cor.test(~ exposure + stability, data = df_tidy_hg, method = "spearman", exact = FALSE)
+l_cor[[22]] <- cor.test(~ exposure + contacts, data = df_tidy_hg, method = "spearman", exact = FALSE)
+
+l_cor[[23]] <- cor.test(~ structure + imagination, data = df_tidy_hg, method = "spearman", exact = FALSE)
+l_cor[[24]] <- cor.test(~ structure + stability, data = df_tidy_hg, method = "spearman", exact = FALSE)
+l_cor[[25]] <- cor.test(~ structure + contacts, data = df_tidy_hg, method = "spearman", exact = FALSE)
+
+l_cor[[27]] <- cor.test(~ imagination + stability, data = df_tidy_hg, method = "spearman", exact = FALSE)
+l_cor[[26]] <- cor.test(~ imagination + contacts, data = df_tidy_hg, method = "spearman", exact = FALSE)
+
+l_cor[[28]] <- cor.test(~ stability + contacts, data = df_tidy_hg, method = "spearman", exact = FALSE)
+
+df_cor <- data.frame()
+
+for (i in 1:length(l_cor)) {
+    df_cor[i,1] <- l_cor[[i]]$data.name
+    df_cor[i,2] <- l_cor[[i]]$estimate
+    x <- CIr(r=l_cor[[i]]$estimate, n = 116603, level = .95)
+    df_cor[i,3] <- x[1]
+    df_cor[i,4] <- x[2]
+    df_cor[i,5] <- l_cor[[i]]$p.value
+}
+names(df_cor) <- c("Pair", "Correlation", "Lower Confidence Limit", "Upper Confident Limit","p-value")
+
+# ordenando por correlação
+df_cor <- 
+    df_cor %>%
+    arrange(Correlation)
+knitr::kable(df_cor)
+```
+
+
 
 #### Análise Cluster ####
 
@@ -124,7 +191,11 @@ Cada componente sendo uma combinação linear das variáveis (8 fatores). Os coe
 
 ```{r, echo=FALSE}
     # pca1$rotation
-    knitr::kable(pca1$rotation)
+    #knitr::kable(pca1$rotation) # rotação dos componentes sem varimax aplicado
+    # alternativa - aplicando multiplicação com a matriz de standard deviation
+    ncomp <- 8 # número de componentes
+    rawLoadings     <- as.data.frame(pca1$rotation[,1:ncomp] %*% diag(pca1$sdev, ncomp, ncomp))
+    knitr::kable(rawLoadings) # rotação dos componentes sem varimax aplicado
 ```
 
 ##### Scores ##### 
@@ -169,11 +240,17 @@ Nesta abordagem, pode-se identificar um patamar inicial levemente destacado com 
 A rotação muda as coordenadas de forma a maximizar a soma das variâncias dos quadrados dos *loadings*, desta forma realizando uma "limpeza" nas rotações obtidas originalmente na análise PCA.
 Esta rotação é usada para ajudar na melhor interpretação dos componentes, de forma a identificar significado nos mesmos.
 
-Opta-se, neste caso, pelo uso de 4 componentes para a rotação, de acordo com o observado no primeiro patamar do scree plot.
+Opta-se, neste caso, pelo uso de 8 componentes para a rotação, de acordo com o observado no primeiro patamar do scree plot.
 
 ```{r, echo=FALSE}
-    varimax <- varimax(pca1$rotation[,1:4], normalize = TRUE)
-    print (varimax$loadings)
+    ncomp <- 8 # número de componentes
+    rawLoadings <- pca1$rotation[,1:ncomp] %*% diag(pca1$sdev, ncomp, ncomp) # idem
+    my.varimax <- varimax(rawLoadings, normalize = TRUE)
+    
+    #scores <- scale(pca1$x[,1:ncomp]) %*% varimax(rawLoadings)$rotmat
+
+    #ANTIGO: varimax <- varimax(pca1$rotation[,1:8], normalize = TRUE)
+    print (my.varimax$loadings)
 ```
 
 ##### Plotando os fatores de acordo com os componentes após a rotação ##### 
@@ -185,7 +262,7 @@ Obs: no momento somente para os 3 primeiros componentes (complementar a document
 
 ```{r, echo=FALSE}
     require("ggplot2", quietly = TRUE, warn.conflicts = FALSE)
-    my.var_load <- varimax$loadings[1:8,]
+    my.var_load <- my.varimax$loadings[1:ncomp,]
     loadings <- data.frame(my.var_load, .names = row.names(pca1$rotation))
     theta <- seq(0,2*pi,length.out = 100)
     circle <- data.frame(x = cos(theta), y = sin(theta))
@@ -194,7 +271,7 @@ Obs: no momento somente para os 3 primeiros componentes (complementar a document
     #----------------------------
     p <- ggplot(circle,aes(x,y)) + geom_path()
     p + geom_text(data=loadings, 
-              mapping=aes(x = PC1, y = PC2, label = "a", colour = .names)) +
+              mapping=aes(x = X1, y = X2, label = "a", colour = .names)) +
     coord_fixed(ratio=1) +
     labs(x = "PC1", y = "PC2")
 ```
@@ -204,7 +281,7 @@ Obs: no momento somente para os 3 primeiros componentes (complementar a document
 ```{r, echo=FALSE}
     p <- ggplot(circle,aes(x,y)) + geom_path()
     p + geom_text(data=loadings, 
-                  mapping=aes(x = PC2, y = PC3, label = "a", colour = .names)) +
+                  mapping=aes(x = X2, y = X3, label = "a", colour = .names)) +
         coord_fixed(ratio=1) +
         labs(x = "PC2", y = "PC3")
 ```
@@ -214,7 +291,7 @@ Obs: no momento somente para os 3 primeiros componentes (complementar a document
 ```{r, echo=FALSE}
     p <- ggplot(circle,aes(x,y)) + geom_path()
     p + geom_text(data=loadings, 
-                  mapping=aes(x = PC1, y = PC3, label = "a", colour = .names)) +
+                  mapping=aes(x = X1, y = X3, label = "a", colour = .names)) +
         coord_fixed(ratio=1) +
         labs(x = "PC1", y = "PC3")
 ```
@@ -227,14 +304,14 @@ Obs: no momento somente para os 3 primeiros componentes (complementar a document
     library(scatterplot3d)
     df_varload <- as.data.frame(my.var_load)
     with(df_varload, {
-        s3d <- scatterplot3d(PC1, PC2, PC3,        # x y and z axis
+        s3d <- scatterplot3d(V1, V2, V3,        # x y and z axis
                              color="blue", pch=19,        # filled blue circles
                              type="h",                    # vertical lines to the x-y plane
                              main="3-D Component Plot in Rotated Space (Base PC3)",
                              xlab="PC1",
                              ylab="PC2",
                              zlab="PC3")
-        s3d.coords <- s3d$xyz.convert(PC1, PC2, PC3) # convert 3D coords to 2D projection
+        s3d.coords <- s3d$xyz.convert(V1, V2, V3) # convert 3D coords to 2D projection
         text(s3d.coords$x, s3d.coords$y,             # x and y coordinates
              labels=row.names(df_varload),               # text to plot
              cex=.5, pos=4)           # shrink text 50% and place to right of points)
@@ -245,14 +322,14 @@ Obs: no momento somente para os 3 primeiros componentes (complementar a document
 
 ```{r, echo=FALSE}
       with(df_varload, {
-        s3d <- scatterplot3d(PC3, PC1, PC2,         # x y and z axis
+        s3d <- scatterplot3d(V3, V1, V2,         # x y and z axis
                              color="blue", pch=19,        # filled blue circles
                              type="h",                    # vertical lines to the x-y plane
                              main="3-D Component Plot in Rotated Space (Base PC2)",
                              xlab="PC3",
                              ylab="PC1",
                              zlab="PC2")
-        s3d.coords <- s3d$xyz.convert(PC3, PC1, PC2) # convert 3D coords to 2D projection
+        s3d.coords <- s3d$xyz.convert(V3, V1, V2) # convert 3D coords to 2D projection
         text(s3d.coords$x, s3d.coords$y,             # x and y coordinates
              labels=row.names(df_varload),               # text to plot
              cex=.5, pos=4)           # shrink text 50% and place to right of points)
@@ -263,14 +340,14 @@ Obs: no momento somente para os 3 primeiros componentes (complementar a document
 
 ```{r, echo=FALSE}
     with(df_varload, {
-        s3d <- scatterplot3d(PC2, PC3, PC1,         # x y and z axis
+        s3d <- scatterplot3d(V2, V3, V1,         # x y and z axis
                              color="blue", pch=19,        # filled blue circles
                              type="h",                    # vertical lines to the x-y plane
                              main="3-D Component Plot in Rotated Space (Base PC1)",
                              xlab="PC2",
                              ylab="PC3",
                              zlab="PC1")
-        s3d.coords <- s3d$xyz.convert(PC2, PC3, PC1) # convert 3D coords to 2D projection
+        s3d.coords <- s3d$xyz.convert(V2, V3, V1) # convert 3D coords to 2D projection
         text(s3d.coords$x, s3d.coords$y,             # x and y coordinates
              labels=row.names(df_varload),               # text to plot
              cex=.5, pos=4)           # shrink text 50% and place to right of points)
@@ -279,7 +356,7 @@ Obs: no momento somente para os 3 primeiros componentes (complementar a document
 
 ### Prevendo Scores de Novas Amostras ###
 
-A partir do modelo obtido com a Análise de Componentes Principais é possível posicionar novos candidatos em relação a seus scores nos componentes, conforme exemplificado abaixo, para 1000 candidatos da amostra selecionados aleatóriamente.
+A partir do modelo obtido com a Análise de Componentes Principais é possível posicionar novos candidatos em relação a seus scores nos componentes, conforme exemplificado abaixo, para 200 candidatos da amostra selecionados aleatóriamente.
 
 Considerando a pontuação dos candidatos abaixo (como amostra, mostramos somente os 10 primeiros):
 
@@ -287,8 +364,7 @@ Considerando a pontuação dos candidatos abaixo (como amostra, mostramos soment
     #my.newdata <- head(df_tidy_hg[,c(1,2,3:10)])
     my.newdata <- 
         df_tidy_hg %>%
-        sample_n(1000)
-
+        sample_n(200)
     #print (my.newdata)
     knitr::kable(head(my.newdata, n = 10))
 ```
@@ -299,6 +375,9 @@ Aplicando o modelo, podemos obter os seguintes scores (como amostra, mostramos s
     my.prev <- as.data.frame(predict(pca1, newdata=my.newdata))
     my.prev <- cbind(my.newdata, PC1 = my.prev$PC1, PC2 = my.prev$PC2, PC3 = my.prev$PC3)
     #print(my.prev[,c(1,10:12)])
+    #ncomp <- 4
+    #my.scores <- scale(pca1$x[,1:ncomp]) %*% varimax(rawLoadings)$rotmat # score considerando Varimax
+    
     knitr::kable(head(my.prev[,c(1,2,11:13)], n = 10))
 ```
 
