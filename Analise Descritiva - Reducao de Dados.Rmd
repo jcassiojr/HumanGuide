@@ -2,7 +2,8 @@
 title: "Análise Descritiva - DRAFT"
 author: "José Cassio"
 date: "November 23, 2015"
-output: html_document
+output:
+  html_document
 ---
 
 ![agileBIGDATA](./aBIG5.png)
@@ -59,11 +60,6 @@ corrplot.mixed(my.cor, insig = "p-value", sig.level = -1, is.corr = TRUE)
 ```
 
 O plot acima mostra na metade superior a força da correlação entre os fatores, expressa por meio do tamanho do círculo e da intensidade de sua cor. Na parte inferior o **p-value** relcionado a medida de correlação.
-A partir da tabela acima, pode ser observado um agrupamento aparente inicial:
-
-    * G1: sensibility, exposure, structure e power
-    * G2: imagination e stability
-    * G3: contacts, quality e exposure
 
 ```{r, echo=FALSE}
 #pairs(df_tidy_hg[,3:10], main = "Matriz de Dispersão (feminino: green, masculino: red)", 
@@ -110,6 +106,7 @@ l_cor[[8]] <- cor.test(~ power + quality, data = df_tidy_hg, method = "spearman"
 l_cor[[9]] <- cor.test(~ power + exposure , data = df_tidy_hg, method = "spearman", exact = FALSE)
 l_cor[[10]] <- cor.test(~ power + structure, data = df_tidy_hg, method = "spearman", exact = FALSE)
 l_cor[[11]] <- cor.test(~ power + imagination, data = df_tidy_hg, method = "spearman", exact = FALSE)
+l_cor[[12]] <- cor.test(~ power + stability, data = df_tidy_hg, method = "spearman", exact = FALSE)
 l_cor[[13]] <- cor.test(~ power + contacts, data = df_tidy_hg, method = "spearman", exact = FALSE)
 
 l_cor[[14]] <- cor.test(~ quality + exposure , data = df_tidy_hg, method = "spearman", exact = FALSE)
@@ -137,9 +134,9 @@ df_cor <- data.frame()
 for (i in 1:length(l_cor)) {
     df_cor[i,1] <- l_cor[[i]]$data.name
     df_cor[i,2] <- l_cor[[i]]$estimate
-    x <- CIr(r=l_cor[[i]]$estimate, n = 116603, level = .95)
-    df_cor[i,3] <- x[1]
-    df_cor[i,4] <- x[2]
+    aux <- CIr(r=l_cor[[i]]$estimate, n = 116603)
+    df_cor[i,3] <- aux[1]
+    df_cor[i,4] <- aux[2]
     df_cor[i,5] <- l_cor[[i]]$p.value
 }
 names(df_cor) <- c("Pair", "Correlation", "Lower Confidence Limit", "Upper Confident Limit","p-value")
@@ -166,12 +163,12 @@ Uma extensiva documentação e justificativa para o algoritmo pode ser encontrad
     print(ic)
 ```
 
-A partir do resultado acima, pode-se também considerar a seguinte alternativa de agrupamento:
+A partir do resultado acima, pode-se observar o seguinte agrupamento, considerando 4 clusters:
 
-    * G1: structure e power
-    * G2: sensibility e quality
-    * G3: exposure e contacts
-    * G4: imagination e stability
+    * G1: imagination e quality
+    * G2: sensibility e power
+    * G3: exposure e stability
+    * G4: contacts e structure
 
 #### Análise de Componentes Principais ####
 
@@ -185,21 +182,22 @@ A análise de PCA foi implementada aos dados processados, gerando oito component
     #knitr::kable(pca1$sdev)
 ```
 
-##### *Loadings* ou *Rotations* ##### 
+##### *Carga dos Fatores (Loadings or Rotations)* ##### 
 
 Cada componente sendo uma combinação linear das variáveis (8 fatores). Os coeficientes indicando o quanto cada variável está correlacionada com os componentes específicos:
 
 ```{r, echo=FALSE}
     # pca1$rotation
-    #knitr::kable(pca1$rotation) # rotação dos componentes sem varimax aplicado
+    knitr::kable(pca1$rotation) # rotação dos componentes sem varimax aplicado
     # alternativa - aplicando multiplicação com a matriz de standard deviation
-    ncomp <- 8 # número de componentes
-    rawLoadings     <- as.data.frame(pca1$rotation[,1:ncomp] %*% diag(pca1$sdev, ncomp, ncomp))
-    knitr::kable(rawLoadings) # rotação dos componentes sem varimax aplicado
+    #ncomp <- 8 # número de componentes
+    #rawLoadings     <- as.data.frame(pca1$rotation[,1:ncomp] %*% diag(pca1$sdev, ncomp, ncomp))
+    #knitr::kable(rawLoadings) # rotação dos componentes sem varimax aplicado
 ```
 
 ##### Scores ##### 
-Os scores são calculados a partir da recombinação dos originais 8 fatores nos novos componentes. Abaixo são mostrados os cinco primeiros scores de todas as observações, associados aos novos componentes:
+Os scores são calculados a partir da recombinação dos 8 fatores originais nos novos componentes. Eles representam o z-score do candidato em relação ao componente, ou seja, indica o número de desvios padrão acima ou abaixo do valor médio para o componente. Neste caso, por exemplo, como cada componente representa um par de categorias opostas, quanto mais o candidato se afasta da média, tanto positiva quanto negativamente, significa que ele apresenta com maior força aquela categoria representada.
+Abaixo são mostrados os cinco primeiros scores de todas as observações, associados aos novos componentes:
 ```{r, echo=FALSE}
     # head(pca1$x)
     #knitr::kable(head(pca1$x), digits = 4)

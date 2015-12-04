@@ -54,7 +54,7 @@ df_cor <- data.frame()
 for (i in 1:length(l_cor)) {
     df_cor[i,1] <- l_cor[[i]]$data.name
     df_cor[i,2] <- l_cor[[i]]$estimate
-    x <- CIr(r=l_cor[[i]]$estimate, n = 116603, level = .95)
+    x <- CIr(r=l_cor[[i]]$estimate, n = 116603)
     df_cor[i,3] <- x[1]
     df_cor[i,4] <- x[2]
     df_cor[i,5] <- l_cor[[i]]$p.value
