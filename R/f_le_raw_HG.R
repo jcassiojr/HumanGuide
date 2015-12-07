@@ -17,7 +17,7 @@ f_le_raw_HG <- function() {
         
     # concatena as 3 bases 
     df_out <- rbind(df_goe, df_kroton, df_rh99)
-    
+    #df_out <- df_rh99
     # refactoring
     df_out$TIPOUSER <- factor(df_out$TIPOUSER)
     
