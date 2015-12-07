@@ -211,6 +211,7 @@ df_rh99 <-
     df_rh99 %>%
     select(-X) # eliminando coluna "X"
 # obtem usuários selecinados
+# osb: bati com arquivo original para pontos raw de Arlindo para confirmar dados
 df_users <- df_rh99 %>%
     filter(grepl("Giselle Welter|Alex Welter|Marco Sinicco|Beatriz Welter|Eneko Fonseca|Ana Alterio|Almir Cozzolino|Fiama Ester de Oliveira|Valdir Rasche|Laura Welter|Sven Peters|Arlindo Marin", df_rh99$nomerespondente))
     #select (ID, nomerespondente)
@@ -222,11 +223,13 @@ my.newdata.users <- f_tidy_scores_HG(df_users)
 #my.newdata.raw <- df_raw_hg[df_raw_hg$ID %in% c(df_users$ID),]
 
 # obtendo os scores previstos
-pca1 = prcomp(df_tidy_hg[,3:10], scale. = TRUE, center = TRUE)
+pca1 = prcomp(df_tidy_hg[,4:11], scale. = TRUE, center = TRUE)
 
 # calculando os scores
 my.prev.users <- as.data.frame(predict(pca1, newdata=my.newdata.users))
 my.prev.users <- cbind(my.newdata.users[,1:3], my.prev.users)
+
+# salvando em planilha par envio
 
 
 #----------------------------------------

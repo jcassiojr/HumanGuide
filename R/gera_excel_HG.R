@@ -10,7 +10,7 @@ df_tidy_hg <- f_tidy_scores_HG(df_raw_hg)
 # Tabela de dados
 #write.xlsx(df_tidy_hg, "./data/DadosBrutos.xlsx")
 # Tabela da correlação
-my.cor <- cor(df_tidy_hg[,3:10], method = "spearman")
+my.cor <- cor(df_tidy_hg[,4:11], method = "spearman")
 write.xlsx(my.cor, "./data/CorrelacaoFatores.xlsx")
 # Tabela de p-values e intervalos de confiança
 l_cor <- list()
@@ -64,7 +64,7 @@ names(df_cor) <- c("Par", "Correlação", "Lower Confidence Limit", "Upper Confi
 write.xlsx(df_cor, "./data/CorrelacaoConfidenceInterval.xlsx")
 
 # Tabela de carga de componentes
-pca1 = prcomp(df_tidy_hg[,3:10], retx = TRUE, scale. = TRUE, center = TRUE)
+pca1 = prcomp(df_tidy_hg[,4:11], retx = TRUE, scale. = TRUE, center = TRUE)
 df_carga <- pca1$rotation
 write.xlsx(df_carga, "./data/CargaFatores.xlsx")
 # Tabela de desvios padrão
@@ -78,4 +78,51 @@ my.varimax <- varimax(rawLoadings, normalize = TRUE)
 my.var.carga <- my.varimax$loadings[,1:ncomp]
 colnames(my.var.carga) <- c("PC1", "PC2", "PC3","PC4", "PC5", "PC6", "PC7", "PC8")
 write.xlsx(my.var.carga, "./data/CargaVarimax.xlsx")
+
+# Tabela com scores de usuários selecionados
+#---------------------------------
+# calculando scores para pessoas conhecidas na amostra
+#---------------------------------
+
+# obtendo dados brutos e filtrando para as pessoas selecionadas do arquivo rh99
+df_rh99 <- read.csv2("./data/rh99_20151121_0002.csv", encoding = "UTF-8", 
+                     sep = "\t", header = TRUE)
+# elimina linhas com dados que estavam na coluna errada
+df_rh99 <-
+    df_rh99 %>%
+    filter(TIPOUSER != "SP" & TIPOUSER != "DF")
+# fatoriza TIPOUSER para uso posterior em funcoes
+df_rh99$TIPOUSER <- factor(df_rh99$TIPOUSER)
+# elimina coluna X
+df_rh99 <-
+    df_rh99 %>%
+    select(-X) # eliminando coluna "X"
+# obtem usuários selecinados
+# osb: bati com arquivo original para pontos raw de Arlindo para confirmar dados
+df_users <- df_rh99 %>%
+    filter(grepl("Giselle Welter|Alex Welter|Marco Sinicco|Beatriz Welter|Eneko Fonseca|Ana Alterio|Almir Cozzolino|Fiama Ester de Oliveira|Valdir Rasche|Laura Welter|Sven Peters|Arlindo Marin", df_rh99$nomerespondente))
+#select (ID, nomerespondente)
+# Não achei: Fiama Ester de Oliveira (Não está na planilha original), Marco Sinicco, Valdir Rasche, Sven Peters
+
+# obtendo scores previstos destes usuários
+my.newdata.users <- f_tidy_scores_HG(df_users)
+#my.newdata.tidy <- df_tidy_hg[df_tidy_hg$ID %in% c(df_users$ID),]
+#my.newdata.raw <- df_raw_hg[df_raw_hg$ID %in% c(df_users$ID),]
+
+# obtendo os scores previstos
+pca1 = prcomp(df_tidy_hg[,4:11], scale. = TRUE, center = TRUE)
+
+# calculando os scores
+my.prev.users <- as.data.frame(predict(pca1, newdata=my.newdata.users))
+my.prev.users <- cbind(my.newdata.users[,1:3], my.prev.users)
+
+# salvando em planilha par envio
+write.xlsx(my.prev.users, "./data/ScoresSelecionados.xlsx")
+
+# alternativa a testar: obter scores da amostra original para usuários e TIPOUSER = ""
+my.scores <- as.data.frame(pca1$x) # obtaining total scores data.frame
+df_aux <- cbind(df_tidy_hg[,c(1,2,3)], my.scores) # concatenate names and IDs to the scores
+df_aux <-
+    df_aux %>%
+    filter(ID %in% df_users$ID & TIPOUSER == "")
 
