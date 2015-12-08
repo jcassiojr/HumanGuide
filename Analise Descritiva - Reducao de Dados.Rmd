@@ -44,7 +44,7 @@ A primeira análise a ser realizada consiste na obtenção de valores estatísti
 
 ```{r, echo=FALSE}
 require("psych", quietly = TRUE, warn.conflicts = FALSE)
-my.descr <- describe(df_tidy_hg[,4:11])
+my.descr <- describe(df_tidy_hg[,6:13])
 #print(my.descr)
 knitr::kable(my.descr)
 # hist(df_tidy_hg$power)
@@ -55,7 +55,7 @@ knitr::kable(my.descr)
 É realizada uma análise de correlação entre os 8 fatores, conforme os plots abaixo.
 
 ```{r, echo=FALSE}
-my.cor <- cor(df_tidy_hg[,4:11])
+my.cor <- cor(df_tidy_hg[,6:13])
 corrplot.mixed(my.cor, insig = "p-value", sig.level = -1, is.corr = TRUE)
 ```
 
@@ -75,7 +75,7 @@ O plot acima mostra na metade superior a força da correlação entre os fatores
 
 ```{r, echo=FALSE}
 # correlação de spearman
-    my.cor <- cor(df_tidy_hg[,4:11], method = "spearman")
+    my.cor <- cor(df_tidy_hg[,6:13], method = "spearman")
     #print(my.cor, digits = 4)
     knitr::kable(my.cor)
 ```
@@ -177,7 +177,7 @@ A análise de PCA foi implementada aos dados processados, gerando oito component
 ##### Desvio Padrão associado aos Componentes #####
 
 ```{r, echo=FALSE}
-    pca1 = prcomp(df_tidy_hg[,4:11], scale. = TRUE, center = TRUE)
+    pca1 = prcomp(df_tidy_hg[,6:13], scale. = TRUE, center = TRUE)
     print (pca1$sdev)
     #knitr::kable(pca1$sdev)
 ```

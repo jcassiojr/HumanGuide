@@ -1,6 +1,7 @@
 # geração de arquivos em excel para análise
 require("doMC")
 require("xlsx")
+require("psychometric")
 source("./R/f_le_raw_HG.R") # usar esta função para ler os dados novos. 
 source("./R/f_tidy_scores_HG.R")
 registerDoMC(5) # parallel processing
@@ -10,44 +11,44 @@ df_tidy_hg <- f_tidy_scores_HG(df_raw_hg)
 # Tabela de dados
 #write.xlsx(df_tidy_hg, "./data/DadosBrutos.xlsx")
 # Tabela da correlação
-my.cor <- cor(df_tidy_hg[,4:11], method = "spearman")
+my.cor <- cor(df_tidy_hg[,7:14], method = "spearman")
 write.xlsx(my.cor, "./data/CorrelacaoFatores.xlsx")
 # Tabela de p-values e intervalos de confiança
 l_cor <- list()
-l_cor[[1]] <- cor.test(~ sensibility + power, data = df_tidy_hg, method = "spearman", conf.level = .95, exact = FALSE)
-l_cor[[2]] <- cor.test(~ sensibility + quality, data = df_tidy_hg, method = "spearman", conf.level = .95, exact = FALSE)
-l_cor[[3]] <- cor.test(~ sensibility + exposure , data = df_tidy_hg, method = "spearman", conf.level = .95, exact = FALSE)
-l_cor[[4]] <- cor.test(~ sensibility + structure, data = df_tidy_hg, method = "spearman", conf.level = .95, exact = FALSE)
-l_cor[[5]] <- cor.test(~ sensibility + imagination, data = df_tidy_hg, method = "spearman", conf.level = .95, exact = FALSE)
-l_cor[[6]] <- cor.test(~ sensibility + stability, data = df_tidy_hg, method = "spearman", conf.level = .95, exact = FALSE)
-l_cor[[7]] <- cor.test(~ sensibility + contacts, data = df_tidy_hg, method = "spearman", conf.level = .95, exact = FALSE)
+l_cor[[1]] <- cor.test(~ sensibility + power, data = df_tidy_hg, method = "spearman", exact = FALSE)
+l_cor[[2]] <- cor.test(~ sensibility + quality, data = df_tidy_hg, method = "spearman", exact = FALSE)
+l_cor[[3]] <- cor.test(~ sensibility + exposure , data = df_tidy_hg, method = "spearman", exact = FALSE)
+l_cor[[4]] <- cor.test(~ sensibility + structure, data = df_tidy_hg, method = "spearman", exact = FALSE)
+l_cor[[5]] <- cor.test(~ sensibility + imagination, data = df_tidy_hg, method = "spearman", exact = FALSE)
+l_cor[[6]] <- cor.test(~ sensibility + stability, data = df_tidy_hg, method = "spearman", exact = FALSE)
+l_cor[[7]] <- cor.test(~ sensibility + contacts, data = df_tidy_hg, method = "spearman", exact = FALSE)
 
-l_cor[[8]] <- cor.test(~ power + quality, data = df_tidy_hg, method = "spearman", conf.level = .95, exact = FALSE)
-l_cor[[9]] <- cor.test(~ power + exposure , data = df_tidy_hg, method = "spearman", conf.level = .95, exact = FALSE)
-l_cor[[10]] <- cor.test(~ power + structure, data = df_tidy_hg, method = "spearman", conf.level = .95, exact = FALSE)
-l_cor[[11]] <- cor.test(~ power + imagination, data = df_tidy_hg, method = "spearman", conf.level = .95, exact = FALSE)
-l_cor[[12]] <- cor.test(~ power + stability, data = df_tidy_hg, method = "spearman", conf.level = .95, exact = FALSE)
-l_cor[[13]] <- cor.test(~ power + contacts, data = df_tidy_hg, method = "spearman", conf.level = .95, exact = FALSE)
+l_cor[[8]] <- cor.test(~ power + quality, data = df_tidy_hg, method = "spearman", exact = FALSE)
+l_cor[[9]] <- cor.test(~ power + exposure , data = df_tidy_hg, method = "spearman", exact = FALSE)
+l_cor[[10]] <- cor.test(~ power + structure, data = df_tidy_hg, method = "spearman", exact = FALSE)
+l_cor[[11]] <- cor.test(~ power + imagination, data = df_tidy_hg, method = "spearman", exact = FALSE)
+l_cor[[12]] <- cor.test(~ power + stability, data = df_tidy_hg, method = "spearman", exact = FALSE)
+l_cor[[13]] <- cor.test(~ power + contacts, data = df_tidy_hg, method = "spearman", exact = FALSE)
 
-l_cor[[14]] <- cor.test(~ quality + exposure , data = df_tidy_hg, method = "spearman", conf.level = .95, exact = FALSE)
-l_cor[[15]] <- cor.test(~ quality + structure, data = df_tidy_hg, method = "spearman", conf.level = .95, exact = FALSE)
-l_cor[[16]] <- cor.test(~ quality + imagination, data = df_tidy_hg, method = "spearman", conf.level = .95, exact = FALSE)
-l_cor[[17]] <- cor.test(~ quality + stability, data = df_tidy_hg, method = "spearman", conf.level = .95, exact = FALSE)
-l_cor[[18]] <- cor.test(~ quality + contacts, data = df_tidy_hg, method = "spearman", conf.level = .95, exact = FALSE)
+l_cor[[14]] <- cor.test(~ quality + exposure , data = df_tidy_hg, method = "spearman", exact = FALSE)
+l_cor[[15]] <- cor.test(~ quality + structure, data = df_tidy_hg, method = "spearman", exact = FALSE)
+l_cor[[16]] <- cor.test(~ quality + imagination, data = df_tidy_hg, method = "spearman", exact = FALSE)
+l_cor[[17]] <- cor.test(~ quality + stability, data = df_tidy_hg, method = "spearman", exact = FALSE)
+l_cor[[18]] <- cor.test(~ quality + contacts, data = df_tidy_hg, method = "spearman", exact = FALSE)
 
-l_cor[[19]] <- cor.test(~ exposure + structure, data = df_tidy_hg, method = "spearman", conf.level = .95, exact = FALSE)
-l_cor[[20]] <- cor.test(~ exposure + imagination, data = df_tidy_hg, method = "spearman", conf.level = .95, exact = FALSE)
-l_cor[[21]] <- cor.test(~ exposure + stability, data = df_tidy_hg, method = "spearman", conf.level = .95, exact = FALSE)
-l_cor[[22]] <- cor.test(~ exposure + contacts, data = df_tidy_hg, method = "spearman", conf.level = .95, exact = FALSE)
+l_cor[[19]] <- cor.test(~ exposure + structure, data = df_tidy_hg, method = "spearman", exact = FALSE)
+l_cor[[20]] <- cor.test(~ exposure + imagination, data = df_tidy_hg, method = "spearman", exact = FALSE)
+l_cor[[21]] <- cor.test(~ exposure + stability, data = df_tidy_hg, method = "spearman", exact = FALSE)
+l_cor[[22]] <- cor.test(~ exposure + contacts, data = df_tidy_hg, method = "spearman", exact = FALSE)
 
-l_cor[[23]] <- cor.test(~ structure + imagination, data = df_tidy_hg, method = "spearman", conf.level = .95, exact = FALSE)
-l_cor[[24]] <- cor.test(~ structure + stability, data = df_tidy_hg, method = "spearman", conf.level = .95, exact = FALSE)
-l_cor[[25]] <- cor.test(~ structure + contacts, data = df_tidy_hg, method = "spearman", conf.level = .95, exact = FALSE)
+l_cor[[23]] <- cor.test(~ structure + imagination, data = df_tidy_hg, method = "spearman", exact = FALSE)
+l_cor[[24]] <- cor.test(~ structure + stability, data = df_tidy_hg, method = "spearman", exact = FALSE)
+l_cor[[25]] <- cor.test(~ structure + contacts, data = df_tidy_hg, method = "spearman", exact = FALSE)
 
-l_cor[[26]] <- cor.test(~ imagination + stability, data = df_tidy_hg, method = "spearman", conf.level = .95, exact = FALSE)
-l_cor[[27]] <- cor.test(~ imagination + contacts, data = df_tidy_hg, method = "spearman", conf.level = .95, exact = FALSE)
+l_cor[[26]] <- cor.test(~ imagination + stability, data = df_tidy_hg, method = "spearman", exact = FALSE)
+l_cor[[27]] <- cor.test(~ imagination + contacts, data = df_tidy_hg, method = "spearman", exact = FALSE)
 
-l_cor[[28]] <- cor.test(~ stability + contacts, data = df_tidy_hg, method = "spearman", conf.level = .95, exact = FALSE)
+l_cor[[28]] <- cor.test(~ stability + contacts, data = df_tidy_hg, method = "spearman", exact = FALSE)
 
 df_cor <- data.frame()
 
@@ -64,7 +65,7 @@ names(df_cor) <- c("Par", "Correlação", "Lower Confidence Limit", "Upper Confi
 write.xlsx(df_cor, "./data/CorrelacaoConfidenceInterval.xlsx")
 
 # Tabela de carga de componentes
-pca1 = prcomp(df_tidy_hg[,4:11], retx = TRUE, scale. = TRUE, center = TRUE)
+pca1 = prcomp(df_tidy_hg[,7:14], retx = TRUE, scale. = TRUE, center = TRUE)
 df_carga <- pca1$rotation
 write.xlsx(df_carga, "./data/CargaFatores.xlsx")
 # Tabela de desvios padrão
@@ -101,30 +102,101 @@ df_rh99 <-
 # osb: bati com arquivo original para pontos raw de Arlindo para confirmar dados
 df_users <- df_rh99 %>%
     filter(grepl("Giselle Welter|Alex Welter|Marco Sinicco|Beatriz Welter|Eneko Fonseca|Ana Alterio|Almir Cozzolino|Fiama Ester de Oliveira|Valdir Rasche|Laura Welter|Sven Peters|Arlindo Marin", df_rh99$nomerespondente))
-df_users <- df_raw_hg %>%
-    filter(grepl("Monica Negraes|Julia Arduini|Katia Pineschi|Gabi Lipkau|Ana Raia|Altair|Jerome|Rolf Kenmo|Vagner Molina", df_raw_hg$nomerespondente))
+#df_users <- df_raw_hg %>%
+#    filter(grepl("Monica Negraes|Julia Arduini|Katia Pineschi|Gabi Lipkau|Ana Raia|Altair|Jerome|Rolf Kenmo|Vagner Molina", df_raw_hg$nomerespondente))
 #select (ID, nomerespondente)
 # Não achei: Fiama Ester de Oliveira (Não está na planilha original), Marco Sinicco, Valdir Rasche, Sven Peters
 
 # obtendo scores previstos destes usuários
+names(df_users) <- gsub("á","a",names(df_users))
+names(df_users) <- gsub("ã","a",names(df_users))
 my.newdata.users <- f_tidy_scores_HG(df_users)
 #my.newdata.tidy <- df_tidy_hg[df_tidy_hg$ID %in% c(df_users$ID),]
 #my.newdata.raw <- df_raw_hg[df_raw_hg$ID %in% c(df_users$ID),]
 
 # obtendo os scores previstos
-pca1 = prcomp(df_tidy_hg[,4:11], scale. = TRUE, center = TRUE)
+pca1 = prcomp(df_tidy_hg[,7:14], scale. = TRUE, center = TRUE)
 
 # calculando os scores
 my.prev.users <- as.data.frame(predict(pca1, newdata=my.newdata.users))
-my.prev.users <- cbind(my.newdata.users[,1:3], my.prev.users)
+my.prev.users <- cbind(my.newdata.users[,1:4], my.prev.users)
 
 # salvando em planilha par envio
 write.xlsx(my.prev.users, "./data/ScoresSelecionados-Parte2.xlsx")
 
 # alternativa a testar: obter scores da amostra original para usuários e TIPOUSER = ""
 my.scores <- as.data.frame(pca1$x) # obtaining total scores data.frame
-df_aux <- cbind(df_tidy_hg[,c(1,2,3)], my.scores) # concatenate names and IDs to the scores
+df_aux <- cbind(df_tidy_hg[,c(1,2,3,4)], my.scores) # concatenate names and IDs to the scores
 df_aux <-
     df_aux %>%
     filter(ID %in% df_users$ID & TIPOUSER == "")
+
+# tabela de scores por formaçao
+#-------------------------------
+my.newdata.form <- df_tidy_hg
+# obtendo os scores previstos
+pca1 = prcomp(my.newdata.form[,7:14], scale. = TRUE, center = TRUE)
+# calculando os scores
+my.prev.form <- as.data.frame(predict(pca1, newdata=my.newdata.form))
+my.prev.form <- cbind(formacao.em = my.newdata.form$formacao.em, my.prev.form)
+# obtendo o score médio por formacao
+my.prev.form <-
+    my.prev.form %>%
+    group_by(formacao.em) %>%
+    summarise(PC1.medio = mean(PC1),
+              PC2.medio = mean(PC2),
+              PC3.medio = mean(PC3),
+              PC4.medio = mean(PC4),
+              PC5.medio = mean(PC5),
+              PC6.medio = mean(PC6),
+              PC7.medio = mean(PC7),
+              PC8.medio = mean(PC8))
+# salvando em planilha par envio
+write.xlsx(my.prev.form, "./data/ScoresMediosPorFormacao.xlsx")
+
+# tabela de scores por atuaçao profissional
+#-------------------------------
+my.newdata.prof <- df_tidy_hg
+# obtendo os scores previstos
+pca1 = prcomp(my.newdata.prof[,7:14], scale. = TRUE, center = TRUE)
+# calculando os scores
+my.prev.prof <- as.data.frame(predict(pca1, newdata=my.newdata.prof))
+my.prev.prof <- cbind(profissao.na.area.de = my.newdata.prof$profissao.na.area.de, my.prev.prof)
+# obtendo o score médio por formacao
+my.prev.prof <-
+    my.prev.prof %>%
+    group_by(profissao.na.area.de) %>%
+    summarise(PC1.medio = mean(PC1),
+              PC2.medio = mean(PC2),
+              PC3.medio = mean(PC3),
+              PC4.medio = mean(PC4),
+              PC5.medio = mean(PC5),
+              PC6.medio = mean(PC6),
+              PC7.medio = mean(PC7),
+              PC8.medio = mean(PC8))
+# salvando em planilha par envio
+write.xlsx(my.prev.prof, "./data/ScoresMediosPorProfissao.xlsx")
+
+# tabela de scores por sexo
+#-------------------------------
+my.newdata.sex <- df_tidy_hg
+# obtendo os scores previstos
+pca1 = prcomp(my.newdata.sex[,7:14], scale. = TRUE, center = TRUE)
+# calculando os scores
+my.prev.sex <- as.data.frame(predict(pca1, newdata=my.newdata.sex))
+my.prev.sex <- cbind(sexo = my.newdata.sex$sexo, my.prev.sex)
+# obtendo o score médio por formacao
+my.prev.sex <-
+    my.prev.sex %>%
+    group_by(sexo) %>%
+    summarise(PC1.medio = mean(PC1),
+              PC2.medio = mean(PC2),
+              PC3.medio = mean(PC3),
+              PC4.medio = mean(PC4),
+              PC5.medio = mean(PC5),
+              PC6.medio = mean(PC6),
+              PC7.medio = mean(PC7),
+              PC8.medio = mean(PC8))
+# salvando em planilha par envio
+write.xlsx(my.prev.sex, "./data/ScoresMediosPorSexo.xlsx")
 
