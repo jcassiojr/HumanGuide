@@ -112,6 +112,7 @@ boxplot(mpg~cyl,data=mtcars, main="Car Milage Data",
 #---------------------------------------------------
 # para boxplot abaixo preciso fazer uma coluna com PC (obs=PC1, PC2, etc) e outra com o valor do score
 # JA SEI: usar package reshape, 
+require(reshape)
 df_prev.melted <- melt(my.prev, id=c("ID","TIPOUSER"), measured=c("PC1","PC2","PC3", "PC4", "PC5", "PC6", "PC7", "PC8"))
 
 bp <- boxplot(value~variable,data=df_prev.melted, main="Scores por Componente", outline = FALSE,

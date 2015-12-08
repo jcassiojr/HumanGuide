@@ -101,6 +101,8 @@ df_rh99 <-
 # osb: bati com arquivo original para pontos raw de Arlindo para confirmar dados
 df_users <- df_rh99 %>%
     filter(grepl("Giselle Welter|Alex Welter|Marco Sinicco|Beatriz Welter|Eneko Fonseca|Ana Alterio|Almir Cozzolino|Fiama Ester de Oliveira|Valdir Rasche|Laura Welter|Sven Peters|Arlindo Marin", df_rh99$nomerespondente))
+df_users <- df_raw_hg %>%
+    filter(grepl("Monica Negraes|Julia Arduini|Katia Pineschi|Gabi Lipkau|Ana Raia|Altair|Jerome|Rolf Kenmo|Vagner Molina", df_raw_hg$nomerespondente))
 #select (ID, nomerespondente)
 # Não achei: Fiama Ester de Oliveira (Não está na planilha original), Marco Sinicco, Valdir Rasche, Sven Peters
 
@@ -117,7 +119,7 @@ my.prev.users <- as.data.frame(predict(pca1, newdata=my.newdata.users))
 my.prev.users <- cbind(my.newdata.users[,1:3], my.prev.users)
 
 # salvando em planilha par envio
-write.xlsx(my.prev.users, "./data/ScoresSelecionados.xlsx")
+write.xlsx(my.prev.users, "./data/ScoresSelecionados-Parte2.xlsx")
 
 # alternativa a testar: obter scores da amostra original para usuários e TIPOUSER = ""
 my.scores <- as.data.frame(pca1$x) # obtaining total scores data.frame

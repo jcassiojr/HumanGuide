@@ -363,7 +363,7 @@ Considerando a pontuação dos candidatos abaixo (como amostra, mostramos soment
     # cuidado que os IDs de rh99, Kroton e goe files se repetem!!!
     my.newdata <- 
         df_tidy_hg %>%
-        sample_n(200)
+        sample_n(100000)
     #print (my.newdata)
     knitr::kable(head(my.newdata, n = 10))
 ```
