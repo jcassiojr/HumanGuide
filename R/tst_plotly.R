@@ -1,12 +1,11 @@
-# plot de cluster
-# --- PLOT COLORIDO DE HUMANAS, BIOLOGICAS E EXATAS TERMINA AQUI
-
-my.newdata.form <- df_tidy_hg
+# teste de publicacao PLOTLY
+require("plotly", quietly = TRUE, warn.conflicts = FALSE)
+my.newdata <- df_tidy_hg
 # obtendo os scores previstos
-pca1 = prcomp(my.newdata.form[,7:14], scale. = TRUE, center = TRUE)
+pca1 = prcomp(my.newdata[,7:14], scale. = TRUE, center = TRUE)
 # calculando os scores
-my.prev.form <- as.data.frame(predict(pca1, newdata=my.newdata.form))
-my.prev.form <- cbind(formacao.em = my.newdata.form$formacao.em, my.prev.form)
+my.prev <- as.data.frame(predict(pca1, newdata=my.newdata))
+my.prev.form <- cbind(formacao.em = my.newdata$formacao.em, my.prev)
 # obtendo o score médio por formacao
 # OBS: repetir esta análise para agrupar por campo de atividade
 my.prev.form <-
@@ -20,32 +19,7 @@ my.prev.form <-
               PC6.medio = mean(PC6),
               PC7.medio = mean(PC7),
               PC8.medio = mean(PC8))
-
-# classificando sem definição de área
-#------------------------
-#set.seed(101)
-#km.form <- kmeans(my.prev.form[,2:9], 3) # cria os clusters independente da formção
-#plot(my.prev.form[,2]$PC1.medio, my.prev.form[,3]$PC2.medio, col=km.form$cluster) # usando cores do kmean
-#points(km.form$centers[,c(1,2)], col=1:3, pch=19, cex=2)
-# agora usando cores de humanas, bio e exatas
-
-
-
-#plot(my.prev.form[,3]$PC2.medio, my.prev.form[,4]$PC3.medio, col=km.form$cluster)
-#points(km.form$centers[,c(1,2)], col=1:3, pch=19, cex=2)
-#matplot(my.prev.form[,2], my.prev.form[,3],type='p', pch = 2, col=km.form$cluster)
-#y <- unclass(my.prev.form[,2])
-#y$PC1.medio
-
-#-------------------------------------
-# criar clusterização manualmente para plotar por área de formação
-#------------------------------------
-#my.newdata.form <- df_tidy_hg
-#pca1 = prcomp(my.newdata.form[,7:14], scale. = TRUE, center = TRUE)
-#my.prev.form <- as.data.frame(predict(pca1, newdata=my.newdata.form))
-#my.prev.form <- cbind(formacao.em = my.newdata.form$formacao.em, my.prev.form)
-# preciso montar vetor de inteiros de cores para: 1 = humanas, 2 = biologicas,
-# 3 = exatas e colocar no lugar de km.form$cluster
+# classificando por área de formação
 my.area <- as.data.frame(my.prev.form[,1])
 my.area <-
     my.area %>%
@@ -129,31 +103,39 @@ my.area <-
                                                                    "Matemática",
                                                                    "Engenharia da Segurança no Trabalho"), 3, # VERDE
                                                 0))))
-
-#pca1 = prcomp(my.newdata.form[,7:14], scale. = TRUE, center = TRUE)
-# calculando os scores
-#my.prev.form <- as.data.frame(predict(pca1, newdata=my.newdata.form))
-#my.prev.form <- cbind(formacao.em = my.newdata.form$formacao.em, my.prev.form)
-#my.prev.form <-
-#    my.prev.form %>%
-#    group_by(formacao.em) %>%
-##    summarise(PC1.medio = mean(PC1),
-#              PC2.medio = mean(PC2),
-#              PC3.medio = mean(PC3),
-#              PC4.medio = mean(PC4),
-#              PC5.medio = mean(PC5),
-#              PC6.medio = mean(PC6),
-#              PC7.medio = mean(PC7),
-#              PC8.medio = mean(PC8))
-
 my.prev.form <- cbind(area.formacao = my.area$area.formacao, my.prev.form)
-#-------------------------------------------------
-# plot de cluster 
-#--------------------------------
-plot(my.prev.form$PC1.medio, my.prev.form$PC2.medio, col=my.prev.form$area.formacao)
-legend("topright", inset=.05,
-       bty="n", cex=.5,
-       title="Área de Formação",
-       c("BIOLÓGICAS", "HUMANAS", "EXATAS"), fill=c("red", "blue", "green"))
 
-# --- PLOT COLORIDO DE HUMANAS, BIOLOGICAS E EXATAS TERMINA AQUI
+my.prev.form2 <-
+    my.prev.form %>%
+    mutate(area.form.text = ifelse(area.formacao == 1, "HUMANAS",
+                                   ifelse(area.formacao == 2, "BIOLÓGICAS", "EXATAS")))
+
+f <- list(
+    family = "Courier New, monospace",
+    size = 18,
+    color = "#7f7f7f"
+)
+x <- list(
+    title = "PC1 Axis",
+    titlefont = f
+)
+y <- list(
+    title = "PC2 Axis",
+    titlefont = f
+)
+z <- list(
+    title = "PC3 Axis",
+    titlefont = f
+)
+
+pc1 <- plot_ly(my.prev.form2, x = PC1.medio, y = PC2.medio, z = PC3.medio, color = area.form.text, type = "scatter3d", mode = "markers")
+pc1 <- layout(pc1, title = "Scores Médios por Área de Formação - PC1 x PC2 X PC3"),
+              xaxis = x, yaxis = y, zaxis = z)
+pc1
+
+# publicando na WEB (coloquei em .Rprofile no working directory)
+#Sys.setenv("plotly_username"="jcassiojr")
+#Sys.setenv("plotly_api_key"="sdl04c2tix")
+# filename sets the name of the file inside your online plotly account.
+# world_readable sets the privacy of your chart. If TRUE, the graph is publically viewable, if FALSE, only you can view it.
+plotly_POST(pc1, filename = "r-docs/scores-3D", world_readable=FALSE, fileopt = "overwrite")
