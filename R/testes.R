@@ -238,3 +238,18 @@ points(km.form$centers[,c(1,2)], col=c(2,3,1), pch=19, cex=2)
 # seelcionando lista de ocupacoes e gravando em planilha para classificar
 df_ocup <- df_raw_hg %>% select(profissao.na.area.de) %>% group_by(profissao.na.area.de) %>% summarise(n())
 write.xlsx(df_ocup, "./data/Prosissoes.xlsx")
+
+
+# PLOTLY
+# install.packages("plotly")
+library(plotly)
+p <- plot_ly(midwest, x = percollege, color = state, type = "box")
+# testar com plot de scores por tipo formacao
+my.prev.form2 <-
+    my.prev.form %>%
+    mutate(area.form.text = ifelse(area.formacao == 1, "HUMANAS",
+                                   ifelse(area.formacao == 2, "BIOLÓGICAS", "EXATAS")))
+p <- plot_ly(my.prev.form2, x = PC3.medio, color = area.form.text, type = "box")
+p
+# para postar na cloud
+plotly_POST(p, filename = "r-docs/midwest-boxplots", world_readable=TRUE)
