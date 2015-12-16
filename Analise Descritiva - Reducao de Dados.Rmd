@@ -33,7 +33,7 @@ registerDoMC(5) # parallel processing
 df_raw_hg <- f_le_raw_HG() # retorna colunas: todas
 df_tidy_hg <- f_tidy_scores_HG(df_raw_hg)
 #head(df_tidy_hg)
-knitr::kable(head(df_tidy_hg))
+knitr::kable(head(df_tidy_hg[,-4]))
 ```
 
 ### Análises Estatísticas Iniciais ###
@@ -559,6 +559,9 @@ my.prev.form2 <-
     my.prev.form %>%
     mutate(area.form.text = ifelse(area.formacao == 1, "HUMANAS",
                                    ifelse(area.formacao == 2, "BIOLÓGICAS", "EXATAS")))
+
+### setting parameters
+#par(mfrow = c(2,2), mar =c(5,4,2,1))
     
 pc1 <- plot_ly(my.prev.form2, x = PC1.medio, y = PC2.medio, color = area.form.text, type = "scatter", mode = "markers")
 pc1 <- layout(pc1, title = "Scores Médios por Área de Formação - PC1 x PC2")
@@ -572,6 +575,10 @@ pc3 <- plot_ly(my.prev.form2, x = PC1.medio, y = PC3.medio, color = area.form.te
 pc3 <- layout(pc1, title = "Scores Médios por Área de Formação - PC1 x PC3")
 pc3
 # fim plotly
+
+#require("Rmisc", quietly = TRUE, warn.conflicts = FALSE)
+# multiplot(pc1, pc2, pc3, cols=2)
+
 
 #plot(my.prev.form$PC2.medio, my.prev.form$PC3.medio, col=my.prev.form$area.formacao,
 #     main = "Clusters por Área de Formação (PC2 x PC3)",
@@ -620,6 +627,7 @@ pc2
 pc3 <- plot_ly(my.prev.form2, x = PC3.medio, color = area.form.text, type = "box")
 pc3 <- layout(pc3, title = "Scores médios por Área de Formação - PC3")
 pc3
+
 ```
 
 ### Plotando 3D - Scores Médios por Área de Formação - PC1 x PC2 x PC3 ###
@@ -656,6 +664,8 @@ my.prev.gender <-
 #pc1 <- plot_ly(my.prev.gender, x = PC1.medio, y = PC2.medio, color = sexo, type = "scatter", mode = "markers")
 #pc1 <- layout(pc1, title = "Scores Médios por Sexo - PC1 x PC2")
 #pc1
+### setting parameters
+#par(mfrow = c(2,2), mar =c(5,4,2,1))
 # plot PC1 x PC2
 plot(my.prev.gender$PC1.medio, my.prev.gender$PC2.medio, 
      col=my.prev.gender$sexo,
