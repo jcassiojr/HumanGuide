@@ -253,3 +253,55 @@ p <- plot_ly(my.prev.form2, x = PC3.medio, color = area.form.text, type = "box")
 p
 # para postar na cloud
 plotly_POST(p, filename = "r-docs/midwest-boxplots", world_readable=TRUE)
+
+# CRIAR PLOT MÉDIO DE PCs 1, 2 e 3 por classe de carreira
+############################################################
+# ler dados de categorias de formação
+require(xlsx)
+df_class.carr <- read.xlsx2("./data/Classificacao das carreiras-V2.xlsx", sheetIndex = 1, header = TRUE)
+
+my.newdata.carr <- df_tidy_hg
+# obtendo os scores previstos
+pca1 = prcomp(my.newdata.carr[,7:14], scale. = TRUE, center = TRUE)
+# calculando os scores
+my.prev.carr <- as.data.frame(predict(pca1, newdata=my.newdata.carr))
+my.prev.carr <- cbind(profissao.na.area.de = my.newdata.carr$profissao.na.area.de, my.prev.carr)
+# obtendo o score médio por formacao
+# OBS: repetir esta análise para agrupar por campo de atividade
+my.prev.carr <-
+    my.prev.carr %>%
+    group_by(profissao.na.area.de) %>%
+    summarise(PC1.medio = mean(PC1),
+              PC2.medio = mean(PC2),
+              PC3.medio = mean(PC3),
+              PC4.medio = mean(PC4),
+              PC5.medio = mean(PC5),
+              PC6.medio = mean(PC6),
+              PC7.medio = mean(PC7),
+              PC8.medio = mean(PC8))
+
+# criar coluna class.carr no df_tidy agrupado por media 
+# 1. percorrer dataframe df_class.carr para cada célula de profissao.na.area.de do dataframe my.prev.carr
+library(stringr)
+#x <- numeric() # vetor contendo indice onde
+x <-
+    my.prev.carr %>%
+    mutate(class.carr = NA)
+
+PAREI AQUI
+# FALTA: loop externo para percorrer todas as classes de df_class.carr
+for (i in 1:length(my.prev.carr$profissao.na.area.de)) {
+    #print(i)
+    y <- which(!is.na(str_match(df_class.carr[,1],as.character(my.prev.carr$profissao.na.area.de[i]))))
+
+    if (length(y) != 0) {
+        x[i,10] = "CFM"
+    } 
+}
+which(!is.na(str_match(df_class.carr[,1],"Desenv")))
+x <-which(!is.na(str_match(df_class.carr[,1],as.character(my.prev.carr$profissao.na.area.de[7]))))
+# 2. quando encontrar, salvar o número ou nome da coluna em vetor
+# 3. ao final, terá vetor para cada profissao com as classe a que pertence
+# 4. criar dataframe com colunas: profissao.na area.de, CL1, Cl2, Cl3, até o tamanho do maior vetor gerado
+# 5. merge deste data frame com my.prev.carr
+# 6. criar plot 3D para coluna CL1 (ver ainda como fara para os demais CLs)
