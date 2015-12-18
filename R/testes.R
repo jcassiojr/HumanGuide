@@ -258,8 +258,43 @@ plotly_POST(p, filename = "r-docs/midwest-boxplots", world_readable=TRUE)
 ############################################################
 # ler dados de categorias de formação
 require(xlsx)
+require(dplyr)
 df_class.carr <- read.xlsx2("./data/Classificacao das carreiras-V2.xlsx", sheetIndex = 1, header = TRUE)
+# preparando os dados para as pesquisas a frente
+df_class.carr <- mutate_each(df_class.carr, funs(tolower)) # forçando minúsculas
+# tirando acentuação e espaço em branco em excesso
+df_class.carr <- as.data.frame(sapply(df_class.carr, FUN = function(x) as.character(gsub("á", "a", x))))
+df_class.carr <- as.data.frame(sapply(df_class.carr, FUN = function(x) as.character(gsub("é", "e", x))))
+df_class.carr <- as.data.frame(sapply(df_class.carr, FUN = function(x) as.character(gsub("í", "i", x))))
+df_class.carr <- as.data.frame(sapply(df_class.carr, FUN = function(x) as.character(gsub("ó", "o", x))))
+df_class.carr <- as.data.frame(sapply(df_class.carr, FUN = function(x) as.character(gsub("ú", "u", x))))
+df_class.carr <- as.data.frame(sapply(df_class.carr, FUN = function(x) as.character(gsub("ã", "a", x))))
+df_class.carr <- as.data.frame(sapply(df_class.carr, FUN = function(x) as.character(gsub("õ", "o", x))))
+df_class.carr <- as.data.frame(sapply(df_class.carr, FUN = function(x) as.character(gsub("ç", "c", x))))
+df_class.carr <- as.data.frame(sapply(df_class.carr, FUN = function(x) as.character(gsub("â", "a", x))))
+df_class.carr <- as.data.frame(sapply(df_class.carr, FUN = function(x) as.character(gsub("ê", "e", x))))
+df_class.carr <- as.data.frame(sapply(df_class.carr, FUN = function(x) as.character(gsub("ô", "o", x))))
+df_class.carr <- as.data.frame(sapply(df_class.carr, FUN = function(x) as.character(gsub("  ", " ", x))))
 
+# abaixo funciona, mas sapply acima é mais enxuto!
+#df_class.carr <-
+#    df_class.carr %>%
+#    mutate(CFM = gsub('á', 'a', df_class.carr$CFM),
+#           CFM = gsub('á', 'a', df_class.carr$CFM),
+#           CFM = gsub('á', 'a', df_class.carr$CFM),
+#           CFM = gsub('á', 'a', df_class.carr$CFM),
+#           CFM = gsub('á', 'a', df_class.carr$CFM),
+#           CFM = gsub('á', 'a', df_class.carr$CFM),
+ #          CFM = gsub('á', 'a', df_class.carr$CFM),
+#           CFM = gsub('á', 'a', df_class.carr$CFM),
+#           CFM = gsub('á', 'a', df_class.carr$CFM),
+#           CFM = gsub('á', 'a', df_class.carr$CFM),
+#           
+#           )
+
+
+
+# Obtendo os dados das respostas
 my.newdata.carr <- df_tidy_hg
 # obtendo os scores previstos
 pca1 = prcomp(my.newdata.carr[,7:14], scale. = TRUE, center = TRUE)
@@ -283,25 +318,136 @@ my.prev.carr <-
 # criar coluna class.carr no df_tidy agrupado por media 
 # 1. percorrer dataframe df_class.carr para cada célula de profissao.na.area.de do dataframe my.prev.carr
 library(stringr)
-#x <- numeric() # vetor contendo indice onde
-x <-
+# tirando acentuação e espaço em branco em excesso e forçando minusculas
+my.prev.carr <- mutate_each(my.prev.carr, funs(tolower)) # forçando minúsculas
+my.prev.carr <- as.data.frame(sapply(my.prev.carr, FUN = function(x) as.character(gsub("á", "a", x))))
+my.prev.carr <- as.data.frame(sapply(my.prev.carr, FUN = function(x) as.character(gsub("é", "e", x))))
+my.prev.carr <- as.data.frame(sapply(my.prev.carr, FUN = function(x) as.character(gsub("í", "i", x))))
+my.prev.carr <- as.data.frame(sapply(my.prev.carr, FUN = function(x) as.character(gsub("ó", "o", x))))
+my.prev.carr <- as.data.frame(sapply(my.prev.carr, FUN = function(x) as.character(gsub("ú", "u", x))))
+my.prev.carr <- as.data.frame(sapply(my.prev.carr, FUN = function(x) as.character(gsub("ã", "a", x))))
+my.prev.carr <- as.data.frame(sapply(my.prev.carr, FUN = function(x) as.character(gsub("õ", "o", x))))
+my.prev.carr <- as.data.frame(sapply(my.prev.carr, FUN = function(x) as.character(gsub("ç", "c", x))))
+my.prev.carr <- as.data.frame(sapply(my.prev.carr, FUN = function(x) as.character(gsub("â", "a", x))))
+my.prev.carr <- as.data.frame(sapply(my.prev.carr, FUN = function(x) as.character(gsub("ê", "e", x))))
+my.prev.carr <- as.data.frame(sapply(my.prev.carr, FUN = function(x) as.character(gsub("ô", "o", x))))
+my.prev.carr <- as.data.frame(sapply(my.prev.carr, FUN = function(x) as.character(gsub("  ", " ", x))))
+
+# não funciona direito abaixo!!!! rodando um a um funciona!!!
+#my.prev.carr <-
+#    my.prev.carr %>%
+#    mutate(profissao.na.area.de = gsub('ã', 'a', my.prev.carr$profissao.na.area.de),
+#           profissao.na.area.de = gsub('á', 'a', my.prev.carr$profissao.na.area.de),
+#           profissao.na.area.de = gsub('é', 'e', my.prev.carr$profissao.na.area.de),
+#           profissao.na.area.de = gsub('í', 'i', my.prev.carr$profissao.na.area.de),
+#           profissao.na.area.de = gsub('ó', 'o', my.prev.carr$profissao.na.area.de),
+#           profissao.na.area.de = gsub('ú', 'u', my.prev.carr$profissao.na.area.de),
+#           profissao.na.area.de = gsub('â', 'a', my.prev.carr$profissao.na.area.de),
+#           profissao.na.area.de = gsub('ê', 'e', my.prev.carr$profissao.na.area.de),
+#           profissao.na.area.de = gsub('ô', 'o', my.prev.carr$profissao.na.area.de),
+#           profissao.na.area.de = gsub('ç', 'c', my.prev.carr$profissao.na.area.de),
+#           profissao.na.area.de = gsub('õ', 'o', my.prev.carr$profissao.na.area.de))
+
+# inicializando a coluna com NA
+my.prev.carr <-
     my.prev.carr %>%
     mutate(class.carr = NA)
 
-PAREI AQUI
-# FALTA: loop externo para percorrer todas as classes de df_class.carr
-for (i in 1:length(my.prev.carr$profissao.na.area.de)) {
-    #print(i)
-    y <- which(!is.na(str_match(df_class.carr[,1],as.character(my.prev.carr$profissao.na.area.de[i]))))
 
-    if (length(y) != 0) {
-        x[i,10] = "CFM"
-    } 
+# percorre todas as colunas de df_class.carr
+for (j in 1:ncol(df_class.carr)) {
+    # percorre toda uma coluna de df_class.carr marcando em my.prev.carr$class.carr se encontra
+    for (i in 1:length(my.prev.carr$profissao.na.area.de)) {
+        #print(i)
+        y <- which(!is.na(str_match(df_class.carr[,j],as.character(my.prev.carr$profissao.na.area.de[i]))))
+    
+        if (length(y) != 0) {
+            my.prev.carr[i,10] = colnames(df_class.carr)[j]
+        } 
+    }
 }
-which(!is.na(str_match(df_class.carr[,1],"Desenv")))
-x <-which(!is.na(str_match(df_class.carr[,1],as.character(my.prev.carr$profissao.na.area.de[7]))))
-# 2. quando encontrar, salvar o número ou nome da coluna em vetor
-# 3. ao final, terá vetor para cada profissao com as classe a que pertence
-# 4. criar dataframe com colunas: profissao.na area.de, CL1, Cl2, Cl3, até o tamanho do maior vetor gerado
-# 5. merge deste data frame com my.prev.carr
-# 6. criar plot 3D para coluna CL1 (ver ainda como fara para os demais CLs)
+# mudando NA para "INDEFINIDO" em coluna class.carr
+my.prev.carr <-
+    my.prev.carr %>%
+    mutate(class.carr = ifelse(is.na(class.carr), "INDEFINIDO", as.character(class.carr)))
+
+# plotando os resultados médios nso PC1, PC2 e PC3
+require("plotly")
+pc1 <- plot_ly(my.prev.carr, x = PC1.medio, y = PC2.medio, z = PC3.medio, color = class.carr, type = "scatter3d", mode = "markers")
+pc1 <- layout(pc1, title = "Scores Médios por Classe de Profissão - PC1 x PC2 X PC3")
+pc1
+
+# plotando os resultados discriminados para amostra aleatória nos PC1, PC2 e PC3
+require("plotly")
+pc1 <- plot_ly(my.prev.carr, x = PC1.medio, y = PC2.medio, z = PC3.medio, color = class.carr, type = "scatter3d", mode = "markers")
+pc1 <- layout(pc1, title = "Scores Médios por Classe de Profissão - PC1 x PC2 X PC3")
+pc1
+
+# CRIAR PLOT PARA AMOSTRA DE OCORRÊNCIAS DE PCs 1, 2 e 3 por classe de carreira
+############################################################
+# Obtendo os dados das respostas
+my.newdata.carr2 <- df_tidy_hg
+
+# obtendo os scores previstos
+pca1 = prcomp(my.newdata.carr2[,7:14], scale. = TRUE, center = TRUE)
+my.newdata.carr2 <- 
+    df_tidy_hg %>%
+    sample_n(1000)
+# calculando os scores
+my.prev.carr2 <- as.data.frame(predict(pca1, newdata=my.newdata.carr2))
+my.prev.carr2 <- cbind(profissao.na.area.de = my.newdata.carr2$profissao.na.area.de, my.prev.carr2)
+
+my.prev.carr2 <- mutate_each(my.prev.carr2, funs(tolower)) # forçando minúsculas
+my.prev.carr2 <- as.data.frame(sapply(my.prev.carr2, FUN = function(x) as.character(gsub("á", "a", x))))
+my.prev.carr2 <- as.data.frame(sapply(my.prev.carr2, FUN = function(x) as.character(gsub("é", "e", x))))
+my.prev.carr2 <- as.data.frame(sapply(my.prev.carr2, FUN = function(x) as.character(gsub("í", "i", x))))
+my.prev.carr2 <- as.data.frame(sapply(my.prev.carr2, FUN = function(x) as.character(gsub("ó", "o", x))))
+my.prev.carr2 <- as.data.frame(sapply(my.prev.carr2, FUN = function(x) as.character(gsub("ú", "u", x))))
+my.prev.carr2 <- as.data.frame(sapply(my.prev.carr2, FUN = function(x) as.character(gsub("ã", "a", x))))
+my.prev.carr2 <- as.data.frame(sapply(my.prev.carr2, FUN = function(x) as.character(gsub("õ", "o", x))))
+my.prev.carr2 <- as.data.frame(sapply(my.prev.carr2, FUN = function(x) as.character(gsub("ç", "c", x))))
+my.prev.carr2 <- as.data.frame(sapply(my.prev.carr2, FUN = function(x) as.character(gsub("â", "a", x))))
+my.prev.carr2 <- as.data.frame(sapply(my.prev.carr2, FUN = function(x) as.character(gsub("ê", "e", x))))
+my.prev.carr2 <- as.data.frame(sapply(my.prev.carr2, FUN = function(x) as.character(gsub("ô", "o", x))))
+my.prev.carr2 <- as.data.frame(sapply(my.prev.carr2, FUN = function(x) as.character(gsub("  ", " ", x))))
+
+my.prev.carr2 <-
+    my.prev.carr2 %>%
+    mutate(class.carr = NA)
+
+# percorre todas as colunas de df_class.carr
+for (j in 1:ncol(df_class.carr)) {
+    # percorre toda uma coluna de df_class.carr marcando em my.prev.carr$class.carr se encontra
+    for (i in 1:length(my.prev.carr2$profissao.na.area.de)) {
+        #print(i)
+        y <- which(!is.na(str_match(df_class.carr[,j],as.character(my.prev.carr2$profissao.na.area.de[i]))))
+        
+        if (length(y) != 0) {
+            my.prev.carr2[i,10] = colnames(df_class.carr)[j]
+        } 
+    }
+}
+# mudando NA para "INDEFINIDO" em coluna class.carr
+my.prev.carr2 <-
+    my.prev.carr2 %>%
+    mutate(class.carr = ifelse(is.na(class.carr), "INDEFINIDO", as.character(class.carr)))
+
+# plotando os resultados discriminados para amostra aleatória nos PC1, PC2 e PC3
+require("plotly")
+pc2 <- plot_ly(my.prev.carr2, x = PC1, y = PC2, z = PC3, color = class.carr, type = "scatter3d", mode = "markers")
+pc2 <- layout(pc2, title = "Scores da Amostra por Classe de Profissão - PC1 x PC2 X PC3")
+pc2
+# box plot
+pc3 <- plot_ly(my.prev.carr2, x = PC1, color = class.carr, type = "box")
+pc3 <- layout(pc3, title = "Scores da Amostra por Classe de Profissão - PC1")
+pc3
+#which(!is.na(str_match(df_class.carr[,1],"Desenv")))
+#which(!is.na(str_match(df_class.carr[,"CFM"],"Desenv")))
+#which(!is.na(str_match(df_class.carr$CFM,"Desenv")))
+#which(!is.na(str_match(df_class.carr[,8],as.character(my.prev.carr$profissao.na.area.de[10]))))
+
+# ESTRATÉGIA PARA CRIAR ALGORITMO PCs -> COMPONENTES HUMAN GUIDE
+#-------------------------------------------------------
+# 1. obter o valor do score do componente e aplicar intervalo de confiança (como?)
+
+

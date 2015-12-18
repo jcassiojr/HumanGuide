@@ -1,0 +1,205 @@
+---
+title: "Análise Descritiva - Exploratória - DRAFT"
+author: "José Cassio"
+date: "December 18, 2015"
+output:
+  html_document
+---
+
+![agileBIGDATA](./aBIG5.png)
+
+Este documento descreve a análise descritiva realizada com o objetivo de definir a influência dos componentes obtidos do teste **Human Guide** por meio da técnica de análise de componentes principais.
+
+### Preparação dos dados ###
+Foram obtidos os dados brutos da seguinte fonte:
+
+* Classificacao das carreiras-V2.xlsx
+
+Abaixo segue um exemplo com a parte inicial do arquivo:
+
+```{r,echo=FALSE}
+require("doMC", quietly = TRUE, warn.conflicts = FALSE)
+require("xlsx", quietly = TRUE, warn.conflicts = FALSE)
+require("dplyr", quietly = TRUE, warn.conflicts = FALSE)
+registerDoMC(5) # parallel processing
+df_class.carr <- read.xlsx2("./data/Classificacao das carreiras-V2.xlsx", sheetIndex = 1, header = TRUE)
+# preparando os dados para as pesquisas a frente
+df_class.carr <- mutate_each(df_class.carr, funs(tolower)) # forçando minúsculas
+# tirando acentuação e espaço em branco em excesso
+df_class.carr <- as.data.frame(sapply(df_class.carr, FUN = function(x) as.character(gsub("á", "a", x))))
+df_class.carr <- as.data.frame(sapply(df_class.carr, FUN = function(x) as.character(gsub("é", "e", x))))
+df_class.carr <- as.data.frame(sapply(df_class.carr, FUN = function(x) as.character(gsub("í", "i", x))))
+df_class.carr <- as.data.frame(sapply(df_class.carr, FUN = function(x) as.character(gsub("ó", "o", x))))
+df_class.carr <- as.data.frame(sapply(df_class.carr, FUN = function(x) as.character(gsub("ú", "u", x))))
+df_class.carr <- as.data.frame(sapply(df_class.carr, FUN = function(x) as.character(gsub("ã", "a", x))))
+df_class.carr <- as.data.frame(sapply(df_class.carr, FUN = function(x) as.character(gsub("õ", "o", x))))
+df_class.carr <- as.data.frame(sapply(df_class.carr, FUN = function(x) as.character(gsub("ç", "c", x))))
+df_class.carr <- as.data.frame(sapply(df_class.carr, FUN = function(x) as.character(gsub("â", "a", x))))
+df_class.carr <- as.data.frame(sapply(df_class.carr, FUN = function(x) as.character(gsub("ê", "e", x))))
+df_class.carr <- as.data.frame(sapply(df_class.carr, FUN = function(x) as.character(gsub("ô", "o", x))))
+df_class.carr <- as.data.frame(sapply(df_class.carr, FUN = function(x) as.character(gsub("  ", " ", x))))
+
+knitr::kable(head(df_class.carr))
+```
+
+
+----
+
+### Arquivo Processado ###
+
+A partir do arquivo acima, foram classificadas as profissões informadas pelos respondentes no arquivo previamente obtido com as médias de scores por componentes para cada profissão, conforme exemplo abaixo:
+
+*IMPORTANTE:* Critério para considerar a classe INDEFINIDA: profissões que não aparecem na tabela de Classes de Profissões : as profissões abaixo não aparecerem na tabela de Rosane Schotgues Levenfus, usada como base para a classificação apresentada aqui.
+
+
+```{r,echo=FALSE}
+require("stringr", quietly = TRUE, warn.conflicts = FALSE)
+source("./R/f_le_raw_HG.R") # usar esta função para ler os dados novos. 
+source("./R/f_tidy_scores_HG.R") # alterada em 07/12/2015 para trazer nome do respondente tb
+df_raw_hg <- f_le_raw_HG() # retorna colunas: todas
+df_tidy_hg <- f_tidy_scores_HG(df_raw_hg)
+# Obtendo os dados das respostas
+my.newdata.carr <- df_tidy_hg
+# obtendo os scores previstos
+pca1 = prcomp(my.newdata.carr[,7:14], scale. = TRUE, center = TRUE)
+# selecionando apenas amostra para rapidez de processamanto (posteriormente colocar em combobox)
+tam.amostra = 1000
+my.newdata.carr <- 
+    df_tidy_hg %>%
+    sample_n(tam.amostra)
+# calculando os scores
+my.prev.carr <- as.data.frame(predict(pca1, newdata=my.newdata.carr))
+my.prev.carr <- cbind(profissao.na.area.de = my.newdata.carr$profissao.na.area.de, my.prev.carr)
+
+# tirando acentuação e espaço em branco em excesso e forçando minusculas
+my.prev.carr <- mutate_each(my.prev.carr, funs(tolower)) # forçando minúsculas
+my.prev.carr <- as.data.frame(sapply(my.prev.carr, FUN = function(x) as.character(gsub("á", "a", x))))
+my.prev.carr <- as.data.frame(sapply(my.prev.carr, FUN = function(x) as.character(gsub("é", "e", x))))
+my.prev.carr <- as.data.frame(sapply(my.prev.carr, FUN = function(x) as.character(gsub("í", "i", x))))
+my.prev.carr <- as.data.frame(sapply(my.prev.carr, FUN = function(x) as.character(gsub("ó", "o", x))))
+my.prev.carr <- as.data.frame(sapply(my.prev.carr, FUN = function(x) as.character(gsub("ú", "u", x))))
+my.prev.carr <- as.data.frame(sapply(my.prev.carr, FUN = function(x) as.character(gsub("ã", "a", x))))
+my.prev.carr <- as.data.frame(sapply(my.prev.carr, FUN = function(x) as.character(gsub("õ", "o", x))))
+my.prev.carr <- as.data.frame(sapply(my.prev.carr, FUN = function(x) as.character(gsub("ç", "c", x))))
+my.prev.carr <- as.data.frame(sapply(my.prev.carr, FUN = function(x) as.character(gsub("â", "a", x))))
+my.prev.carr <- as.data.frame(sapply(my.prev.carr, FUN = function(x) as.character(gsub("ê", "e", x))))
+my.prev.carr <- as.data.frame(sapply(my.prev.carr, FUN = function(x) as.character(gsub("ô", "o", x))))
+my.prev.carr <- as.data.frame(sapply(my.prev.carr, FUN = function(x) as.character(gsub("  ", " ", x))))
+# inicializando a coluna com NA
+my.prev.carr <-
+    my.prev.carr %>%
+    mutate(class.carr = NA)
+# percorre todas as colunas de df_class.carr
+for (j in 1:ncol(df_class.carr)) {
+    # percorre toda uma coluna de df_class.carr marcando em my.prev.carr$class.carr se encontra
+    for (i in 1:length(my.prev.carr$profissao.na.area.de)) {
+        #print(i)
+        y <- which(!is.na(str_match(df_class.carr[,j],as.character(my.prev.carr$profissao.na.area.de[i]))))
+    
+        if (length(y) != 0) {
+            my.prev.carr[i,10] = colnames(df_class.carr)[j]
+        } 
+    }
+}
+# mudando NA para "INDEFINIDO" em coluna class.carr
+my.prev.carr <-
+    my.prev.carr %>%
+    mutate(class.carr = ifelse(is.na(class.carr), "INDEFINIDO", as.character(class.carr)))
+
+knitr::kable(head(my.prev.carr))
+```
+
+### BoxPlots de Scores da Classes de Profissões por Componentes ###
+
+Abaixo seguem os boxplots da distribuição dos scores agrupados por classes de componentes para todos os dados da amostra:
+
+```{r, echo=FALSE}
+knitr::kable(tam.amostra, caption = "TAMANHO DA AMOSTRA")
+```
+
+
+
+----
+
+
+
+```{r, echo=FALSE, warning=FALSE}
+# box plot
+require("plotly", quietly = TRUE, warn.conflicts = FALSE)
+pc1 <- plot_ly(my.prev.carr, x = PC1, color = class.carr, type = "box")
+pc1 <- layout(pc1, title = "OPENNESS/EXPLORATION x COMPLIANCE/OBSERVÂNCIA")
+pc1
+```
+
+
+----
+
+
+
+```{r, echo=FALSE, warning=FALSE}
+# box plot
+pc2 <- plot_ly(my.prev.carr, x = PC2, color = class.carr, type = "box")
+pc2 <- layout(pc2, title = "AGREEABLENESS/AMABILIDADE x ANALÍTICO E INDEPENDENTE/FOCO EM RESULTADO")
+pc2
+```
+
+
+----
+
+
+
+```{r, echo=FALSE, warning=FALSE}
+# box plot
+pc3 <- plot_ly(my.prev.carr, x = PC3, color = class.carr, type = "box")
+pc3 <- layout(pc3, title = "INVESTIGATIVO/RESEARCH ORIENTED x COMMITMENT/ENGAJAMENTO")
+pc3
+```
+
+
+----
+
+
+
+```{r, echo=FALSE, warning=FALSE}
+# box plot
+pc4 <- plot_ly(my.prev.carr, x = PC4, color = class.carr, type = "box")
+pc4 <- layout(pc4, title = "PEOPLE DEVELOPMENT ORIENTED x TASK ORIENTED/ORIENTAÇÃO PARA A TAREFA")
+pc4
+```
+
+
+----
+
+
+
+```{r, echo=FALSE, warning=FALSE}
+# box plot
+pc5 <- plot_ly(my.prev.carr, x = PC5, color = class.carr, type = "box")
+pc5 <- layout(pc5, title = "EXTROVERSÃO/AUTENTICIDADE x SOBRIEDADE/COMPOSTURA/COMEDIMENTO")
+pc5
+```
+
+
+----
+
+
+
+```{r, echo=FALSE, warning=FALSE}
+# box plot
+pc6 <- plot_ly(my.prev.carr, x = PC6, color = class.carr, type = "box")
+pc6 <- layout(pc6, title = "MANAGEMENT/ASSISTÊNCIA/RECEPTIVIDADE ATIVA")
+pc6
+```
+
+
+----
+
+
+
+```{r, echo=FALSE, warning=FALSE}
+# box plot
+pc7 <- plot_ly(my.prev.carr, x = PC7, color = class.carr, type = "box")
+pc7 <- layout(pc7, title = "AUSTERIDADE/PONDERAÇÃO x ADAPTABILIDADE/AJUSTAMENTO)")
+pc7
+```
+
