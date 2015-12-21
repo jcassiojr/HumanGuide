@@ -63,7 +63,7 @@ my.newdata.carr <- df_tidy_hg
 # obtendo os scores previstos
 pca1 = prcomp(my.newdata.carr[,7:14], scale. = TRUE, center = TRUE)
 # selecionando apenas amostra para rapidez de processamanto (posteriormente colocar em combobox)
-tam.amostra = 1000
+tam.amostra = 50000
 my.newdata.carr <- 
     df_tidy_hg %>%
     sample_n(tam.amostra)
@@ -86,26 +86,62 @@ my.prev.carr <- as.data.frame(sapply(my.prev.carr, FUN = function(x) as.characte
 my.prev.carr <- as.data.frame(sapply(my.prev.carr, FUN = function(x) as.character(gsub("ô", "o", x))))
 my.prev.carr <- as.data.frame(sapply(my.prev.carr, FUN = function(x) as.character(gsub("  ", " ", x))))
 # inicializando a coluna com NA
-my.prev.carr <-
-    my.prev.carr %>%
-    mutate(class.carr = NA)
+#my.prev.carr <-
+#    my.prev.carr %>%
+#    mutate(class.carr = NA)
 # percorre todas as colunas de df_class.carr (CFM, CFQ, ...)
-for (j in 1:ncol(df_class.carr)) {
+#for (j in 1:ncol(df_class.carr)) {
     # percorre todas as linhas da coluna corrente de df_class.carr, marcando em my.prev.carr$class.carr
     # caso encontre
-    for (i in 1:length(my.prev.carr$profissao.na.area.de)) {
-        y <- which(!is.na(str_match(df_class.carr[,j],as.character(my.prev.carr$profissao.na.area.de[i]))))
+#    for (i in 1:length(my.prev.carr$profissao.na.area.de)) {
+#        y <- which(!is.na(str_match(df_class.carr[,j],as.character(my.prev.carr$profissao.na.area.de[i]))))
         # se achou, muda o conteúdo da coluna class.carr para última classe encontrada
         # se encontra mais de uma classe para mesma profissão, duplica a linha para esta classe (como?)
         # Resp: salvando vetor com a posição das colunas das classes encontradas em df_class.carr
         #       para cada profissao de my.prev.carr. Depois usar este vetor para criar linhas duplicadas
         #       para cada profissao x classe
-        if (length(y) != 0) {
-            my.prev.carr[i,10] = colnames(df_class.carr)[j]
-        } 
+#        if (length(y) != 0) {
+#            my.prev.carr[i,10] = colnames(df_class.carr)[j]
+#        } 
+#    }
+#}
+# criando novo dataframe para tratar mais de uma profissão por classe de carreira
+df_class <- data.frame()
+
+for (j in 1:ncol(df_class.carr)) {
+    # percorre todas as linhas da coluna corrente de df_class.carr
+    for (i in 1:length(my.prev.carr$profissao.na.area.de)) {
+        # somente pega o string com match exato (ex. administração)
+        i_aux <- sum(!is.na(str_match(df_class.carr[,j],
+                                      paste0("^", as.character(my.prev.carr$profissao.na.area.de[i]), "$"))))
+        # para cada profissão encontrada em uma determinada classe, marca a posição correspondente
+        # com 1, na célula do dataframe correspondente. Caso contrario, coloca NA
+        if(i_aux) {
+            df_class[i,j] = i_aux
+        } else {
+            df_class[i,j] = NA
+        }
     }
 }
+# colocando os nomes das classes no dataframe gerado
+names(df_class) <- colnames(df_class.carr)
 
+# concatenando a coluna de profissoes ao dataframe gerado
+my.prev.carr <- cbind(my.prev.carr, df_class)
+
+# duplicar colunas que aparecem com mais de uma classe
+require(reshape2)
+# transformando colunas em valores por linha, eliminando NAs, de forma a poder ter os scores de
+# cada profissão duplicado para cada classe onde a profissão se encontra
+# Desta forma, a análise não perde a contribuição do score de cada profissão para cada classe
+classMelt <- melt(my.prev.carr,id=c("profissao.na.area.de","PC1","PC2","PC3","PC4","PC5","PC6","PC7","PC8"),
+                  measure.vars=colnames(df_class.carr), na.rm = TRUE)
+# mudando o nome da variavel de classe
+colnames(classMelt)[10] <- "class.carr"
+# eliminando coluna desnecessária
+my.prev.carr <-
+    classMelt %>%
+    select (-value)
 
 # mudando NA para "INDEFINIDO" em coluna class.carr
 my.prev.carr <-

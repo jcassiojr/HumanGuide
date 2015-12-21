@@ -500,7 +500,14 @@ my.prev.carr <- cbind(my.prev.carr, df_class)
 require(reshape2)
 # transformando colunas em valores por linha, eliminando NAs
 classMelt <- melt(my.prev.carr,id=c("profissao.na.area.de","PC1","PC2","PC3","PC4","PC5","PC6","PC7","PC8"),
-                  measure.vars=colnames(df_class.carr), na.rm = TRUE)   
+                  measure.vars=colnames(df_class.carr), na.rm = TRUE)
+# mudando o nome da variavel de classe
+#names(classMelt$class.carr = "class.carr"
+colnames(classMelt)[10] <- "class.carr"
+# eliminando coluna desnecessária
+my.prev.carr <-
+    classMelt %>%
+    select (-value)
 
 # ESTRATÉGIA PARA CRIAR ALGORITMO PCs -> COMPONENTES HUMAN GUIDE
 #-------------------------------------------------------
