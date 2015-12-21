@@ -89,18 +89,24 @@ my.prev.carr <- as.data.frame(sapply(my.prev.carr, FUN = function(x) as.characte
 my.prev.carr <-
     my.prev.carr %>%
     mutate(class.carr = NA)
-# percorre todas as colunas de df_class.carr
+# percorre todas as colunas de df_class.carr (CFM, CFQ, ...)
 for (j in 1:ncol(df_class.carr)) {
-    # percorre toda uma coluna de df_class.carr marcando em my.prev.carr$class.carr se encontra
+    # percorre todas as linhas da coluna corrente de df_class.carr, marcando em my.prev.carr$class.carr
+    # caso encontre
     for (i in 1:length(my.prev.carr$profissao.na.area.de)) {
-        #print(i)
         y <- which(!is.na(str_match(df_class.carr[,j],as.character(my.prev.carr$profissao.na.area.de[i]))))
-    
+        # se achou, muda o conteúdo da coluna class.carr para última classe encontrada
+        # se encontra mais de uma classe para mesma profissão, duplica a linha para esta classe (como?)
+        # Resp: salvando vetor com a posição das colunas das classes encontradas em df_class.carr
+        #       para cada profissao de my.prev.carr. Depois usar este vetor para criar linhas duplicadas
+        #       para cada profissao x classe
         if (length(y) != 0) {
             my.prev.carr[i,10] = colnames(df_class.carr)[j]
         } 
     }
 }
+
+
 # mudando NA para "INDEFINIDO" em coluna class.carr
 my.prev.carr <-
     my.prev.carr %>%

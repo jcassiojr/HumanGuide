@@ -446,6 +446,62 @@ pc3
 #which(!is.na(str_match(df_class.carr$CFM,"Desenv")))
 #which(!is.na(str_match(df_class.carr[,8],as.character(my.prev.carr$profissao.na.area.de[10]))))
 
+# MELHORIA DO TESTE ACIMA PARA USAR TODAS AS CLASSES ACHADAS PARA CADA PROFISSAO
+# 1. repetir a linha se ocupação aparece em mais de uma classe
+my.prev.carr <- as.data.frame(predict(pca1, newdata=my.newdata.carr))
+my.prev.carr <- cbind(profissao.na.area.de = my.newdata.carr$profissao.na.area.de, my.prev.carr)
+
+# tirando acentuação e espaço em branco em excesso e forçando minusculas
+my.prev.carr <- mutate_each(my.prev.carr, funs(tolower)) # forçando minúsculas
+my.prev.carr <- as.data.frame(sapply(my.prev.carr, FUN = function(x) as.character(gsub("á", "a", x))))
+my.prev.carr <- as.data.frame(sapply(my.prev.carr, FUN = function(x) as.character(gsub("é", "e", x))))
+my.prev.carr <- as.data.frame(sapply(my.prev.carr, FUN = function(x) as.character(gsub("í", "i", x))))
+my.prev.carr <- as.data.frame(sapply(my.prev.carr, FUN = function(x) as.character(gsub("ó", "o", x))))
+my.prev.carr <- as.data.frame(sapply(my.prev.carr, FUN = function(x) as.character(gsub("ú", "u", x))))
+my.prev.carr <- as.data.frame(sapply(my.prev.carr, FUN = function(x) as.character(gsub("ã", "a", x))))
+my.prev.carr <- as.data.frame(sapply(my.prev.carr, FUN = function(x) as.character(gsub("õ", "o", x))))
+my.prev.carr <- as.data.frame(sapply(my.prev.carr, FUN = function(x) as.character(gsub("ç", "c", x))))
+my.prev.carr <- as.data.frame(sapply(my.prev.carr, FUN = function(x) as.character(gsub("â", "a", x))))
+my.prev.carr <- as.data.frame(sapply(my.prev.carr, FUN = function(x) as.character(gsub("ê", "e", x))))
+my.prev.carr <- as.data.frame(sapply(my.prev.carr, FUN = function(x) as.character(gsub("ô", "o", x))))
+my.prev.carr <- as.data.frame(sapply(my.prev.carr, FUN = function(x) as.character(gsub("  ", " ", x))))
+# inicializando a coluna com NA
+#my.prev.carr <-
+#    my.prev.carr %>%
+#    mutate(class.carr = NA)
+df_class <- data.frame()
+
+for (j in 1:ncol(df_class.carr)) {
+    # percorre todas as linhas da coluna corrente de df_class.carr, marcando em my.prev.carr$class.carr
+    # caso encontre
+    for (i in 1:length(my.prev.carr$profissao.na.area.de)) {
+        # somente pega o string com match exato (ex. administração)
+        y <- sum(!is.na(str_match(df_class.carr[,j],paste0("^", as.character(my.prev.carr$profissao.na.area.de[i]), "$"))))
+        # se achou, muda o conteúdo da coluna class.carr para última classe encontrada
+        # se encontra mais de uma classe para mesma profissão, duplica a linha para esta classe (como?)
+        # Resp: salvando vetor com a posição das colunas das classes encontradas em df_class.carr
+        #       para cada profissao de my.prev.carr. Depois usar este vetor para criar linhas duplicadas
+        #       para cada profissao x classe
+        #if (length(y) != 0) {
+        if(y) {
+            df_class[i,j] = y
+        } else {
+            df_class[i,j] = NA
+        }
+    }
+}
+# colocando os nomes das classes no dataframe gerado
+names(df_class) <- colnames(df_class.carr)
+
+# concatenando a coluna de profissoes ao dataframe gerado
+my.prev.carr <- cbind(my.prev.carr, df_class)
+
+# duplicar colunas que aparecem com mais de uma classe
+require(reshape2)
+# transformando colunas em valores por linha, eliminando NAs
+classMelt <- melt(my.prev.carr,id=c("profissao.na.area.de","PC1","PC2","PC3","PC4","PC5","PC6","PC7","PC8"),
+                  measure.vars=colnames(df_class.carr), na.rm = TRUE)   
+
 # ESTRATÉGIA PARA CRIAR ALGORITMO PCs -> COMPONENTES HUMAN GUIDE
 #-------------------------------------------------------
 # 1. obter o valor do score do componente e aplicar intervalo de confiança (como?)
