@@ -54,101 +54,156 @@ A partir do arquivo acima, foram classificadas as profissões informadas pelos r
 
 ```{r,echo=FALSE}
 require("stringr", quietly = TRUE, warn.conflicts = FALSE)
+require("reshape2", quietly = TRUE, warn.conflicts = FALSE)
+
 source("./R/f_le_raw_HG.R") # usar esta função para ler os dados novos. 
 source("./R/f_tidy_scores_HG.R") # alterada em 07/12/2015 para trazer nome do respondente tb
 df_raw_hg <- f_le_raw_HG() # retorna colunas: todas
 df_tidy_hg <- f_tidy_scores_HG(df_raw_hg)
+# tirar formacoes: ensino medio, ensino tecnico, ensino fundamental, INDEFINIDO, ensino tecnologico
+# tirar ocupacoes: estagiario, estudante, dona de casa, consultoria, comercio, entre empregos, do lar, empresario,
+# bancario, aposentado/a, terceiro setor, INDEFINIDO, mudar docência/magisterio para magisterio, mudar Latim para letras, 
 # Obtendo os dados das respostas
-my.newdata.carr <- df_tidy_hg
+#my.newdata <- df_tidy_hg
 # obtendo os scores previstos
-pca1 = prcomp(my.newdata.carr[,7:14], scale. = TRUE, center = TRUE)
+pca1 = prcomp(df_tidy_hg[,7:14], scale. = TRUE, center = TRUE)
 # selecionando apenas amostra para rapidez de processamanto (posteriormente colocar em combobox)
-tam.amostra = 50000
-my.newdata.carr <- 
+tam.amostra = 1000
+my.newdata <- 
     df_tidy_hg %>%
     sample_n(tam.amostra)
+# fazendo para toda a base
+#my.newdata.carr <- df_tidy_hg
+#tam.amostra = dim(my.newdata)[1]
+
 # calculando os scores
-my.prev.carr <- as.data.frame(predict(pca1, newdata=my.newdata.carr))
-my.prev.carr <- cbind(profissao.na.area.de = my.newdata.carr$profissao.na.area.de, my.prev.carr)
+my.prev <- as.data.frame(predict(pca1, newdata=my.newdata))
+# criando dataframe por carreira e profissão
+my.prev <- cbind(ID = my.newdata$ID, profissao.na.area.de = my.newdata$profissao.na.area.de, 
+                      formacao.em = my.newdata$formacao.em,
+                      my.prev)
 
 # tirando acentuação e espaço em branco em excesso e forçando minusculas
-my.prev.carr <- mutate_each(my.prev.carr, funs(tolower)) # forçando minúsculas
-my.prev.carr <- as.data.frame(sapply(my.prev.carr, FUN = function(x) as.character(gsub("á", "a", x))))
-my.prev.carr <- as.data.frame(sapply(my.prev.carr, FUN = function(x) as.character(gsub("é", "e", x))))
-my.prev.carr <- as.data.frame(sapply(my.prev.carr, FUN = function(x) as.character(gsub("í", "i", x))))
-my.prev.carr <- as.data.frame(sapply(my.prev.carr, FUN = function(x) as.character(gsub("ó", "o", x))))
-my.prev.carr <- as.data.frame(sapply(my.prev.carr, FUN = function(x) as.character(gsub("ú", "u", x))))
-my.prev.carr <- as.data.frame(sapply(my.prev.carr, FUN = function(x) as.character(gsub("ã", "a", x))))
-my.prev.carr <- as.data.frame(sapply(my.prev.carr, FUN = function(x) as.character(gsub("õ", "o", x))))
-my.prev.carr <- as.data.frame(sapply(my.prev.carr, FUN = function(x) as.character(gsub("ç", "c", x))))
-my.prev.carr <- as.data.frame(sapply(my.prev.carr, FUN = function(x) as.character(gsub("â", "a", x))))
-my.prev.carr <- as.data.frame(sapply(my.prev.carr, FUN = function(x) as.character(gsub("ê", "e", x))))
-my.prev.carr <- as.data.frame(sapply(my.prev.carr, FUN = function(x) as.character(gsub("ô", "o", x))))
-my.prev.carr <- as.data.frame(sapply(my.prev.carr, FUN = function(x) as.character(gsub("  ", " ", x))))
-# inicializando a coluna com NA
-#my.prev.carr <-
-#    my.prev.carr %>%
-#    mutate(class.carr = NA)
-# percorre todas as colunas de df_class.carr (CFM, CFQ, ...)
-#for (j in 1:ncol(df_class.carr)) {
-    # percorre todas as linhas da coluna corrente de df_class.carr, marcando em my.prev.carr$class.carr
-    # caso encontre
-#    for (i in 1:length(my.prev.carr$profissao.na.area.de)) {
-#        y <- which(!is.na(str_match(df_class.carr[,j],as.character(my.prev.carr$profissao.na.area.de[i]))))
-        # se achou, muda o conteúdo da coluna class.carr para última classe encontrada
-        # se encontra mais de uma classe para mesma profissão, duplica a linha para esta classe (como?)
-        # Resp: salvando vetor com a posição das colunas das classes encontradas em df_class.carr
-        #       para cada profissao de my.prev.carr. Depois usar este vetor para criar linhas duplicadas
-        #       para cada profissao x classe
-#        if (length(y) != 0) {
-#            my.prev.carr[i,10] = colnames(df_class.carr)[j]
-#        } 
-#    }
-#}
+my.prev <- mutate_each(my.prev, funs(tolower)) # forçando minúsculas
+my.prev <- as.data.frame(sapply(my.prev, FUN = function(x) as.character(gsub("á", "a", x))))
+my.prev <- as.data.frame(sapply(my.prev, FUN = function(x) as.character(gsub("é", "e", x))))
+my.prev <- as.data.frame(sapply(my.prev, FUN = function(x) as.character(gsub("í", "i", x))))
+my.prev <- as.data.frame(sapply(my.prev, FUN = function(x) as.character(gsub("ó", "o", x))))
+my.prev <- as.data.frame(sapply(my.prev, FUN = function(x) as.character(gsub("ú", "u", x))))
+my.prev <- as.data.frame(sapply(my.prev, FUN = function(x) as.character(gsub("ã", "a", x))))
+my.prev <- as.data.frame(sapply(my.prev, FUN = function(x) as.character(gsub("õ", "o", x))))
+my.prev <- as.data.frame(sapply(my.prev, FUN = function(x) as.character(gsub("ç", "c", x))))
+my.prev <- as.data.frame(sapply(my.prev, FUN = function(x) as.character(gsub("â", "a", x))))
+my.prev <- as.data.frame(sapply(my.prev, FUN = function(x) as.character(gsub("ê", "e", x))))
+my.prev <- as.data.frame(sapply(my.prev, FUN = function(x) as.character(gsub("ô", "o", x))))
+my.prev <- as.data.frame(sapply(my.prev, FUN = function(x) as.character(gsub("  ", " ", x))))
+
+# PROFISSAO x CLASSE
 # criando novo dataframe para tratar mais de uma profissão por classe de carreira
-df_class <- data.frame()
+#----------------------------------------------------------------------------------
+df_carr <- data.frame()
 
 for (j in 1:ncol(df_class.carr)) {
     # percorre todas as linhas da coluna corrente de df_class.carr
-    for (i in 1:length(my.prev.carr$profissao.na.area.de)) {
+    for (i in 1:length(my.prev$profissao.na.area.de)) {
         # somente pega o string com match exato (ex. administração)
         i_aux <- sum(!is.na(str_match(df_class.carr[,j],
-                                      paste0("^", as.character(my.prev.carr$profissao.na.area.de[i]), "$"))))
+                                      paste0("^", as.character(my.prev$profissao.na.area.de[i]), "$"))))
         # para cada profissão encontrada em uma determinada classe, marca a posição correspondente
         # com 1, na célula do dataframe correspondente. Caso contrario, coloca NA
         if(i_aux) {
-            df_class[i,j] = i_aux
+            df_carr[i,j] = i_aux
         } else {
-            df_class[i,j] = NA
+            df_carr[i,j] = NA
         }
     }
 }
 # colocando os nomes das classes no dataframe gerado
-names(df_class) <- colnames(df_class.carr)
+names(df_carr) <- colnames(df_class.carr)
 
 # concatenando a coluna de profissoes ao dataframe gerado
-my.prev.carr <- cbind(my.prev.carr, df_class)
+my.prev.carr <- cbind(my.prev, df_carr)
 
 # duplicar colunas que aparecem com mais de uma classe
-require(reshape2)
+
 # transformando colunas em valores por linha, eliminando NAs, de forma a poder ter os scores de
 # cada profissão duplicado para cada classe onde a profissão se encontra
 # Desta forma, a análise não perde a contribuição do score de cada profissão para cada classe
-classMelt <- melt(my.prev.carr,id=c("profissao.na.area.de","PC1","PC2","PC3","PC4","PC5","PC6","PC7","PC8"),
+carrMelt <- melt(my.prev.carr,id=c("ID","profissao.na.area.de","formacao.em",
+                                   "PC1","PC2","PC3","PC4","PC5","PC6","PC7","PC8"),
                   measure.vars=colnames(df_class.carr), na.rm = TRUE)
 # mudando o nome da variavel de classe
-colnames(classMelt)[10] <- "class.carr"
+colnames(carrMelt)[12] <- "class.carr"
 # eliminando coluna desnecessária
 my.prev.carr <-
-    classMelt %>%
+    carrMelt %>%
     select (-value)
 
-# mudando NA para "INDEFINIDO" em coluna class.carr
-my.prev.carr <-
-    my.prev.carr %>%
-    mutate(class.carr = ifelse(is.na(class.carr), "INDEFINIDO", as.character(class.carr)))
-
 knitr::kable(head(my.prev.carr))
+
+#++++
+# FORMACAO x CLASSE
+# criando novo dataframe para tratar mais de uma formacao por classe de carreira
+#----------------------------------------------------------------------------------
+df_form <- data.frame()
+
+for (j in 1:ncol(df_class.carr)) {
+    # percorre todas as linhas da coluna corrente de df_class.carr
+    for (i in 1:length(my.prev$formacao.em)) {
+        # somente pega o string com match exato (ex. administração)
+        i_aux <- sum(!is.na(str_match(df_class.carr[,j],
+                                      paste0("^", as.character(my.prev$formacao.em[i]), "$"))))
+        # para cada profissão encontrada em uma determinada classe, marca a posição correspondente
+        # com 1, na célula do dataframe correspondente. Caso contrario, coloca NA
+        if(i_aux) {
+            df_form[i,j] = i_aux
+        } else {
+            df_form[i,j] = NA
+        }
+    }
+}
+# colocando os nomes das classes no dataframe gerado
+names(df_form) <- colnames(df_class.carr)
+
+# concatenando a coluna de profissoes ao dataframe gerado
+my.prev.form <- cbind(my.prev, df_form)
+
+# duplicar colunas que aparecem com mais de uma classe
+# transformando colunas em valores por linha, eliminando NAs, de forma a poder ter os scores de
+# cada profissão duplicado para cada classe onde a profissão se encontra
+# Desta forma, a análise não perde a contribuição do score de cada profissão para cada classe
+carrMelt <- melt(my.prev.form,id=c("ID","profissao.na.area.de","formacao.em",
+                                   "PC1","PC2","PC3","PC4","PC5","PC6","PC7","PC8"),
+                  measure.vars=colnames(df_class.carr), na.rm = TRUE)
+# mudando o nome da variavel de classe
+colnames(carrMelt)[12] <- "class.carr"
+# eliminando coluna desnecessária
+my.prev.form <-
+    carrMelt %>%
+    select (-value)
+
+knitr::kable(head(my.prev.form))
+#++++
+
+# SEPARANDO SOMENTE RESPONDENTES QUE MUDARAM DE CLASSE de formação -> ocupação
+# 1. fazer inner join para identificar se ao menos uma classe de carreira coinncide com uma classe de formacao
+# obs: preciso do ID do respondente para a chave do inner join
+df_sem.mov <- inner_join(my.prev.form[,c(1:3,12)], my.prev.carr[,c(1,12)],by=c("ID", "class.carr"))
+# tirando a duplicidade dos IDs dos respondentes sem movimento
+df_sem.mov <-
+    df_sem.mov %>%
+    distinct(ID)
+# obtendo respondentes com movimento a partir dos dados originais processados
+df_com.mov <-
+    my.newdata %>%
+    filter(!(ID %in% df_sem.mov$ID))
+    
+# obs: antes dessa análise, preciso excluir as seguintes carreiras:
+# e as seguintes formações: Entre Empregos, INDEFINIDO
+
+
+
+
 ```
 
 ### BoxPlots de Scores da Classes de Profissões por Componentes ###
