@@ -484,6 +484,17 @@ f_acentos <- function(df_in) {
 }
 
 df_change <- f_acentos(df_tidy_hg)
+# restaura fatores como numericos
+df_change <-
+    df_change %>%
+    mutate(sensibility = as.numeric(as.vector(sensibility)),
+           power = as.numeric(as.vector(power)),
+           quality = as.numeric(as.vector(quality)),
+           exposure = as.numeric(as.vector(exposure)),
+           structure = as.numeric(as.vector(structure)),
+           imagination = as.numeric(as.vector(imagination)),
+           stability = as.numeric(as.vector(stability)),
+           contacts = as.numeric(as.vector(contacts)))
 
 df_profs <- read.xlsx2("./data/profs.de.para-V1.xlsx", sheetIndex = 1, header = TRUE)
 df_profs <- f_acentos(df_profs)
@@ -492,64 +503,59 @@ df_forms <- read.xlsx2("./data/forms.de.para-V1.xlsx", sheetIndex = 1, header = 
 df_forms <- f_acentos(df_forms)
 # para cada linha de formacao.in de df_change, pesquiso em df_forms$DE e retorno o indice. Se acho
 # retorno o valor de df_forms$PARA para o memso indice
+
+# eliminando as formações não relevantes para analisar movimentação
+#df_change <-
+#   df_change %>%
+#    filter(!(profissao.na.area.de %in% c("estagiario", "estudante", "dona de casa", "consultoria",
+#                                         "comercio", "entre empregos", "do lar", "empresario", "bancario", "aposentado/a",
+#                                         "terceiro setor", "indefinido") |
+#                 formacao.em %in% c("ensino medio", "ensino tecnico", "ensino fundamental", "indefinido",
+#                                    "ensino tecnologico")))
+
+
+#df_change <- merge(df_change, df_forms,by=c("formacao.em"), all.y = TRUE)
+
+# mudando a coluna formacao.em usando o dataframe df_forms de DE-PARA em relação as classificacoes
 # mudando linhas de formacao df_change DE -> PARA
 df_forms <-
     df_forms %>%
     rename(formacao.em = DE)
-#df_change <- merge(df_change, df_forms,by=c("formacao.em"), all.y = TRUE)
-x <- left_join(df_change, df_forms, by=c("formacao.em")) # OK!!!!
 
-x <-
-    x %>%
+df_change <- left_join(df_change, df_forms, by=c("formacao.em")) # OK!!!!
+
+df_change <-
+    df_change %>%
     select(-formacao.em) %>%
     rename(formacao.em = PARA)
-PAREI: agora eliminar linhas "eliminar" antes de fazer o mesmo processo para profs
 
-# mudando linhas de ocupacao df_change DE -> PARA
+# mudando a coluna profissao.na.area.de usando o dataframe df_profs de DE-PARA em relação as classificacoes
 df_profs <-
     df_profs %>%
     rename(profissao.na.area.de = DE)
-df_change <- merge(df_change, df_profs,by=c("profissao.na.area.de"), all.y = TRUE)
+
+df_change <- left_join(df_change, df_profs, by=c("profissao.na.area.de")) # OK!!!!
+
 df_change <-
     df_change %>%
     select(-profissao.na.area.de) %>%
     rename(profissao.na.area.de = PARA)
 
-Falta ver se df_change mudou a ordem!!!!
-    
-PAREI AQUI - falta eliminar as linhas eliminar
-#fun <- function(i) {df_forms$PARA[i] == j}
-#bin <- (sapply(1:nrow(df_forms), FUN = fun))*1
-#df_forms2 <- df_forms[, bin)]
-#+++++++++
-my.prev <-
+# eliminar formação e profissão igual a "eliminar"
+df_change <-
     df_change %>%
-    filter(!(profissao.na.area.de %in% c("estagiario", "estudante", "dona de casa", "consultoria",
-                                         "comercio", "entre empregos", "do lar", "empresario", "bancario", "aposentado/a",
-                                         "terceiro setor", "indefinido") |
-                 formacao.em %in% c("ensino medio", "ensino tecnico", "ensino fundamental", "indefinido",
-                                    "ensino tecnologico")))
+    filter(formacao.em != "eliminar" & profissao.na.area.de != "eliminar")
 
+# agora usar o processamento para identificar quem movimentou de carreira ou não
 
+#+++++++++++++++++++++++++++
 
-
-
-
-
-my.prev <-
-    df_change %>%
-    filter(!(profissao.na.area.de %in% c("estagiario", "estudante", "dona de casa", "consultoria",
-                                         "comercio", "entre empregos", "do lar", "empresario", "bancario", "aposentado/a",
-                                         "terceiro setor", "indefinido") |
-                 formacao.em %in% c("ensino medio", "ensino tecnico", "ensino fundamental", "indefinido",
-                                    "ensino tecnologico")))
-
-# obtendo os scores previstos
+# obtendo os scores previstos a partir de todos os dados
 pca1 = prcomp(df_tidy_hg[,7:14], scale. = TRUE, center = TRUE)
 # selecionando apenas amostra para rapidez de processamanto (posteriormente colocar em combobox)
 tam.amostra = 1000
 my.newdata <- 
-    df_tidy_hg %>%
+    df_change %>%
     sample_n(tam.amostra)
 # fazendo para toda a base
 #my.newdata.carr <- df_tidy_hg
@@ -562,37 +568,6 @@ my.prev <- cbind(ID = my.newdata$ID, profissao.na.area.de = my.newdata$profissao
                  formacao.em = my.newdata$formacao.em,
                  my.prev)
 
-# tirando acentuação e espaço em branco em excesso e forçando minusculas
-my.prev <- mutate_each(my.prev, funs(tolower)) # forçando minúsculas
-my.prev <- as.data.frame(sapply(my.prev, FUN = function(x) as.character(gsub("á", "a", x))))
-my.prev <- as.data.frame(sapply(my.prev, FUN = function(x) as.character(gsub("é", "e", x))))
-my.prev <- as.data.frame(sapply(my.prev, FUN = function(x) as.character(gsub("í", "i", x))))
-my.prev <- as.data.frame(sapply(my.prev, FUN = function(x) as.character(gsub("ó", "o", x))))
-my.prev <- as.data.frame(sapply(my.prev, FUN = function(x) as.character(gsub("ú", "u", x))))
-my.prev <- as.data.frame(sapply(my.prev, FUN = function(x) as.character(gsub("ã", "a", x))))
-my.prev <- as.data.frame(sapply(my.prev, FUN = function(x) as.character(gsub("õ", "o", x))))
-my.prev <- as.data.frame(sapply(my.prev, FUN = function(x) as.character(gsub("ç", "c", x))))
-my.prev <- as.data.frame(sapply(my.prev, FUN = function(x) as.character(gsub("â", "a", x))))
-my.prev <- as.data.frame(sapply(my.prev, FUN = function(x) as.character(gsub("ê", "e", x))))
-my.prev <- as.data.frame(sapply(my.prev, FUN = function(x) as.character(gsub("ô", "o", x))))
-my.prev <- as.data.frame(sapply(my.prev, FUN = function(x) as.character(gsub("  ", " ", x))))
-
-# eliminando profissoes e formacoes que não podem ser usadas na análise de movimentação
-# tirar formacoes: ensino medio, ensino tecnico, ensino fundamental, INDEFINIDO, ensino tecnologico
-# tirar ocupacoes: estagiario, estudante, dona de casa, consultoria, comercio, entre empregos, do lar, empresario,
-# bancario, aposentado/a, terceiro setor, INDEFINIDO, 
-# obs: ocorrências de  docência,magisterio e Latim desprezadas 
-
-
-my.prev <-
-    my.prev %>%
-    filter(!(profissao.na.area.de %in% c("estagiario", "estudante", "dona de casa", "consultoria",
-                                       "comercio", "entre empregos", "do lar", "empresario", "bancario", "aposentado/a",
-                                        "terceiro setor", "indefinido") |
-                 formacao.em %in% c("ensino medio", "ensino tecnico", "ensino fundamental", "indefinido",
-                                      "ensino tecnologico")))
-
-
 # PROFISSAO x CLASSE
 # criando novo dataframe para tratar mais de uma profissão por classe de carreira
 #----------------------------------------------------------------------------------
@@ -601,15 +576,9 @@ df_carr <- data.frame()
 for (j in 1:ncol(df_class.carr)) {
     # percorre todas as linhas da coluna corrente de df_class.carr
     for (i in 1:length(my.prev$profissao.na.area.de)) {
-        
-        # IMPORTANTE: poderia somente pega o string com match exato (ex. administração), como abaixo
-        #i_aux <- sum(!is.na(str_match(df_class.carr[,j],
-        #                              paste0("^", as.character(my.prev$profissao.na.area.de[i]), "$"))))
-        # mas melhor abordagem é selecionar classe de profissão se acha parte do nome (ex. se ocupação
-        # é administração, encaixa em todas as classes que tem esta palavra)
-        
+        # somente pega o string com match exato (ex. administração)
         i_aux <- sum(!is.na(str_match(df_class.carr[,j],
-                                     as.character(my.prev$profissao.na.area.de[i]))))
+                                      paste0("^", as.character(my.prev$profissao.na.area.de[i]), "$"))))
         
         # para cada profissão encontrada em uma determinada classe, marca a posição correspondente
         # com 1, na célula do dataframe correspondente. Caso contrario, coloca NA
@@ -653,10 +622,8 @@ for (j in 1:ncol(df_class.carr)) {
     # percorre todas as linhas da coluna corrente de df_class.carr
     for (i in 1:length(my.prev$formacao.em)) {
         # somente pega o string com match exato (ex. administração)
-        #i_aux <- sum(!is.na(str_match(df_class.carr[,j],
-        #                              paste0("^", as.character(my.prev$formacao.em[i]), "$"))))
         i_aux <- sum(!is.na(str_match(df_class.carr[,j],
-                                      as.character(my.prev$formacao.em[i]))))
+                                      paste0("^", as.character(my.prev$formacao.em[i]), "$"))))
         # para cada profissão encontrada em uma determinada classe, marca a posição correspondente
         # com 1, na célula do dataframe correspondente. Caso contrario, coloca NA
         if(i_aux) {
@@ -693,17 +660,46 @@ knitr::kable(head(my.prev.form))
 
 # 1. fazer inner join para identificar se ao menos uma classe de carreira coinncide com uma classe de formacao
 # obs: preciso do ID do respondente para a chave do inner join
+# Se ID aparece ao menos uma vez no inner_join, significa que a profissão e a carreira
+# do respondente ao menos uma vez aparece na mesma catagoria, configurando que não se movimntou
+# para outra carreira
 df_sem.mov <- inner_join(my.prev.form[,c(1:2,11)], my.prev.carr[,c(1:2,11)],by=c("ID", "class.carr"))
-# tirando a duplicidade dos IDs dos respondentes sem movimento
+# tirando a duplicidade dos IDs dos respondentes sem movimento, identifico todos os IDs, sem movimentação
+# número de IDs da amostra total identificados como não s emovimentando de carreira:
+nrow(df_sem.mov)
 df_sem.mov <-
     df_sem.mov %>%
     distinct(ID)
-# obtendo respondentes com movimento a partir dos dados originais processados
+# obtendo respondentes com movimento a partir dos dados originais processados, selecionando
+# dos dados otais aqueles que não têm o ID encontrado como sem movimento
 df_com.mov <-
     my.prev %>%
     filter(!(ID %in% df_sem.mov$ID))
 
+# criando tabela com scores e campo que identifica movimento, para plot
+# criando coluna que identifica MOVIMENTO (S/N)
+# conctenando horizontalmente
+my.prev.mov <-
+    my.prev %>%
+    mutate(MOVIMENTO = ifelse((ID %in% df_sem.mov$ID),"NÃO MUDOU","MUDOU"))
+# plots
 
+# box plot (colocar no mesmo grid)
+require("plotly", quietly = TRUE, warn.conflicts = FALSE)
+pc1 <- plot_ly(my.prev.mov, x = PC1, color = MOVIMENTO, type = "box") 
+pc1 <- layout(pc1, title = "OPENNESS/EXPLORATION x COMPLIANCE/OBSERVÂNCIA") 
+pc1
+
+# testar ggplotly!!!
+
+#PAREI AQUI: só falhou para engenharia quimica!!!?? pQ????
+#Testar ID 31669
+#my.prev[my.prev$ID == 31669,] # OK
+#tem formacao e ocupacao iguais
+#my.prev.carr[my.prev.carr$ID == 31669,] # OK
+#Depois do melt perdeu o ID???!!! POIS AS CLASSES ESTAVAM COM NA ANTES DO MELT!!??
+#MAS DEVERIA TER ACHADO ENGENHARIA QUIMICA EM CFM e CFQ
+#RESP: precisa tirar brancos no início de cada celula lida do excel!!!!
 # ESTRATÉGIA PARA CRIAR ALGORITMO PCs -> COMPONENTES HUMAN GUIDE
 #-------------------------------------------------------
 # 1. obter o valor do score do componente e aplicar intervalo de confiança (como?)

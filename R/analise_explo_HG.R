@@ -11,8 +11,6 @@ registerDoMC(5) # parallel processing
 df_raw_hg <- f_le_raw_HG() # retorna colunas: todas
 df_tidy_hg <- f_tidy_scores_HG(df_raw_hg)
 
-
-
 # criar data.frame com os scores obtidos para uma amostra
 
 my.newdata <- 
