@@ -14,7 +14,7 @@ f_le_raw_HG <- function() {
     df_rh99 <-
         df_rh99 %>%
         filter(TIPOUSER != "SP" & TIPOUSER != "DF")
-        
+    
     # concatena as 3 bases 
     df_out <- rbind(df_goe, df_kroton, df_rh99)
     #df_out <- df_rh99
@@ -24,12 +24,11 @@ f_le_raw_HG <- function() {
     # eliminando coluna "X"
     df_out <-
         df_out %>%
-        select(-X) # eliminando coluna "X"
+        select(-X,-ID) # eliminando coluna "X" e "ID" (esta por não ser única).
     
-    #df_out %>%
-    #    group_by(TIPOUSER) %>%
-    #    summarise(x = n())
-    
+    # criando um índice único UIDs para cada respondente do arquivo concatenado
+    # OBS: se uma mesma pessoa respondeu mais de uma ve, ganha ID diferente 
+    df_out$ID <- 1:nrow(df_out)
     
     # alternativamente, testar com estes dados obtidos para a tese
     # com esses dados foi pior: usá-los somente para uso na próxima vez!!!
