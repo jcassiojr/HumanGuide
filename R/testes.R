@@ -704,4 +704,231 @@ pc1
 #-------------------------------------------------------
 # 1. obter o valor do score do componente e aplicar intervalo de confiança (como?)
 
+DF<-data.frame(Maths=c(80, 90, 95), Science=c(85, 85, 80), English=c(60, 70, 40), Music=c(55, 45, 50))
+prcomp(DF, scale = FALSE)$x
 
+
+# criação de heatmap e clusterização de Campos x PC
+#################################################################
+# 1. criar matriz Campo x PCn.médio
+
+# usar my.prev.carr preparado em Rmd Análise Descritiva - Exploratoria
+my.PC.Campo <-
+    my.prev.carr %>%
+    group_by(class.carr) %>%
+    summarise(PC1.medio = mean(PC1),
+              PC2.medio = mean(PC2),
+              PC3.medio = mean(PC3),
+              PC4.medio = mean(PC4),
+              PC5.medio = mean(PC5),
+              PC6.medio = mean(PC6),
+              PC7.medio = mean(PC7))
+
+# inserindo numero sequencial para representar os campos
+my.PC.Campo <-
+    my.PC.Campo %>%
+    mutate(ID.campo = seq(nrow((my.PC.Campo))))
+
+plot(my.PC.Campo$class.carr,my.PC.Campo$PC1.medio)
+plot(my.PC.Campo$class.carr, my.PC.Campo$PC1.medio, col=my.PC.Campo$class.carr, type = "p")
+require("plotly")
+pc1 <- plot_ly(my.PC.Campo, y = PC1.medio, color = class.carr, type = "box")
+pc1 <- layout(pc1, title = "AUSTERIDADE/PONDERAÇÃO x ADAPTABILIDADE/AJUSTAMENTO)")
+pc1
+# fazer cluster em relação ao PC1 e PC2
+require(ggplot2)
+p1 <- ggplot(my.PC.Campo, aes(x=class.carr, y=PC2.medio, colour=class.carr, group=class.carr)) +
+    geom_line() +
+    ggtitle("Growth curve for individual chicks")
+
+# aplicar abaixo para os dados tidy
+library(mclust)
+fit <- Mclust(df_change[,4:11])
+plot(fit) # plot results 
+summary(fit) # display the best model
+
+# analisando clusters para média e valores tidy
+# Talvez abaixo seja a melhor maneira de classificar os componentes por campo !!!!!
+#---------------------------------------------------
+# para as medias
+(kc <- kmeans(my.PC.Campo[,2:8], 7))
+table(my.PC.Campo$class.carr, kc$cluster)
+plot(my.PC.Campo[c("PC1.medio", "PC2.medio")], col=kc$cluster)
+points(kc$centers[,c("PC1.medio", "PC2.medio")], col=1:10, pch=8, cex=2)
+# para as medias transpostas
+my.PC.Campo.t <- t(my.PC.Campo)
+colnames(my.PC.Campo.t) <- my.PC.Campo.t[1,]
+
+my.PC.Campo.t <- my.PC.Campo.t[-9,] # elimina colunas indesejadas
+my.PC.Campo.t <- my.PC.Campo.t[-1,] # elimina colunas indesejadas
+my.PC.Campo.t <- as.data.frame(my.PC.Campo.t)
+my.PC.Campo.t <-
+    my.PC.Campo.t %>%
+    mutate(class.carr = rownames(my.PC.Campo.t))
+my.PC.Campo.t <-
+    my.PC.Campo.t %>%
+    mutate(CFM = as.numeric(as.vector(CFM)),
+           CFQ = as.numeric(as.vector(CFQ)),
+           CCF = as.numeric(as.vector(CCF)),
+           COA = as.numeric(as.vector(COA)),
+           CJS = as.numeric(as.vector(CJS)),
+           CCP = as.numeric(as.vector(CCP)),
+           CSL = as.numeric(as.vector(CSL)),
+           CMA = as.numeric(as.vector(CMA)),
+            CCE = as.numeric(as.vector(CCE)),
+            CBS = as.numeric(as.vector(CBS)))
+# inserindo numero sequencial para representar os campos
+my.PC.Campo.t <-
+    my.PC.Campo.t %>%
+    mutate(ID.PC = seq(nrow((my.PC.Campo.t))))
+# cluster por PC
+(kc <- kmeans(my.PC.Campo.t[,1:10], 6))
+table(my.PC.Campo.t$class.carr, kc$cluster)
+# cluster por Campo
+(kc <- kmeans(my.PC.Campo[,2:8], 3))
+table(my.PC.Campo$class.carr, kc$cluster)
+plot(my.PC.Campo[c("PC1.medio", "PC2.medio")], col=kc$cluster)
+
+# plotando mapa de componentes para cada 
+#plot(my.PC.Campo.t[c("CFM", "CFQ")], col=kc$cluster)
+#points(kc$centers[,c("PC1.medio", "PC2.medio")], col=1:10, pch=8, cex=2)
+# para todos os dados
+carrMelt.smp <- sample_n(carrMelt,100)
+(kc <- kmeans(carrMelt.smp[,3:9], 7))
+table(carrMelt.smp$class.carr, kc$cluster)
+plot(carrMelt.smp[c("PC1", "PC2")], col=kc$cluster)
+
+pc1 <- plot_ly(carrMelt, y = PC1, color = class.carr, type = "box")
+pc1 <- layout(pc1, title = "AUSTERIDADE/PONDERAÇÃO x ADAPTABILIDADE/AJUSTAMENTO)")
+pc1
+
+pc2 <- plot_ly(my.PC.Campo, y = PC1.medio, color = class.carr, type = "box")
+pc2 <- layout(pc2, title = "AUSTERIDADE/PONDERAÇÃO x ADAPTABILIDADE/AJUSTAMENTO)")
+pc2
+
+# error bars
+library(dplyr)
+library(plotly)
+
+p <- ggplot2::mpg %>% group_by(class) %>%
+    summarise(mn = mean(hwy), sd = 1.96 * sd(hwy)) %>%
+    arrange(desc(mn)) %>%
+    plot_ly(x = class, y = mn, error_y = list(value = sd),
+            mode = "markers", name = "Highway") %>%
+    layout(yaxis = list(title = "Miles Per Gallon"))
+p
+
+#points(kc$centers[,c("PC1", "PC2")], col=1:10, pch=8, cex=2)
+
+# fazer heatmap de ambos para ver se batem (muito demorado para todos os dados, usar 1000)
+heatmap(as.matrix(my.PC.Campo[,2:8]), Colv = my.PC.Campo$class.carr)
+
+# plot por campo
+p1 <- ggplot(ChickWeight, aes(x=Time, y=weight, colour=Diet, group=Chick)) +
+    geom_line() +
+    ggtitle("Growth curve for individual chicks")
+p1 <- ggplot(carrMelt[1:100,], aes(x=PC1, y=PC2)) +
+    geom_line() + geom_smooth()
+    ggtitle("Growth curve for individual chicks")
+# abaixo funciona
+pc1 <- ggplot(my.PC.Campo.t, aes(x=class.carr, y=CFM)) +
+        geom_point() +
+    ggtitle("CFM x PC1 médio")
+pc2 <- ggplot(my.PC.Campo, aes(x=class.carr, y=PC2.medio)) +
+        geom_point()
+    ggtitle("Campo Profisisonal x PC2 médio")
+pc3 <- ggplot(my.PC.Campo, aes(x=class.carr, y=PC3.medio)) +
+        geom_point()
+    ggtitle("Campo Profisisonal x PC3 médio")
+pc4 <- ggplot(my.PC.Campo, aes(x=class.carr, y=PC4.medio)) +
+        geom_point()
+    ggtitle("Campo Profisisonal x PC4 médio")
+pc5 <- ggplot(my.PC.Campo, aes(x=class.carr, y=PC5.medio)) +
+        geom_point()
+    ggtitle("Campo Profisisonal x PC5 médio")
+pc6 <- ggplot(my.PC.Campo, aes(x=class.carr, y=PC6.medio)) +
+        geom_point()
+    ggtitle("Campo Profisisonal x PC6 médio")
+#pc7 <- ggplot(my.PC.Campo, aes(x=class.carr, y=PC7.medio)) +
+#        geom_point()
+#    ggtitle("Campo Profisisonal x PC7 médio")
+
+library(Rmisc)
+multiplot(pc1, pc2, pc3, pc4, pc5, pc6, pc7, cols=2)    
+
+# IDEIA INICIAL PARA CLASSIFICAR A PESSOA
+
+# ABAIXO USAR PARA COMPARAR QUAIS CAMPOS TEM DISTRIBUICAO SEMELHANTE DE SCORES POR PC
+#-------------------------------------------------------------------------------------
+pc1 <- ggplot(my.PC.Campo.t, aes(x=ID.PC, y=CFM)) +
+    #geom_pointrange(ymin = 0.01, ymax = -0.01) +
+    #geom_errorbar(ymin = 0.01, ymax = -0.01) +
+    #geom_line() + geom_smooth() +
+    geom_line() +
+    ggtitle("CFM x PC médio") 
+#pc2 <- ggplot(my.PC.Campo.t, aes(x=class.carr, y=CFQ)) +
+pc2 <- ggplot(my.PC.Campo.t, aes(x=ID.PC, y=CFQ)) +
+    geom_line() +
+    ggtitle("CFQ x PC médio")
+pc3 <- ggplot(my.PC.Campo.t, aes(x=ID.PC, y=CCF)) +
+    geom_line() +
+    ggtitle("CCF x PC médio")
+pc4 <- ggplot(my.PC.Campo.t, aes(x=ID.PC, y=COA)) +
+    geom_line() +
+    ggtitle("COA x PC médio")
+pc5 <- ggplot(my.PC.Campo.t, aes(x=ID.PC, y=CJS)) +
+    geom_line() +
+    ggtitle("CJS x PC médio")
+pc6 <- ggplot(my.PC.Campo.t, aes(x=ID.PC, y=CCP)) +
+    geom_line() +
+    ggtitle("CCP x PC1 médio")
+pc7 <- ggplot(my.PC.Campo.t, aes(x=ID.PC, y=CSL)) +
+    geom_line() +
+    ggtitle("CSL x PC1 médio")
+pc8 <- ggplot(my.PC.Campo.t, aes(x=ID.PC, y=CMA)) +
+    geom_line() +
+    ggtitle("CMA x PC médio")
+pc9 <- ggplot(my.PC.Campo.t, aes(x=ID.PC, y=CCE)) +
+    geom_line() +
+    ggtitle("CCE x PC médio")
+pc10 <- ggplot(my.PC.Campo.t, aes(x=ID.PC, y=CBS)) +
+    geom_line() +
+    ggtitle("CBS x PC médio")
+    
+multiplot(pc1, pc2, pc3, pc4, pc5, pc6, pc7, pc8, pc9, pc10, cols=2)    
+
+
+# ggplots de errorbar
+# exemplo
+df <- data.frame(
+    trt = factor(c(1, 1, 2, 2)),
+    resp = c(1, 5, 3, 4),
+    group = factor(c(1, 2, 1, 2)),
+    se = c(0.1, 0.3, 0.3, 0.2)
+)
+df2 <- df[c(1,3),]    
+# Define the top and bottom of the errorbars
+limits <- aes(ymax = resp + se, ymin=resp - se)
+
+p <- ggplot(df, aes(fill=group, y=resp, x=trt))
+p + geom_bar(position="dodge", stat="identity")
+
+# Because the bars and errorbars have different widths
+# we need to specify how wide the objects we are dodging are
+# DEPOIS USAR ABAIXO PARA DEFINIR INTERVALOS A CONSIDERAR NO ALGORITMO
+dodge <- position_dodge(width=0.9)
+p + geom_bar(position=dodge) + geom_errorbar(limits, position=dodge, width=0.25)
+
+p <- ggplot(df2, aes(fill=group, y=resp, x=trt))
+p + geom_bar(position=dodge)
+p + geom_bar(position=dodge) + geom_errorbar(limits, position=dodge, width=0.25)
+
+p <- ggplot(df, aes(colour=group, y=resp, x=trt))
+p + geom_point() + geom_errorbar(limits, width=0.2)
+p + geom_pointrange(limits)
+p + geom_crossbar(limits, width=0.2)
+# fim exemplo errorbar
+
+pc1 <- ggplot(my.PC.Campo, aes(x=ID.campo, y=PC1.medio)) +
+    geom_line() + geom_smooth() +
+    ggtitle("PC1 médio x Campo Profissional") 

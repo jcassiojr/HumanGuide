@@ -1,0 +1,431 @@
+---
+title: "Análise Descritiva e Redução de Dados - DRAFT"
+author: "José Cassio"
+date: "November 23, 2015"
+output:
+  html_document
+---
+
+<center>![agileBIGDATA](./logoAgileBD.png)</center>
+
+Este documento descreve a análise descritiva realizada com o objetivo de reduzir as dimensões dos dados do teste **Human Guide** por meio da técnica de análise de componentes principais.
+
+### Preparação dos dados ###
+Foram obtidos os dados brutos das seguintes fontes:
+
+* goe_20151121_0154.csv
+* kroton_20151121_0125.csv
+* rh99_20151121_0002.csv
+
+Os arquivos acima foram concatenados, gerando 116.603 observações. 
+Sobre estes dados brutos, foram aplicadas as fórmulas para a obtenção dos 8 fatores relevantes para a análise de componentes principais, gerando um arquivo de dados processados, cujas primeiras cinco linhas são mostradas abaixo:
+
+```{r,echo=FALSE}
+require("corrplot", quietly = TRUE, warn.conflicts = FALSE)
+require("doMC", quietly = TRUE, warn.conflicts = FALSE)
+
+#source("./R/f_le_raw_HG_ori.R") # usar esta função para ler os dados originais da tese. 
+source("./R/f_le_raw_HG.R") # usar esta função para ler os dados novos. 
+source("./R/f_tidy_scores_HG.R") # alterada em 07/12/2015 para trazer nome do respondente tb
+
+registerDoMC(5) # parallel processing
+#df_raw_hg <- f_le_raw_HG_ori() # retorna colunas: ID, sexo, pontos
+df_raw_hg <- f_le_raw_HG() # retorna colunas: todas
+df_tidy_hg <- f_tidy_scores_HG(df_raw_hg)
+#head(df_tidy_hg)
+knitr::kable(head(df_tidy_hg[,-4]))
+```
+
+### Análises Estatísticas Iniciais ###
+
+A primeira análise a ser realizada consiste na obtenção de valores estatísticos básicos da amostra original:
+
+#### Estatísticas Básicas da Amostra ####
+
+```{r, echo=FALSE}
+require("psych", quietly = TRUE, warn.conflicts = FALSE)
+my.descr <- describe(df_tidy_hg[,7:14])
+#print(my.descr)
+knitr::kable(my.descr)
+# hist(df_tidy_hg$power)
+```
+
+#### Análise de Correlação do Fatores ####
+
+É realizada uma análise de correlação entre os 8 fatores, conforme os plots abaixo.
+
+```{r, echo=FALSE}
+my.cor <- cor(df_tidy_hg[,7:14])
+corrplot.mixed(my.cor, insig = "p-value", sig.level = -1, is.corr = TRUE)
+```
+
+O plot acima mostra na metade superior a força da correlação entre os fatores, expressa por meio do tamanho do círculo e da intensidade de sua cor. Na parte inferior o **p-value** relcionado a medida de correlação.
+
+```{r, echo=FALSE}
+#pairs(df_tidy_hg[,3:10], main = "Matriz de Dispersão (feminino: green, masculino: red)", 
+#          pch=21, bg=c("green3","red")[unclass(df_tidy_hg$sexo)])
+# DESLIGANDO PROVISORIAMENTE ABAIXO POR DEMORAR MUITO (LIGAR NO DEFINITIVO)
+#pairs(df_tidy_hg[,3:10], main = "Matriz de Dispersão (FUNC PUBLICO: green, KROTON: red, INDEFINIDO: blue, AMBEV: yellow)", 
+#          pch=21, bg=c("green3","red", "blue", "yellow")[unclass(df_tidy_hg$TIPOUSER)])
+```
+
+#### Análise de Correlação dos Fatores ####
+
+É realizada uma análise de correlação entre os 8 fatores.
+
+```{r, echo=FALSE}
+# correlação de spearman
+    my.cor <- cor(df_tidy_hg[,7:14], method = "spearman")
+    #print(my.cor, digits = 4)
+    knitr::kable(my.cor)
+```
+
+#### P-values e Intervalos de Confiança da Correlação dos Fatores ####
+
+Abaixo a tabela de p-values e intervalos de confiança da correlação entre os 8 fatores.
+
+```{r, echo=FALSE}
+    require("nlme", quietly = TRUE, warn.conflicts = FALSE)
+    require("MASS", quietly = TRUE, warn.conflicts = FALSE)
+    require("psychometric", quietly = TRUE, warn.conflicts = FALSE)
+    require("dplyr", quietly = TRUE, warn.conflicts = FALSE)
+    
+# Tabela de p-values e intervalos de confiança
+# if the P value is small, you can reject the idea that the correlation is due to random sampling.
+# If the P value is large, the data do not give you any reason to conclude that the correlation is real.
+l_cor <- list()
+l_cor[[1]] <- cor.test(~ sensibility + power, data = df_tidy_hg, method = "spearman", exact = FALSE)
+l_cor[[2]] <- cor.test(~ sensibility + quality, data = df_tidy_hg, method = "spearman", exact = FALSE)
+l_cor[[3]] <- cor.test(~ sensibility + exposure , data = df_tidy_hg, method = "spearman", exact = FALSE)
+l_cor[[4]] <- cor.test(~ sensibility + structure, data = df_tidy_hg, method = "spearman", exact = FALSE)
+l_cor[[5]] <- cor.test(~ sensibility + imagination, data = df_tidy_hg, method = "spearman", exact = FALSE)
+l_cor[[6]] <- cor.test(~ sensibility + stability, data = df_tidy_hg, method = "spearman", exact = FALSE)
+l_cor[[7]] <- cor.test(~ sensibility + contacts, data = df_tidy_hg, method = "spearman", exact = FALSE)
+
+l_cor[[8]] <- cor.test(~ power + quality, data = df_tidy_hg, method = "spearman", exact = FALSE)
+l_cor[[9]] <- cor.test(~ power + exposure , data = df_tidy_hg, method = "spearman", exact = FALSE)
+l_cor[[10]] <- cor.test(~ power + structure, data = df_tidy_hg, method = "spearman", exact = FALSE)
+l_cor[[11]] <- cor.test(~ power + imagination, data = df_tidy_hg, method = "spearman", exact = FALSE)
+l_cor[[12]] <- cor.test(~ power + stability, data = df_tidy_hg, method = "spearman", exact = FALSE)
+l_cor[[13]] <- cor.test(~ power + contacts, data = df_tidy_hg, method = "spearman", exact = FALSE)
+
+l_cor[[14]] <- cor.test(~ quality + exposure , data = df_tidy_hg, method = "spearman", exact = FALSE)
+l_cor[[15]] <- cor.test(~ quality + structure, data = df_tidy_hg, method = "spearman", exact = FALSE)
+l_cor[[16]] <- cor.test(~ quality + imagination, data = df_tidy_hg, method = "spearman", exact = FALSE)
+l_cor[[17]] <- cor.test(~ quality + stability, data = df_tidy_hg, method = "spearman", exact = FALSE)
+l_cor[[18]] <- cor.test(~ quality + contacts, data = df_tidy_hg, method = "spearman", exact = FALSE)
+
+l_cor[[19]] <- cor.test(~ exposure + structure, data = df_tidy_hg, method = "spearman", exact = FALSE)
+l_cor[[20]] <- cor.test(~ exposure + imagination, data = df_tidy_hg, method = "spearman", exact = FALSE)
+l_cor[[21]] <- cor.test(~ exposure + stability, data = df_tidy_hg, method = "spearman", exact = FALSE)
+l_cor[[22]] <- cor.test(~ exposure + contacts, data = df_tidy_hg, method = "spearman", exact = FALSE)
+
+l_cor[[23]] <- cor.test(~ structure + imagination, data = df_tidy_hg, method = "spearman", exact = FALSE)
+l_cor[[24]] <- cor.test(~ structure + stability, data = df_tidy_hg, method = "spearman", exact = FALSE)
+l_cor[[25]] <- cor.test(~ structure + contacts, data = df_tidy_hg, method = "spearman", exact = FALSE)
+
+l_cor[[27]] <- cor.test(~ imagination + stability, data = df_tidy_hg, method = "spearman", exact = FALSE)
+l_cor[[26]] <- cor.test(~ imagination + contacts, data = df_tidy_hg, method = "spearman", exact = FALSE)
+
+l_cor[[28]] <- cor.test(~ stability + contacts, data = df_tidy_hg, method = "spearman", exact = FALSE)
+
+df_cor <- data.frame()
+
+for (i in 1:length(l_cor)) {
+    df_cor[i,1] <- l_cor[[i]]$data.name
+    df_cor[i,2] <- l_cor[[i]]$estimate
+    aux <- CIr(r=l_cor[[i]]$estimate, n = 116603)
+    df_cor[i,3] <- aux[1]
+    df_cor[i,4] <- aux[2]
+    df_cor[i,5] <- l_cor[[i]]$p.value
+}
+names(df_cor) <- c("Pair", "Correlation", "Lower Confidence Limit", "Upper Confident Limit","p-value")
+
+# ordenando por correlação
+df_cor <- 
+    df_cor %>%
+    arrange(Correlation)
+knitr::kable(df_cor)
+```
+
+
+
+#### Análise Cluster ####
+
+Uma técnica não tão comum, mas particularmente útil em pesquisa psicológica, para redução de dados envolve agrupar as variáveis em clusters. Pode ser pensada como uma alternativa à Análise de Fatores, baseada em um modelo bem mais simples. 
+É aplicada à amostra um algoritmo de análise de cluster (Item Cluster Analysis) usando princípios psycométricos para complementar as análises prévias, para 4 clusters. Clusters são combinados se os coeficientes *alfa (mean split half correlation)* e *beta (worst split half correlation)* aumentam para o próximo cluster.
+Uma extensiva documentação e justificativa para o algoritmo pode ser encontrada no site 
+*http://personality-project.org/revelle/publications/iclust.pdf*
+
+```{r, echo=FALSE}
+    ic <- iclust(my.cor, nclusters = 4, title = "Item Cluster Analysis") # usa Pearson correlation
+    # summary(ic)
+    print(ic)
+```
+
+A partir do resultado acima, pode-se observar o seguinte agrupamento, considerando 4 clusters:
+
+    * G1: imagination e quality
+    * G2: sensibility e power
+    * G3: exposure e stability
+    * G4: contacts e structure
+
+#### Análise de Componentes Principais ####
+
+A análise de PCA foi implementada aos dados processados, gerando oito componentes, associados aos seguintes resultados normalizados:
+
+##### Desvio Padrão associado aos Componentes #####
+
+```{r, echo=FALSE}
+    pca1 = prcomp(df_tidy_hg[,7:14], scale. = TRUE, center = TRUE)
+    print (pca1$sdev)
+    #knitr::kable(pca1$sdev)
+```
+
+##### *Carga dos Fatores (Loadings or Rotations)* ##### 
+
+Cada componente sendo uma combinação linear das variáveis (8 fatores). Os coeficientes indicando o quanto cada variável está correlacionada com os componentes específicos:
+
+```{r, echo=FALSE}
+    # pca1$rotation
+    knitr::kable(pca1$rotation) # rotação dos componentes sem varimax aplicado
+    # alternativa - aplicando multiplicação com a matriz de standard deviation
+    #ncomp <- 8 # número de componentes
+    #rawLoadings     <- as.data.frame(pca1$rotation[,1:ncomp] %*% diag(pca1$sdev, ncomp, ncomp))
+    #knitr::kable(rawLoadings) # rotação dos componentes sem varimax aplicado
+```
+
+##### Scores ##### 
+Os scores são calculados a partir da recombinação dos 8 fatores originais nos novos componentes. Eles representam o z-score do candidato em relação ao componente, ou seja, indica o número de desvios padrão acima ou abaixo do valor médio para o componente. Neste caso, por exemplo, como cada componente representa um par de categorias opostas, quanto mais o candidato se afasta da média, tanto positiva quanto negativamente, significa que ele apresenta com maior força aquela categoria representada.
+Abaixo são mostrados os cinco primeiros scores de todas as observações, associados aos novos componentes:
+```{r, echo=FALSE}
+    # head(pca1$x)
+    #knitr::kable(head(pca1$x), digits = 4)
+    knitr::kable(head(pca1$x))
+```
+
+##### Sumário da análise PCA ##### 
+Abaixo está o sumário da análise PCA executada, mostrando a importância da contribuição de cada componente:
+```{r, echo=FALSE}
+    summary(pca1)
+```
+
+#### Redução dos Componentes Principais ####
+
+##### Redução pelo critério de Kaiser ##### 
+
+Um critério que pode ser usado para reduzir os componentes é o de selecionar apenas aqueles com eigenvalues maior que 1 (critério de Kaiser).
+```{r, echo=FALSE}
+    my.kayser.crit <- pca1$sdev ^ 2
+    #knitr::kable(my.kayser.crit)
+    print(my.kayser.crit)
+```
+
+Caso se opte pelo critério acima, deve-se considerar os cinco primeiros componentes no prosseguimento da análise 
+
+##### Redução pelo Scree plot ##### 
+
+Um outro critério que pode ser usado para reduzir os componentes é o plotar as variações dos componentes e visualmente selecionar aqueles que têm a maior contribuição nesta variação:
+
+```{r, echo=FALSE}
+    screeplot(pca1, main = "Scree Plot - Human Guide", type = "lines")
+```
+
+Nesta abordagem, pode-se identificar um patamar inicial levemente destacado com os quatro primeiros componentes sendo mais significativos e um segundo patamar mais destacado com os sete primeiros componentes. No caso do primeiro patamar, verifica-se que estes componentes são responsáveis por cerca de *64%* da variação dos dados. 
+
+#### Aplicando a rotação Varimax para interpretar os componentes ####
+
+A rotação muda as coordenadas de forma a maximizar a soma das variâncias dos quadrados dos *loadings*, desta forma realizando uma "limpeza" nas rotações obtidas originalmente na análise PCA.
+Esta rotação é usada para ajudar na melhor interpretação dos componentes, de forma a identificar significado nos mesmos.
+
+Opta-se, neste caso, pelo uso de 8 componentes para a rotação, de acordo com o observado no primeiro patamar do scree plot.
+
+```{r, echo=FALSE}
+    ncomp <- 8 # número de componentes
+    rawLoadings <- pca1$rotation[,1:ncomp] %*% diag(pca1$sdev, ncomp, ncomp) # idem
+    my.varimax <- varimax(rawLoadings, normalize = TRUE)
+    
+    #scores <- scale(pca1$x[,1:ncomp]) %*% varimax(rawLoadings)$rotmat
+
+    #ANTIGO: varimax <- varimax(pca1$rotation[,1:8], normalize = TRUE)
+    print (my.varimax$loadings)
+```
+
+##### Plotando os fatores de acordo com os componentes após a rotação ##### 
+
+O plot abaixo mostra os eigenvalues dos fatores em relação aos pares de componentes encontrados.
+Obs: no momento somente para os 3 primeiros componentes (complementar a documentação final com todas as combinações)
+
+##### Componentes PC1 e PC2 #####
+
+```{r, echo=FALSE}
+    require("ggplot2", quietly = TRUE, warn.conflicts = FALSE)
+    my.var_load <- my.varimax$loadings[1:ncomp,]
+    loadings <- data.frame(my.var_load, .names = row.names(pca1$rotation))
+    theta <- seq(0,2*pi,length.out = 100)
+    circle <- data.frame(x = cos(theta), y = sin(theta))
+    
+    # plot após rotação PC1 x PC2
+    #----------------------------
+    p <- ggplot(circle,aes(x,y)) + geom_path()
+    p + geom_text(data=loadings, 
+              mapping=aes(x = X1, y = X2, label = "a", colour = .names)) +
+    coord_fixed(ratio=1) +
+    labs(x = "PC1", y = "PC2")
+```
+
+##### Componentes PC2 e PC3 #####
+
+```{r, echo=FALSE}
+    p <- ggplot(circle,aes(x,y)) + geom_path()
+    p + geom_text(data=loadings, 
+                  mapping=aes(x = X2, y = X3, label = "a", colour = .names)) +
+        coord_fixed(ratio=1) +
+        labs(x = "PC2", y = "PC3")
+```
+
+##### Componentes PC3 e PC1 #####
+
+```{r, echo=FALSE}
+    p <- ggplot(circle,aes(x,y)) + geom_path()
+    p + geom_text(data=loadings, 
+                  mapping=aes(x = X1, y = X3, label = "a", colour = .names)) +
+        coord_fixed(ratio=1) +
+        labs(x = "PC1", y = "PC3")
+```
+
+#### Plotando os fatores de acordo com os componentes após a rotação em formato 3D ####
+
+##### Base PC3 #####
+
+```{r, echo=FALSE}
+    library(scatterplot3d)
+    df_varload <- as.data.frame(my.var_load)
+    with(df_varload, {
+        s3d <- scatterplot3d(V1, V2, V3,        # x y and z axis
+                             color="blue", pch=19,        # filled blue circles
+                             type="h",                    # vertical lines to the x-y plane
+                             main="3-D Component Plot in Rotated Space (Base PC3)",
+                             xlab="PC1",
+                             ylab="PC2",
+                             zlab="PC3")
+        s3d.coords <- s3d$xyz.convert(V1, V2, V3) # convert 3D coords to 2D projection
+        text(s3d.coords$x, s3d.coords$y,             # x and y coordinates
+             labels=row.names(df_varload),               # text to plot
+             cex=.5, pos=4)           # shrink text 50% and place to right of points)
+    })
+```
+
+##### Base PC2 #####
+
+```{r, echo=FALSE}
+      with(df_varload, {
+        s3d <- scatterplot3d(V3, V1, V2,         # x y and z axis
+                             color="blue", pch=19,        # filled blue circles
+                             type="h",                    # vertical lines to the x-y plane
+                             main="3-D Component Plot in Rotated Space (Base PC2)",
+                             xlab="PC3",
+                             ylab="PC1",
+                             zlab="PC2")
+        s3d.coords <- s3d$xyz.convert(V3, V1, V2) # convert 3D coords to 2D projection
+        text(s3d.coords$x, s3d.coords$y,             # x and y coordinates
+             labels=row.names(df_varload),               # text to plot
+             cex=.5, pos=4)           # shrink text 50% and place to right of points)
+    })
+```
+
+##### Base PC1 #####
+
+```{r, echo=FALSE}
+    with(df_varload, {
+        s3d <- scatterplot3d(V2, V3, V1,         # x y and z axis
+                             color="blue", pch=19,        # filled blue circles
+                             type="h",                    # vertical lines to the x-y plane
+                             main="3-D Component Plot in Rotated Space (Base PC1)",
+                             xlab="PC2",
+                             ylab="PC3",
+                             zlab="PC1")
+        s3d.coords <- s3d$xyz.convert(V2, V3, V1) # convert 3D coords to 2D projection
+        text(s3d.coords$x, s3d.coords$y,             # x and y coordinates
+             labels=row.names(df_varload),               # text to plot
+             cex=.5, pos=4)           # shrink text 50% and place to right of points)
+    })
+```
+
+### Prevendo Scores de Novas Amostras ###
+
+A partir do modelo obtido com a Análise de Componentes Principais é possível posicionar novos candidatos em relação a seus scores nos componentes, conforme exemplificado abaixo, para 200 candidatos da amostra selecionados aleatóriamente.
+
+Considerando a pontuação dos candidatos abaixo (como amostra, mostramos somente os 10 primeiros):
+
+```{r, echo=FALSE}
+    #my.newdata <- head(df_tidy_hg[,c(1,2,3:10)])
+    # cuidado que os IDs de rh99, Kroton e goe files se repetem!!!
+    my.newdata <- 
+        df_tidy_hg %>%
+        sample_n(100)
+    # removing rownames
+    rownames(my.newdata) <- NULL
+    #print (my.newdata)
+    knitr::kable(head(my.newdata[,c(1:2,7:14)], n = 10))
+```
+
+Aplicando o modelo, podemos obter os seguintes scores (como amostra, mostramos somente os 10 primeiros):
+```{r, echo=FALSE}
+    # colocar aqui a diferenciação por cor e plotar os valores com as cores em 3D
+    my.prev <- as.data.frame(predict(pca1, newdata=my.newdata))
+    my.prev <- cbind(my.newdata, PC1 = my.prev$PC1, PC2 = my.prev$PC2, PC3 = my.prev$PC3)
+    # removing rownames
+    rownames(my.prev) <- NULL
+    #print(my.prev[,c(1,10:12)])
+    #ncomp <- 4
+    #my.scores <- scale(pca1$x[,1:ncomp]) %*% varimax(rawLoadings)$rotmat # score considerando Varimax
+    
+    knitr::kable(head(my.prev[,c(1,2,15:17)], n = 10))
+```
+
+Considerando com cores direrentes os tipos de usuários: KROTON, AMBEV e FUNCIONÁRIO PÚBLICO, o gráfico abaixo permite uma análise das distribuições das previsões por tipo de usuário
+```{r, echo=FALSE}
+# aplicando a HG
+#library(scatterplot3d)
+# create column indicating point color
+#my.prev$pcolor[my.prev$TIPOUSER=="FUNC PUBLICO"] <- "red"
+#my.prev$pcolor[my.prev$TIPOUSER=="AMBEV"] <- "blue"
+#my.prev$pcolor[my.prev$TIPOUSER=="KROTON"] <- "green3"
+                         
+#with(my.prev, {
+#    s3d <- scatterplot3d(PC1, PC2, PC3,
+#                         color=pcolor, pch=19,
+#                         type="h", lty.hplot=2,
+#                         scale.y=.75,
+#                         main="3-D Scatterplot de Scores",
+#                         xlab="PC1",
+#                         ylab="PC2",
+#                         zlab="PC3")
+#    s3d.coords <- s3d$xyz.convert(PC1, PC2, PC3)
+#    # comentar as 3 linhas abaixo para eliminar o ID como label dos pontos (somente cores)
+#    #text(s3d.coords$x, s3d.coords$y,
+#    #     labels=row.names(my.prev),
+#    #     pos=4, cex=.5)
+#    legend("topright", inset=.05,
+#           bty="n", cex=.5,
+#           title="Tipo do Usuário",
+#           c("FUNC PUBLICO", "AMBEV", "KROTON"), fill=c("red", "blue", "green"))
+#})
+# plotly
+    # eliminando linhas com TIPOUSER INDEFINIDO
+    my.prev <-
+        my.prev %>%
+        mutate(TIPOUSER = ifelse(TIPOUSER == "", "INDEFINIDO", as.character(TIPOUSER)))
+require("plotly", quietly = TRUE, warn.conflicts = FALSE)
+pc1 <- plot_ly(my.prev, x = PC1, y = PC2, z = PC3, color = TIPOUSER, type = "scatter3d", mode = "markers")
+pc1 <- layout(pc1, title = "Scores Médios por Perfil de Organização - PC1 x PC2 X PC3")
+pc1
+    
+# fim plotly
+    
+```
+
+
+A saída acima pode ser aplicada a um algoritmo para classificar candidato nos componentes associados.
+
