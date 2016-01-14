@@ -117,6 +117,17 @@ knitr::kable(df_forms)
 ```{r, echo=FALSE, warning=FALSE}
 # DAQUI PARA BAIXO SÓ PRECISA PARA TRATAR DE CLASSIFICAÇÃO EM CAMPOS PROFISSIONAIS
 #-----------------------------------------------------------------------------------
+# obtendo os scores previstos de acordo com a análise de componentes principais
+pca1 = prcomp(df_tidy_hg[,7:14], scale. = TRUE, center = TRUE)
+# scores obtidos
+scores.total <- as.data.frame(pca1$x)
+my.scores.total <- as.data.frame(cbind(ID = df_tidy_hg$ID, 
+                                 sexo = df_tidy_hg$sexo, 
+                                 tipouser = df_tidy_hg$TIPOUSER, 
+                                 profissao.na.area.de = df_tidy_hg$profissao.na.area.de, 
+                                formacao.em = df_tidy_hg$formacao.em,
+                                scores.total))
+
 # renomeando colunas
 df_forms <-
     df_forms %>%

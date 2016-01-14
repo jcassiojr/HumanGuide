@@ -755,7 +755,7 @@ summary(fit) # display the best model
 table(my.PC.Campo$class.carr, kc$cluster)
 plot(my.PC.Campo[c("PC1.medio", "PC2.medio")], col=kc$cluster)
 points(kc$centers[,c("PC1.medio", "PC2.medio")], col=1:10, pch=8, cex=2)
-# para as medias transpostas
+# para as medias transpostas    #AQUI
 my.PC.Campo.t <- t(my.PC.Campo)
 colnames(my.PC.Campo.t) <- my.PC.Campo.t[1,]
 
@@ -793,6 +793,7 @@ plot(my.PC.Campo[c("PC1.medio", "PC2.medio")], col=kc$cluster)
 #plot(my.PC.Campo.t[c("CFM", "CFQ")], col=kc$cluster)
 #points(kc$centers[,c("PC1.medio", "PC2.medio")], col=1:10, pch=8, cex=2)
 # para todos os dados
+# AQUI
 carrMelt.smp <- sample_n(carrMelt,100)
 (kc <- kmeans(carrMelt.smp[,3:9], 7))
 table(carrMelt.smp$class.carr, kc$cluster)
@@ -821,9 +822,9 @@ p
 #points(kc$centers[,c("PC1", "PC2")], col=1:10, pch=8, cex=2)
 
 # fazer heatmap de ambos para ver se batem (muito demorado para todos os dados, usar 1000)
-heatmap(as.matrix(my.PC.Campo[,2:8]), Colv = my.PC.Campo$class.carr)
+heatmap(as.matrix(my.PC.Campo[,2:8]), Colv = my.PC.Campo$class.carr) #AQUI
 
-# plot por campo
+# plot por campo 
 p1 <- ggplot(ChickWeight, aes(x=Time, y=weight, colour=Diet, group=Chick)) +
     geom_line() +
     ggtitle("Growth curve for individual chicks")

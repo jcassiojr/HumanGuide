@@ -1,25 +1,36 @@
 #'função que treina modelo de data.frame passado
 
 require("caret")
-#require("MASS")
-#require("ROCR")
+require("MASS")
+require("ROCR")
 #library("lubridate")
 #require("doMC")
 f_train_model_HG <- function(df_tidy_in, campo_in) {
     
     registerDoMC(5) # parallel processing
     #preparando modelo para target campo = CFM
+    df_tidy_in <- my.scores.total
+    #df_tidy_in <- df_change
     df_tidy_in <-
         df_tidy_in %>%
         mutate(class.carr = ifelse(class.carr == campo_in, campo_in, "outros"))
     
+    # modelo sem precisão suficiente. Tentar tirando as duplicidades
+    df_tidy_in <-
+        df_tidy_in %>%
+        distinct(ID)
+    
     #selecionando as features e target em arquivos diferentes
-    class <- as.factor(df_tidy_in[,"class.carr"]) # transformando em vetor de fatores de target
-    class <- factor(class, levels = c("CFM","outros")) # ordenando levels para "S" ser o primeiro
+    class <- as.factor(df_tidy_in[,"sexo"]) # transformando em vetor de fatores de target
+    class <- factor(class, levels = c("m","f")) # ordenando levels para "S" ser o primeiro
     # prop.table(table(class))
     
+    
     # ABAIXO USANDO VALOR DEVIDO SEM AGRUPAR E USANDO SOMENTE FEATURES DO ARQUIVO AVON PARA PODER PREVER DEPOIS
-    descr <- df_tidy_in[,c(3:9)] # Obs: depois trocar Valor Devido por Faixa para ver se melhora o modelo!!
+    #descr <- df_tidy_in[,c(3:9)] # Obs: depois trocar Valor Devido por Faixa para ver se melhora o modelo!!
+    descr <- df_tidy_in[,c(7:14)] # uso com df_change
+   
+    
     
     set.seed(1)
     inTrain <- createDataPartition(class, p = 3/4, list = FALSE)
@@ -57,15 +68,24 @@ f_train_model_HG <- function(df_tidy_in, campo_in) {
                             classProbs = TRUE,
                             summaryFunction = twoClassSummary # comentar para uso com iris
     )
-    nb_model <- train(trainDescr, trainClass, 
-                      #nbagg = 50,
-                      metric = "ROC",
-                      preProcess=c("center", "scale"),
-                      trControl=control,
-                      na.action=na.omit,
-                      method="nb")
     
-    models_o <- list(nb = nb_model)
+    # BOOSTED LOGISTIC REGRESSION MODEL
+    #---------
+    logb_model <- train(trainDescr, trainClass, 
+                        #nbagg = 50,
+                        metric = "ROC",
+                        preProcess=c("center", "scale"),
+                        trControl=control,  
+                        method="LogitBoost")
+    #nb_model <- train(trainDescr, trainClass, 
+    #                  #nbagg = 50,
+    #                  metric = "ROC",
+    #                  preProcess=c("center", "scale"),
+    #                  trControl=control,
+    #                  na.action=na.omit,
+    #                  method="nb")
+    
+    models_o <- list(nb = logb_model)
     
     # obtém probabilidades dos modelos
     probValues <- extractProb(
@@ -73,11 +93,16 @@ f_train_model_HG <- function(df_tidy_in, campo_in) {
         testX = testDescr,
         testY = testClass)
     
+    # pegar subset somente com dados de teste para validar o modelo
+    #testProbs <- subset(
+    #    probValues,
+    #    dataType == "Test")
+    
     # confusion matrix
     cf_o <- confusionMatrix(probValues$pred, probValues$obs)
 
     # making a prediction object
-    pred_o <- prediction(probValues$S, probValues$obs)
+    pred_o <- prediction(probValues$m, probValues$obs)
     
     # ROC curve
     roc.perf_o = performance(pred_o, measure = "tpr", x.measure = "fpr")
