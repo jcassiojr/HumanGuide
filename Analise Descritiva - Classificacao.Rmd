@@ -479,7 +479,7 @@ plot.alex <- ggplot(df_class.resp, aes(x=campo.prof, y=corr, fill= class.campo))
  #   scale_colour_brewer(palette = "Greens") +
     geom_bar(stat="identity") +
     ggtitle(paste("Correlações com Campos Profisisonais (", nome.resp,")"))
-(plot.alex)
+#(plot.alex)
 # cria tabela para acompanhar o plot
 # Set theme to allow for plotmath expressions
 #tt <- ttheme_default(colhead=list(fg_params = list(parse=TRUE)))
