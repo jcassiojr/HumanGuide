@@ -2,13 +2,13 @@
 title: "Análise Descritiva - Preditiva/Classificatória - DRAFT"
 author: "Cassio"
 date: "January 19, 2016"
-output: html_document
+output: 
+   html_document
 ---
-    
-    <center>![agileBIGDATA](./logoAgileBD.png)</center>
-    
-    Este documento descreve a análise descritiva exploratória/preditiva, realizada com o objetivo de definir um algoritmo 
-    que classifique o resultado do teste **Human Guide** de um respondente em relação aos campos profissionais segundo Levenfus. .
+
+<center>![agileBIGDATA](./logoAgileBD.png)</center>
+
+Este documento descreve a análise descritiva exploratória/preditiva, realizada com o objetivo de definir um algoritmo que classifique o resultado do teste **Human Guide** de um respondente em relação aos campos profissionais segundo Levenfus.
 
 ### Preparação dos dados ###
 
@@ -29,6 +29,7 @@ Abaixo segue um exemplo com a parte inicial do arquivo:
 
 require("doMC", quietly = TRUE, warn.conflicts = FALSE)
 require("xlsx", quietly = TRUE, warn.conflicts = FALSE)
+require("plyr", quietly = TRUE, warn.conflicts = FALSE)
 require("dplyr", quietly = TRUE, warn.conflicts = FALSE)
 
 registerDoMC(5) # parallel processing
@@ -259,7 +260,7 @@ my.prev.carr <-
 ```
 
 ```{r,echo=FALSE}
-require(Hmisc)
+require("Hmisc", quietly = TRUE, warn.conflicts = FALSE)
 my.PC.Campo <-
     my.prev.carr %>%
     group_by(class.carr) %>%
@@ -313,7 +314,7 @@ my.PC.Campo.t <-
 my.PC.Campo.t <-
     my.PC.Campo.t %>%
     mutate(ID.PC = seq(nrow((my.PC.Campo.t))))
-knitr::kable(my.PC.Campo.t[,1:11])
+knitr::kable(my.PC.Campo.t[1:7,1:11])
 ```
 
 #### Obtendo as Assinaturas por campo profissional ####
@@ -322,7 +323,8 @@ Abaixo são construídos os gráficos de campos profisisonais em relação aos s
 
 ```{r,echo=FALSE}
 # considerando apenas as médias para a assinatura
-require(Rmisc)
+require("Rmisc", quietly = TRUE, warn.conflicts = FALSE)
+require("gridExtra", quietly = TRUE, warn.conflicts = FALSE)
 cpo1 <- ggplot(my.PC.Campo.t[1:7,], aes(x=ID.PC, y=CFM, ymin = -0.3, ymax = 0.3)) +
     #geom_pointrange(ymin = -0.3, ymax = 0.3) +
     #geom_errorbar(ymin = 0.01, ymax = -0.01) +
@@ -357,7 +359,8 @@ cpo9 <- ggplot(my.PC.Campo.t[1:7,], aes(x=ID.PC, y=CCE, ymin = -0.3, ymax = 0.3)
 cpo10 <- ggplot(my.PC.Campo.t[1:7,], aes(x=ID.PC, y=CBS, ymin = -0.3, ymax = 0.3)) +
     geom_line() +
     ggtitle("CBS x PC médio")
-multiplot(cpo1, cpo2, cpo3, cpo4, cpo5, cpo6, cpo7, cpo8, cpo9, cpo10, cols=2)
+grid.arrange(cpo1, cpo2,cpo3, cpo4,cpo5, cpo6, cpo7, cpo8, cpo9, cpo10, nrow=3, ncol=4)
+#multiplot(cpo1, cpo2, cpo3, cpo4, cpo5, cpo6, cpo7, cpo8, cpo9, cpo10, cols=2)
 ```
 
 Uma outra análise realizada mostra como as assinaturas de cada campo profissional se correlacionam, indicando campos que sejam similares ou opostos mais fortemente.
@@ -398,6 +401,8 @@ corrplot.mixed(my.cor, insig = "p-value", sig.level = -1, is.corr = TRUE)
 #### Classificando os respondentes nos campos profissionais
 
 ```{r,echo=FALSE}
+require("gridExtra", quietly = TRUE, warn.conflicts = FALSE)
+source("./R/f_classifica_HG.R") # usar esta função para ler os dados novos. 
 #x <- my.PC.Campo.t.nomes
 # CFM
 #cfm.mean <- x$CFM[x$PC.stat == "PC1.medio"] # PC1.medio
@@ -468,13 +473,22 @@ df_class.resp <-
     df_class.resp %>%
     mutate(ID.campo = seq(nrow((df_class.resp))))
 # plot com pontos
-qplot(df_class.resp$campo.prof,df_class.resp$corr, colour = df_class.resp$class.campo)
+#qplot(df_class.resp$campo.prof,df_class.resp$corr, colour = df_class.resp$class.campo)
 # alternativa
 plot.alex <- ggplot(df_class.resp, aes(x=campo.prof, y=corr, fill= class.campo)) +
  #   scale_colour_brewer(palette = "Greens") +
     geom_bar(stat="identity") +
     ggtitle(paste("Correlações com Campos Profisisonais (", nome.resp,")"))
-    
+(plot.alex)
+# cria tabela para acompanhar o plot
+# Set theme to allow for plotmath expressions
+#tt <- ttheme_default(colhead=list(fg_params = list(parse=TRUE)))
+tbl.alex <- tableGrob(df_class.resp[,-5], rows=NULL)
+# Plot chart and table into one object
+grid.arrange(plot.alex, tbl.alex,
+nrow=2,
+as.table=TRUE,
+heights=c(1,1))
 ```
 
 

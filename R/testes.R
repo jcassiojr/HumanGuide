@@ -982,3 +982,6 @@ campo.4 <- c(0, 0.6, 0.7, 0.7, 0.3, 0.1, 0.3)
 cor(campo.3,campo.4)
 # outra solucao é colocar um smooth ou IC nos pontos da curva padrão do campo e mostrar graficamente.
 # Assim colocamos a curva da pessoa e fazemos analise visual (PARA IMPLEMENTACAO: OUTRO PROJETO PARA GERAR EM R)
+
+# chamando markdown com parametros
+rmarkdown::render("testeHG.Rmd", params = "ask")
