@@ -8,7 +8,7 @@ output:
 
 <center>![agileBIGDATA](./logoAgileBD.png)</center>
 
-Este documento descreve a análise preditiva realizada com o objetivo de classificar um determinado indivíduo que responda ao teste **Human Guide**, em relação ao campos profisisonais definidos por Levenfus, tomando como abse a profissão do respondente.
+Este documento descreve a análise preditiva realizada com o objetivo de classificar um determinado indivíduo que responda ao teste **Human Guide**, em relação ao campos profissionais definidos por Levenfus, tomando como base a profissão do respondente.
 A mesma análise é repetida de acordo com a formação do respondente.
 
 Uma análise possível pode ser feita comparando-se os resultados para um dado indivíduo, o que pode mostrar uma possível não concordância entre a formação e a profissão do respondente.

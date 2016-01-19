@@ -48,9 +48,17 @@ my.PC.Campo.t <-
 pc1 <- ggplot(my.PC.Campo.t, aes(x=ID.PC, y=CFM)) +
     #geom_pointrange(ymin = 0.01, ymax = -0.01) +
     #geom_errorbar(ymin = 0.01, ymax = -0.01) +
-    #geom_line() + geom_smooth() +
+    #geom_smooth(method="loess") +
     geom_line() +
     ggtitle("CFM x PC médio") 
+# ABAIXO SERÁ A ANÁLISE
+# teste de grafico de correlacao entre CAMPO e PESSOA
+# inserir no dataframe my.Campo.t a linha da pessoa!!!!!!
+qplot(CFM,CFQ, data= my.PC.Campo.t, geom=c("smooth"),method="lm")
+cor(my.PC.Campo.t$CFM,my.PC.Campo.t$CFQ)
+qplot(CFM,CCF, data= my.PC.Campo.t, geom=c("smooth"),method="lm")
+cor(my.PC.Campo.t$CFM,my.PC.Campo.t$CCF)
+
 #pc2 <- ggplot(my.PC.Campo.t, aes(x=class.carr, y=CFQ)) +
 pc2 <- ggplot(my.PC.Campo.t, aes(x=ID.PC, y=CFQ)) +
     geom_line() +
@@ -83,5 +91,5 @@ pc10 <- ggplot(my.PC.Campo.t, aes(x=ID.PC, y=CBS)) +
 multiplot(pc1, pc2, pc3, pc4, pc5, pc6, pc7, pc8, pc9, pc10, cols=2)   
 
 # heatmap
-#heatmap(as.matrix(my.PC.Campo[,2:8]), Colv = my.PC.Campo$class.carr) #AQUI
-heatmap(as.matrix(my.PC.Campo.t[,1:10]), Colv = my.PC.Campo.t$class.carr) #AQUI
+heatmap(as.matrix(my.PC.Campo[,2:8]), Colv = my.PC.Campo$class.carr) #AQUI
+#heatmap(as.matrix(my.PC.Campo.t[,1:10]), Colv = my.PC.Campo.t$class.carr) #AQUI

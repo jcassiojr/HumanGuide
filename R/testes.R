@@ -933,3 +933,52 @@ p + geom_crossbar(limits, width=0.2)
 pc1 <- ggplot(my.PC.Campo, aes(x=ID.campo, y=PC1.medio)) +
     geom_line() + geom_smooth() +
     ggtitle("PC1 médio x Campo Profissional") 
+
+# testando fiting de 2 curvas
+c1 <- c(0, 0.8, 0.9, 0.9, 0.5, 0.1, 0.5)
+
+c1b <- c(0, 0.8, 0.9, 0.9, 0.5, 0.1, 0.5) # perfect match! ideally score of 1
+
+c1c <- c(1, 0.2, 0.1, 0.1, 0.5, 0.9, 0.5) # total opposite, ideally score of -1? (what would 0 be though?)
+
+c2 <- c(0, 0.9, 0.9, 0.9, 0, 0.3, 0.3, 0.9) #pretty good, score of ???
+
+ccf(c1,c1c)
+
+c4 <- c(0, 0.6, 0.7, 0.7, 0.3, 0.1, 0.3) # very good, score of ??
+# correlacao?
+require(Hmisc)
+rcorr(as.matrix(dfrm))[[1]]
+
+# TALVEZ ABAIXO SEJA AO ALGORITMO A USAR !!!! MEDE A FORMA DA CURVA!!!! NÃO A POSIÇÃO EM RELACAO AO EIXO Y (SCORE)
+# ESTA OK ASSIM??? ACHO QUE NÃO. PRECISA MEDIR A DIFERENÇA DAS MÉDIAS PARA CADA PONTO
+
+# SE CONSEIERARMOS QUE CURVA É ASSINATURA PRECISAMOS MEDIR DUAS COISAS
+# 1. Correlação da pessoa com as curvas: usando critério de corte (acima de 0.6????). ISSO NOS INDICA A 
+# PROXIMIDADE ENTRE OS COMPONENTES MAIS IMPORTANTES DO CAMPO EM RELACAO A PESSOA, OU SEJA, SE A VARIAÇÃO DOS COMPONENTES
+# PARA O CAMPO É PROXIMO AO DA PESSOA
+# 2. PARA OS CAMPOS QUE PASSOU NO CRITERIO, precisamos medir o grau onde cada componente da pessoa 
+# se aproxima do PC do campo. Podemos medir binariamente: PC1 da pessoa está dentro do IC PC.medio.
+
+# 1. ASSINATURA DE CAMPO PROF MOSTRA OS VALORES MÉDIOS QUE SÃO CARACTERÍSTICAS DAQUELE CAMPO PARA CADA PC
+# 2. OBTER COMPONENTES QUE SE DESTACAM PARA O CAMPO. EX. PCC tem PC1 e PC2
+
+
+# EX. PARA CADA CAMPO PROF: PC1.CFF.medio = 0.2 (+-0.05) -> PC1.pessoa: se dentro do IC considera
+cor( c(0, 0.8, 0.9, 0.9, 0.5, 0.1, 0.5),
+     c(0, 0.6, 0.7, 0.7, 0.3, 0.1, 0.3) )
+
+campo.1 <- c(0, -0.8, 0.2, 0.1, 0.13, 0.1, 0.5)
+campo.2 <- c(0, -0.6, 0.7, 0.7, 0.3, 0.1, 0.3)
+cor(campo.1,campo.2)
+plot(campo.1, type = "l", ylim = c(-1.0, 1.0))
+plot(campo.2, type = "l", ylim = c(-1.0, 1.0))
+d <- data.frame(campo.1, campo.2)
+# usar qplot para correlacionar as curvas campo x pessoa (fazer para cada campo e display p escolher limite de confiança)
+qplot(campo.1,campo.2, data= d, geom=c("smooth"),method="lm")
+
+campo.3 <- c(1, 1.6, 1.7, 1.7, 1.3, 1.1, 1.3)
+campo.4 <- c(0, 0.6, 0.7, 0.7, 0.3, 0.1, 0.3)
+cor(campo.3,campo.4)
+# outra solucao é colocar um smooth ou IC nos pontos da curva padrão do campo e mostrar graficamente.
+# Assim colocamos a curva da pessoa e fazemos analise visual (PARA IMPLEMENTACAO: OUTRO PROJETO PARA GERAR EM R)
