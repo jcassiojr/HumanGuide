@@ -123,7 +123,7 @@ my.scores.total <-
 # não perdemos a contribuição nos devidos campos
 require("plotly", quietly = TRUE, warn.conflicts = FALSE)
 pc1 <- plot_ly(my.scores.total, y = PC1, color = sexo, type = "box")
-pc1 <- layout(pc1, title = "AUSTERIDADE/PONDERAÇÃO x ADAPTABILIDADE/AJUSTAMENTO)")
+pc1 <- layout(pc1, title = "OPENNESS/EXPLORATION x COMPLIANCE/OBSERVÂNCIA")
 pc1
 ```
 
@@ -182,7 +182,7 @@ pc5
 ```{r, echo=FALSE, warning=FALSE}
 # box plot
 pc6 <- plot_ly(my.scores.total, y = PC6, color = sexo, type = "box")
-pc6 <- layout(pc6, title = "MANAGEMENT/ASSISTÊNCIA/RECEPTIVIDADE ATIVA")
+pc6 <- layout(pc6, title = "MANAGEMENT x ASSISTÊNCIA/RECEPTIVIDADE ATIVA")
 pc6
 ```
 
@@ -194,7 +194,7 @@ pc6
 ```{r, echo=FALSE, warning=FALSE}
 # box plot
 pc7 <- plot_ly(my.scores.total, y = PC7, color = sexo, type = "box")
-pc7 <- layout(pc7, title = "AUSTERIDADE/PONDERAÇÃO x ADAPTABILIDADE/AJUSTAMENTO)")
+pc7 <- layout(pc7, title = "AUSTERIDADE/PONDERAÇÃO x ADAPTABILIDADE/AJUSTAMENTO")
 pc7
 ```
 
@@ -212,7 +212,7 @@ Os scores obtidos foram agrupados pelos seguintes *Perfis Profissionais*:
 # box plot, considerando as duplicação para cada campo de profissão por respondente. Desta forma
 # não perdemos a contribuição nos devidos campos
 pc1 <- plot_ly(my.scores.total, y = PC1, color = tipouser, type = "box")
-pc1 <- layout(pc1, title = "AUSTERIDADE/PONDERAÇÃO x ADAPTABILIDADE/AJUSTAMENTO)")
+pc1 <- layout(pc1, title = "OPENNESS/EXPLORATION x COMPLIANCE/OBSERVÂNCIA")
 pc1
 ```
 
@@ -271,7 +271,7 @@ pc5
 ```{r, echo=FALSE, warning=FALSE}
 # box plot
 pc6 <- plot_ly(my.scores.total, y = PC6, color = tipouser, type = "box")
-pc6 <- layout(pc6, title = "MANAGEMENT/ASSISTÊNCIA/RECEPTIVIDADE ATIVA")
+pc6 <- layout(pc6, title = "MANAGEMENT x ASSISTÊNCIA/RECEPTIVIDADE ATIVA")
 pc6
 ```
 
@@ -283,7 +283,7 @@ pc6
 ```{r, echo=FALSE, warning=FALSE}
 # box plot
 pc7 <- plot_ly(my.scores.total, y = PC7, color = tipouser, type = "box")
-pc7 <- layout(pc7, title = "AUSTERIDADE/PONDERAÇÃO x ADAPTABILIDADE/AJUSTAMENTO)")
+pc7 <- layout(pc7, title = "AUSTERIDADE/PONDERAÇÃO x ADAPTABILIDADE/AJUSTAMENTO")
 pc7
 ```
 
@@ -510,7 +510,7 @@ my.prev.area.form <-
 # box plot, considerando as duplicação para cada campo de profissão por respondente. Desta forma
 # não perdemos a contribuição nos devidos campos
 pc1 <- plot_ly(my.prev.area.form, y = PC1, color = area.form, type = "box")
-pc1 <- layout(pc1, title = "OPPENESS/EXPLORATION")
+pc1 <- layout(pc1, title = "OPENNESS/EXPLORATION x COMPLIANCE/OBSERVÂNCIA")
 pc1
 ```
 
@@ -568,7 +568,7 @@ pc5
 ```{r, echo=FALSE, warning=FALSE}
 # box plot
 pc6 <- plot_ly(my.prev.area.form, y = PC6, color = area.form, type = "box")
-pc6 <- layout(pc6, title = "MANAGEMENT/ASSISTÊNCIA/RECEPTIVIDADE ATIVA")
+pc6 <- layout(pc6, title = "MANAGEMENT x ASSISTÊNCIA/RECEPTIVIDADE ATIVA")
 pc6
 ```
 
@@ -591,7 +591,7 @@ pc7
 # box plot, considerando as duplicação para cada campo de profissão por respondente. Desta forma
 # não perdemos a contribuição nos devidos campos
 pc1 <- plot_ly(my.prev.carr, y = PC1, color = class.carr, type = "box")
-pc1 <- layout(pc1, title = "OPPENESS/EXPLORATION")
+pc1 <- layout(pc1, title = "OPENNESS/EXPLORATION x COMPLIANCE/OBSERVÂNCIA")
 pc1
 ```
 
@@ -650,7 +650,7 @@ pc5
 ```{r, echo=FALSE, warning=FALSE}
 # box plot
 pc6 <- plot_ly(my.prev.carr, y = PC6, color = class.carr, type = "box")
-pc6 <- layout(pc6, title = "MANAGEMENT/ASSISTÊNCIA/RECEPTIVIDADE ATIVA")
+pc6 <- layout(pc6, title = "MANAGEMENT x ASSISTÊNCIA/RECEPTIVIDADE ATIVA")
 pc6
 ```
 
@@ -662,7 +662,7 @@ pc6
 ```{r, echo=FALSE, warning=FALSE}
 # box plot
 pc7 <- plot_ly(my.prev.carr, y = PC7, color = class.carr, type = "box")
-pc7 <- layout(pc7, title = "AUSTERIDADE/PONDERAÇÃO x ADAPTABILIDADE/AJUSTAMENTO)")
+pc7 <- layout(pc7, title = "AUSTERIDADE/PONDERAÇÃO x ADAPTABILIDADE/AJUSTAMENTO")
 pc7
 ```
 
@@ -672,7 +672,7 @@ pc7
 # box plot, considerando as duplicação para cada campo de profissão por respondente. Desta forma
 # não perdemos a contribuição nos devidos campos
 pc1 <- plot_ly(my.prev.form, y = PC1, color = class.carr, type = "box")
-pc1 <- layout(pc1, title = "OPPENESS/EXPLORATION")
+pc1 <- layout(pc1, title = "OPENNESS/EXPLORATION x COMPLIANCE/OBSERVÂNCIA")
 pc1
 ```
 
@@ -731,7 +731,7 @@ pc5
 ```{r, echo=FALSE, warning=FALSE}
 # box plot
 pc6 <- plot_ly(my.prev.form, y = PC6, color = class.carr, type = "box")
-pc6 <- layout(pc6, title = "MANAGEMENT/ASSISTÊNCIA/RECEPTIVIDADE ATIVA")
+pc6 <- layout(pc6, title = "MANAGEMENT x ASSISTÊNCIA/RECEPTIVIDADE ATIVA")
 pc6
 ```
 
@@ -743,7 +743,7 @@ pc6
 ```{r, echo=FALSE, warning=FALSE}
 # box plot
 pc7 <- plot_ly(my.prev.form, y = PC7, color = class.carr, type = "box")
-pc7 <- layout(pc7, title = "AUSTERIDADE/PONDERAÇÃO x ADAPTABILIDADE/AJUSTAMENTO)")
+pc7 <- layout(pc7, title = "AUSTERIDADE/PONDERAÇÃO x ADAPTABILIDADE/AJUSTAMENTO")
 pc7
 ```
 
