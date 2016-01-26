@@ -380,3 +380,195 @@ library(GPArotation)
 pca.3 <- principal(r = cor.matrix.1, nfactors = 8, residuals = FALSE, rotate = "oblimin")
 pca.3
 
+##### FOURTH & FIFTH PCA using Spearman correlations.
+# New correlation matrix using Spearman correlation instead of default Pearson.
+# Spearman if preferred when using Likert response style items, because the items 
+# provide nominal or ordinal data rather than interval/ratio data which is required 
+# for a Pearson correlation.
+
+cor.matrix.2 <- cor(df_tidy_hg[,c("sensibility","power","quality","exposure",
+                                  "structure","imagination","stability","contacts")], method = "spearman")
+cor.matrix.2
+
+# Script for PCA with VARIMAX rotation; with Spearman correlations.
+
+pca.4 <- principal(r = cor.matrix.2, nfactors = 8, residuals = FALSE, rotate = "varimax")
+pca.4
+
+# Script for PCA with Direct Oblimin rotation; with Spearman correlations.
+
+pca.5 <- principal(r = cor.matrix.2, nfactors = 8, residuals = FALSE, rotate = "oblimin")
+pca.5
+
+# Take a look at the residuals; first use the 'names' function to find the 
+# the output part of the output we want (residuals; which are not displayed by
+# default), then use the '$' convention to reference the residual values.
+
+names(pca.4)
+
+pca.4$residual
+
+head(pca.4$residual)
+tail(pca.4$residual)
+
+summary(pca.4$residual)
+hist(pca.4$residual)
+
+############ FACTOR ANALYSIS ############
+
+# Using maximum likelihood extraction with the 'factanal' function as would 
+# be done through the menus of Rcmdr.
+
+##### FIRST Factor Analysis (FA). 
+# Specifying: rotation 'none' and factors '2'. Automatically suppresses 
+# loadings less than 0.100 in the output.
+
+fa.1 <- factanal(~sensibility+power+quality+exposure+structure+imagination+stability+contacts,factors=2, 
+                 rotation="none", scores="none", start=c(1, 1, 1, 1, 1, 1, 1, 1), data=df_tidy_hg)
+fa.1
+
+##### SECOND FA; specifying: rotation 'varimax' and factors '2'.
+
+fa.2 <- factanal(~sensibility+power+quality+exposure+structure+imagination+stability+contacts,factors=2, 
+                 rotation="varimax", scores="none", start=c(1, 1, 1, 1, 1, 1, 1, 1), data=df_tidy_hg)
+fa.2
+
+##### THIRD FA; specifying: rotation 'oblimin' and factors '2'.
+
+fa.3 <- factanal(~sensibility+power+quality+exposure+structure+imagination+stability+contacts,factors=2, 
+                 rotation="oblimin", scores="none", start=c(1, 1, 1, 1, 1, 1, 1, 1), data=df_tidy_hg)
+fa.3
+
+##### Saving Thompson's regression style factor scores from "fa.2" above. 
+
+fa.4 <- factanal(~sensibility+power+quality+exposure+structure+imagination+stability+contacts,factors=2, 
+                 rotation="varimax", scores="regression", start=c(1, 1, 1, 1, 1, 1, 1, 1), data=df_tidy_hg)
+fa.4
+
+# Display just the factor scores, and assign them to an object for later use (if desired).
+
+fa.4$scores
+fa4scores <- fa.4$scores
+
+# Display the loadings without suppression. 
+
+print(fa.4,digits = 3, cutoff = .000001)
+
+##### Using the psych package (and GPArotation) to get the best choice of factor scores.
+
+library(psych)
+library(GPArotation)  # <-- Required for using 'oblimin' rotation.
+
+# Taking the variables of interest and putting them into a subset data frame.
+
+names(df_tidy_hg)
+ss.df <- df_tidy_hg[,-c(1:6)]  # <-- removing the two 'total score' variables.
+names(ss.df)
+
+# According to Revelle (see: http://www.personality-project.org/), the "tenBerge"
+# method of calculating factor scores is the best choice for oblique rotation
+# solutions and the "Anderson" method is the best choice for orthogonal rotation
+# solutions (it insures that the factors scores will be orthogonal).
+
+fa.5 <- fa(r = ss.df, nfactors = 2, rotate = "oblimin", scores = "tenBerge", SMC=FALSE, fm="minres")
+fa.5
+
+head(fa.5$scores, 25)
+
+fa.6 <- fa(r = ss.df, nfactors = 2, rotate = "varimax", scores = "Anderson", fm = "ml")
+fa.6
+
+head(fa.6$scores, 25)
+
+help(fa)
+
+help(factor.scores)
+
+##### Using polycor/hetcor 
+
+library(polycor)
+# Create the correlation matrix.
+
+h.cor <- hetcor(df_tidy_hg)$cor
+h.cor
+
+# Run the factor analysis using the (hetergeneous) correlation matrix. 
+
+fa.5 <- factanal(covmat = h.cor, factors=2, rotation="varimax", scores="none")
+fa.5
+
+############ Total Scale Score Correlations ############
+# Checking the correlation between each scale's total score.
+
+cor(bt,apt)
+cor(bt,apt,method="spearman")
+
+# With correlations so low (r = -0.04); it would be more appropriate to use 
+# an orthogonal rotation strategy (such as Varimax) rather than an oblique
+# rotation strategy (such as Direct Oblimin).
+
+##############################################################################
+
+############ Scale Reliability/Internal Consistency ############
+# Keep in mind, Cronbach's Alpha coefficient is one of those statistics that 
+# just seems to continue hanging around long after it is recognized as being 
+# not terribly useful. A much better metric for conveying the reliability is
+# the omega coefficient (covered below). 
+
+# Reliability coefficient (Cronbach's Alpha) for the AP scale.
+library(Rcmdr)
+
+reliability(cov(df_tidy_hg[,c("sensibility","power","quality","exposure",
+                              "structure","imagination","stability","contacts")], use="complete.obs"))
+
+# abaixo, não sei se faz sentido aplicar nos componentes!
+reliability(cov(df_change[,c("PC1","PC2","PC3","PC4","PC5","PC6","PC7","PC8")], use="complete.obs"))
+
+### Another (easier) way to get Cronbach's Alpha (here on all the items & total scores together):
+
+library(psy)
+cronbach(df_tidy_hg[,c("sensibility","power","quality","exposure",
+                       "structure","imagination","stability","contacts")])
+# abaixo, não sei se faz sentido aplicar nos componentes!
+cronbach(df_change[,4:11])
+
+###### USE OMEGA RATHER THAN ALPHA.
+
+# The omega coefficient is a much better estimate than alpha for estimating
+# the reliability of a scale. For a brief discussion of this issue, please
+# read the RSS Matters article from June 2012.
+# http://web3.unt.edu/benchmarks/issues/2012/06/rss-matters
+# Using a different data set and the 'psych' package, we can easily compute the
+# omega coefficient.
+
+data.df <- read.table("http://www.unt.edu/rss/class/Jon/R_SC/Module7/bifactor_data.txt",
+                      header=TRUE, sep=",", na.strings="NA", dec=".", strip.white=TRUE)
+summary(data.df)
+nrow(data.df)
+sem.cor <- cor(data.df)
+o1 <- omega(sem.cor, nfactors = 3, n.iter = 1, fm = "ml", poly = F, digits = 3,
+            n.obs = 5000, rotate = "oblimin")
+o1
+
+help(omega)
+
+
+# APLICANDO OMEGA ACIMA NOS DADOS DE NOSSA ANALISE (FALTA REFAZER USANDO FA) E RODAR DE NOVO
+summary(df_change[,4:11])
+HG.cor <- cor(df_change[,4:11])
+HG.o1 <- omega(HG.cor, nfactors = 3, n.iter = 1, fm = "ml", poly = F, digits = 3,
+               n.obs = 76545, rotate = "oblimin")
+# tentar acima com viramax
+HG.o1
+###############################################################################
+# As is the case with most things in R; there are a great number of ways to do 
+# factor analysis. So, please do not consider this script an exhaustive review 
+# of factor analytic methods available in R.
+# 
+# For those interested in moving beyond Classical Test Theory construction and 
+# analysis; you can research Item Response Theory (IRT) analysis in R using 
+# the packages/libraries 'irtProb' & 'irtoys'. See http://cran.r-project.org/
+# and then 'Packages' to find documentation on those two packages/libraries.
+
+
+
