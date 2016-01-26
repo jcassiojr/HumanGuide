@@ -423,19 +423,21 @@ hist(pca.4$residual)
 # Specifying: rotation 'none' and factors '2'. Automatically suppresses 
 # loadings less than 0.100 in the output.
 
-fa.1 <- factanal(~sensibility+power+quality+exposure+structure+imagination+stability+contacts,factors=2, 
+fa.1 <- factanal(~sensibility+power+quality+exposure+structure+imagination+stability+contacts,factors=4, 
                  rotation="none", scores="none", start=c(1, 1, 1, 1, 1, 1, 1, 1), data=df_tidy_hg)
 fa.1
 
 ##### SECOND FA; specifying: rotation 'varimax' and factors '2'.
 
-fa.2 <- factanal(~sensibility+power+quality+exposure+structure+imagination+stability+contacts,factors=2, 
-                 rotation="varimax", scores="none", start=c(1, 1, 1, 1, 1, 1, 1, 1), data=df_tidy_hg)
+fa.2 <- factanal(~sensibility+power+quality+exposure+structure+imagination+stability+contacts,factors=4, 
+                 rotation="varimax", scores="regression", start=c(1, 1, 1, 1, 1, 1, 1, 1), data=df_tidy_hg)
 fa.2
-
+load <- fa.2$loadings[,1:2] 
+plot(load,type="n") # set up plot 
+text(load,labels=names(df_tidy_hg[,7:14]),cex=.7) # add variable names
 ##### THIRD FA; specifying: rotation 'oblimin' and factors '2'.
 
-fa.3 <- factanal(~sensibility+power+quality+exposure+structure+imagination+stability+contacts,factors=2, 
+fa.3 <- factanal(~sensibility+power+quality+exposure+structure+imagination+stability+contacts,factors=4, 
                  rotation="oblimin", scores="none", start=c(1, 1, 1, 1, 1, 1, 1, 1), data=df_tidy_hg)
 fa.3
 

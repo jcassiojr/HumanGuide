@@ -16,7 +16,7 @@ f_tidy_scores_HG <- function(df_in) {
         df_in %>%
         mutate(p48 = as.numeric(as.vector(p48)),
                hy98 = as.numeric(as.vector(hy98))) %>%
-        select(ID, TIPOUSER, sexo, nomerespondente, formacao.em, profissao.na.area.de,
+        select(ID, TIPOUSER, sexo, idade, cep, cidade, nomerespondente, formacao.em, profissao.na.area.de,
                s11, h21, h31, hy41, e51, m61, m71, p81, e91,
                e12, e22, e32, s42, s52, s62, k72, h82, m92,
                h13, k23, hy33, e43, hy53, e63, s73, e83, p93,
@@ -49,7 +49,7 @@ f_tidy_scores_HG <- function(df_in) {
         #select(ID, turnover, sexo, escolaridade, formação, ramoativ, cargo, cidade, power, quality,
         # examinar p48 e hy98 para ver porque teve que transformar em numerico
         select(ID, TIPOUSER, sexo, nomerespondente, formacao.em, profissao.na.area.de, sensibility, power, quality,
-               exposure, structure, imagination, stability, contacts) 
+               exposure, structure, imagination, stability, contacts, idade, cep, cidade) 
         #mutate(sexo = ifelse(sexo == 1, "m", "f"))
  
     return(df_out)
