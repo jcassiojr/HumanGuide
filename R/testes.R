@@ -985,3 +985,112 @@ cor(campo.3,campo.4)
 
 # chamando markdown com parametros
 rmarkdown::render("testeHG.Rmd", params = "ask")
+
+
+# aparentemente para as formações resultou em correlações onde se identificam clusters que podem ficar
+# interessantes de analisar em plot de cluster hierarquicos
+# Ward Hierarchical Clustering
+#set.seed(101)
+#km.form <- kmeans(my.prev.form[,2:9], 3) # cria os clusters independente da formação
+#d <- dist(mydata, method = "euclidean") # distance matrix
+d <- dist(as.matrix(my.PC.Campo[,1:8]), method = "euclidean") # distance matrix
+fit <- hclust(d, method="ward") 
+plot(fit, xlab = "Campos Profissionais") # display dendogram
+groups <- cutree(fit, k=5) # cut tree into 5 clusters
+# draw dendogram with red borders around the 5 clusters 
+rect.hclust(fit, k=5, border="red")
+
+my.cor <- cor(my.PC.Campo.t[1:7,1:10])
+corrplot.mixed(my.cor, insig = "p-value", sig.level = -1, is.corr = TRUE)
+# alternativa
+#hc <- hclust(d)
+#plot(hc)
+
+
+# tste de alpha cronbach
+require("MASS", "psych", "ltm")
+> n <- 200
+> it <- 10
+> V <- matrix(.4, ncol = it, nrow = it)
+> diag(V) <- 1
+> dat <- mvrnorm(n, rep(0, it), V)   # complete data
+> m1 <- matrix(rbinom(n * it, 1, .1), nrow = n, ncol = it)   # 10% missings
+> dat[m1 == 1] <- NA   # missing data
+> alpha(as.data.frame(dat), na.rm = T)$total[[1]]   # psych package  
+[1] 0.8595489
+> cronbach.alpha(dat, na.rm = T)$alpha   # ltm package
+[1] 0.8105867
+
+# outro de missing values
+####################################
+require("MASS"); require("ltm"); require("psych")
+n <- 10000
+it <- 20
+V <- matrix(.4, ncol = it, nrow = it)
+diag(V) <- 1
+dat <- mvrnorm(n, rep(0, it), V)  # mean of 0!!!
+p <- c(0, .1, .2, .3)
+names(p) <- paste("% miss=", p, sep="")
+cols <- c("alpha.ltm", "var.tot.ltm", "alpha.psych", "var.tot.psych")
+names(cols) <- cols
+res <- matrix(nrow = length(p), ncol = length(cols), dimnames = list(names(p), names(cols)))
+for(i in 1:length(p)){
+    m1 <- matrix(rbinom(n * it, 1, p[i]), nrow = n, ncol = it)
+    dat1 <- dat
+    dat1[m1 == 1] <- NA
+    res[i, 1] <- cronbach.alpha(dat1, standardized = FALSE, na.rm = TRUE)$alpha
+    res[i, 2] <- var(rowSums(dat1, na.rm = TRUE))
+    res[i, 3] <- alpha(as.data.frame(dat1), na.rm = TRUE)$total[[1]]
+    res[i, 4] <- sum(cov(dat1, use = "pairwise"))
+}
+round(res, 2)
+##            alpha.ltm var.tot.ltm alpha.psych var.tot.psych
+## % miss=0        0.93      168.35        0.93        168.35
+## % miss=0.1      0.90      138.21        0.93        168.32
+## % miss=0.2      0.86      110.34        0.93        167.88
+## % miss=0.3      0.81       86.26        0.93        167.41
+dat <- mvrnorm(n, rep(10, it), V)  # this time, mean of 10!!!
+for(i in 1:length(p)){
+    m1 <- matrix(rbinom(n * it, 1, p[i]), nrow = n, ncol = it)
+    dat1 <- dat
+    dat1[m1 == 1] <- NA
+    res[i, 1] <- cronbach.alpha(dat1, standardized = FALSE, na.rm = TRUE)$alpha
+    res[i, 2] <- var(rowSums(dat1, na.rm = TRUE))
+    res[i, 3] <- alpha(as.data.frame(dat1), na.rm = TRUE)$total[[1]]
+    res[i, 4] <- sum(cov(dat1, use = "pairwise"))
+}
+round(res, 2)
+##            alpha.ltm var.tot.ltm alpha.psych var.tot.psych
+## % miss=0        0.93      168.31        0.93        168.31
+## % miss=0.1      0.99      316.27        0.93        168.60
+## % miss=0.2      1.00      430.78        0.93        167.61
+## % miss=0.3      1.01      511.30        0.93        167.43
+
+
+# outro do package psych
+###################################################
+set.seed(42) #keep the same starting values
+#four congeneric measures
+r4 <- sim.congeneric()
+alpha(r4)
+#nine hierarchical measures -- should actually use omega
+r9 <- sim.hierarchical()
+alpha(r9)
+
+# examples of two independent factors that produce reasonable alphas
+#this is a case where alpha is a poor indicator of unidimensionality
+two.f <- sim.item(8)
+#specify which items to reverse key by name
+alpha(two.f,keys=c("V1","V2","V7","V8"))
+#by location
+alpha(two.f,keys=c(1,2,7,8))
+#automatic reversal base upon first component
+alpha(two.f)  
+#an example with discrete item responses  -- show the frequencies
+items <- sim.congeneric(N=500,short=FALSE,low=-2,high=2,
+                        categorical=TRUE) #500 responses to 4 discrete items with 5 categories
+a4 <- alpha(items$observed)  #item response analysis of congeneric measures
+a4
+#summary just gives Alpha
+summary(a4)
+
