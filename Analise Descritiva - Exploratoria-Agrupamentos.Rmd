@@ -189,10 +189,6 @@ pc3
 ### Plots de Médias de Scores Por Idade ###
 
 ```{r, echo=FALSE, warning=FALSE}
-require("plotly", quietly = TRUE, warn.conflicts = FALSE)
-#require("gridExtra", quietly = TRUE, warn.conflicts = FALSE)
-require("ggplot2", quietly = TRUE, warn.conflicts = FALSE)
-
 pc1 <- my.scores.total %>% group_by(idade) %>%
   summarise(mn = mean(PC1), sd = 1.96 * sd(PC1)) %>%
   arrange(desc(mn)) %>%
@@ -217,23 +213,32 @@ pc3 <- my.scores.total %>% group_by(idade) %>%
           mode = "markers", name = "Agrupado por Idade") %>%
   layout(yaxis = list(title = "PC3 score"))
 pc3
+
+
+#df <- my.scores.total %>% group_by(idade) %>%
+#  summarise(mn = mean(PC3), sd = 1.96 * sd(PC1))
+#df <- as.data.frame(df)
+#set.seed(101)
+
+#km <- kmeans(df[,1:2], 2)
+
+#plot(df[,1], df[,2], col=km$cluster)
+#points(km$centers[,c(1,2)], col=1:2, pch=19, cex=2)
 ```
 
 ### Plots de Médias de Scores Por Cidade ###
 
 ```{r, echo=FALSE, warning=FALSE}
-require("plotly", quietly = TRUE, warn.conflicts = FALSE)
-#require("gridExtra", quietly = TRUE, warn.conflicts = FALSE)
-require("ggplot2", quietly = TRUE, warn.conflicts = FALSE)
-
 pc1 <- my.scores.total %>% group_by(cidade) %>%
   summarise(mn = mean(PC1), sd = 1.96 * sd(PC1)) %>%
-  arrange(desc(mn)) %>%
+  #arrange(desc(mn)) %>%
   plot_ly(x = cidade, y = mn, error_y = list(value = sd),
           mode = "markers", name = "Agrupado por Cidade") %>%
   layout(yaxis = list(title = "PC1 score"))
 
 pc1
+# TESTE DE CLUSTER
+
 pc2 <- my.scores.total %>% group_by(cidade) %>%
   summarise(mn = mean(PC2), sd = 1.96 * sd(PC2)) %>%
   arrange(desc(mn)) %>%
@@ -255,10 +260,6 @@ pc2
 ### Plots de Médias de Scores Por CEP ###
 
 ```{r, echo=FALSE, warning=FALSE}
-require("plotly", quietly = TRUE, warn.conflicts = FALSE)
-#require("gridExtra", quietly = TRUE, warn.conflicts = FALSE)
-require("ggplot2", quietly = TRUE, warn.conflicts = FALSE)
-
 pc1 <- my.scores.total %>% group_by(cep) %>%
   summarise(mn = mean(PC1), sd = 1.96 * sd(PC1)) %>%
   arrange(desc(mn)) %>%
@@ -282,10 +283,6 @@ pc2
 ### Plots de Médias de Scores Por Tipo de Usuario ###
 
 ```{r, echo=FALSE, warning=FALSE}
-require("plotly", quietly = TRUE, warn.conflicts = FALSE)
-#require("gridExtra", quietly = TRUE, warn.conflicts = FALSE)
-require("ggplot2", quietly = TRUE, warn.conflicts = FALSE)
-
 pc1 <- my.scores.total %>% group_by(tipouser) %>%
   summarise(mn = mean(PC1), sd = 1.96 * sd(PC1)) %>%
   arrange(desc(mn)) %>%
