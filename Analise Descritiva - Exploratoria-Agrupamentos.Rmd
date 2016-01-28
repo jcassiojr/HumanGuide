@@ -245,7 +245,6 @@ pc2 <- my.scores.total %>% group_by(cidade) %>%
   plot_ly(x = cidade, y = mn, error_y = list(value = sd),
           mode = "markers", name = "Agrupado por Cidade") %>%
   layout(yaxis = list(title = "PC2 score"))
-
 pc2
 
 # por CEP cabe um scatter plot!!!!

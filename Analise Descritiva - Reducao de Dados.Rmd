@@ -641,3 +641,33 @@ pc1 <- layout(pc1, title = "Scores Médios por Área de Formação - PC1 x PC2 X
 pc1
 ```
 
+### Validação do Modelo Usando Alpha de Cronbach ###
+
+```{r, echo=FALSE}
+# APLICANDO OMEGA ACIMA NOS DADOS DE NOSSA ANALISE (FALTA REFAZER USANDO FA) E RODAR DE NOVO
+# restaura fatores como numericos
+df_tidy_hg <-
+    df_tidy_hg %>%
+    mutate(sensibility = as.numeric(as.vector(sensibility)),
+           power = as.numeric(as.vector(power)),
+           quality = as.numeric(as.vector(quality)),
+           exposure = as.numeric(as.vector(exposure)),
+           structure = as.numeric(as.vector(structure)),
+           imagination = as.numeric(as.vector(imagination)),
+           stability = as.numeric(as.vector(stability)),
+           contacts = as.numeric(as.vector(contacts)))
+
+summary(df_change[,4:11])
+HG.cor <- cor(df_change[,4:11])
+HG.o1 <- omega(HG.cor, nfactors = 3, n.iter = 1, fm = "ml", poly = F, digits = 3,
+               n.obs = 76545, rotate = "oblimin")
+
+# tentar acima com viramax
+HG.o1
+```
+
+### Validação do Modleo Usando Ômega ###
+
+```{r, echo=FALSE}
+
+```
