@@ -9,13 +9,20 @@ output:
 <center>![agileBIGDATA](./logoAgileBD.png)</center>
 
 Este documento descreve a análise descritiva exploratória, realizada com o objetivo de avaliar o agrupamento das médias do scores obtidos a partir dos componentes principais em relação aos seguintes grupos:
+
 + sexo
-+ estudantes (Kroton)
-+ empresa privada (Ambev)
-+ empresa pública (Funcionários Públicos)
-+ Faixa Etária
-+ CEP (Localização)
-+ Se classificação da carreira difere ou não da classificação da formação
++ idade
++ CEP
++ região de CEP
++ cidade
++ tipo de usuário
+    + estudantes (Kroton)
+    + empresa privada (Ambev)
+    + empresa pública (Funcionários Públicos)
+
+
+Nos plots abaixo, foram acrescentados intervalos de erro, de acordo com o desvio padrão das médias obtidas e considerendo um intervalo de confiança de 95%.
+
 
 ```{r,echo=FALSE}
 
@@ -87,16 +94,16 @@ df_tidy_hg <-
 ```{r,echo=FALSE}
 # obtém tabela DE-PARA para profissões, para alinhar com a classificação de Campos Profissionais
 
-df_profs <- read.xlsx2("./data/profs.de.para-V1.xlsx", sheetIndex = 1, header = TRUE)
-df_profs <- f_acentos(df_profs)
+#df_profs <- read.xlsx2("./data/profs.de.para-V1.xlsx", sheetIndex = 1, header = TRUE)
+#df_profs <- f_acentos(df_profs)
 
 #knitr::kable(df_profs)
 ```
 
 ```{r,echo=FALSE}
 # obtém tabela DE-PARA para formações, para alinhar com a classificação de Campos Profissionais
-df_forms <- read.xlsx2("./data/forms.de.para-V1.xlsx", sheetIndex = 1, header = TRUE)
-df_forms <- f_acentos(df_forms)
+#df_forms <- read.xlsx2("./data/forms.de.para-V1.xlsx", sheetIndex = 1, header = TRUE)
+#df_forms <- f_acentos(df_forms)
 #knitr::kable(df_forms)
 ```
 
@@ -121,6 +128,20 @@ my.scores.total <-
         my.scores.total %>%
         mutate(tipouser = ifelse(tipouser == "", "indefinido", as.character(tipouser)),
                sexo = ifelse(sexo == "f", "feminino","masculino"))
+
+# eliminando ceps vazios
+my.scores.total <-
+        my.scores.total %>%
+        filter(!(cep == ""))
+
+# separando as dimensões do CEP
+my.scores.total <-
+    my.scores.total %>%
+    mutate(CEP.regiao = substring(cep,1,1),
+           CEP.subregiao = substring(cep,1,2),
+           CEP.setor = substring(cep,1,3),
+           CEP.subsetor = substring(cep,1,4)
+           )
 
 ```
 
@@ -154,29 +175,104 @@ require("ggplot2", quietly = TRUE, warn.conflicts = FALSE)
 #  layout(yaxis = list(title = "Miles Per Gallon"))
 #p
 
+m = list(
+  l = 100, # quanto maior, maior a distância do eixo da esquerda
+  r = 100, # quanto maior, maior a distância do eixo da esquerda
+  b = 100, # quanto maior, maior a distância do eixo da parte de baixo
+  t = 100, # quanto maior, maior a distância do eixo da parte de baixo
+  pad = 4
+)
+plot_ly(x = seq(0, 8), y = seq(0, 8)) %>%
+  layout(autosize = F, width = 500, height = 500, margin = m)
+
+
 pc1 <- my.scores.total %>% group_by(sexo) %>%
   summarise(mn = mean(PC1), sd = 1.96 * sd(PC1)) %>%
   arrange(desc(mn)) %>%
-  plot_ly(x = sexo, y = mn, error_y = list(value = sd),
+  plot_ly(y = sexo, x = mn, error_x = list(value = sd),
           mode = "markers", name = "Agrupado por Sexo") %>%
-  layout(yaxis = list(title = "PC1 score"))
+  layout(
+         autosize = F,
+         width = 500,
+         height = 500,
+         margin = m,
+         yaxis = list(title = "Sexo"),
+         xaxis = list(title = "PC1 score",
+                      range = c(-0.4, 0.4)))
 pc1
 
 pc2 <- my.scores.total %>% group_by(sexo) %>%
   summarise(mn = mean(PC2), sd = 1.96 * sd(PC2)) %>%
   arrange(desc(mn)) %>%
-  plot_ly(x = sexo, y = mn, error_y = list(value = sd),
-          mode = "markers", name = "Highway") %>%
-  layout(yaxis = list(title = "PC2 score"))
+  plot_ly(y = sexo, x = mn, error_x = list(value = sd),
+          mode = "markers", name = "Agrupado por Sexo") %>%
+  layout(autosize = F,
+         width = 500,
+         height = 500,
+         margin = m,
+         yaxis = list(title = "Sexo"),
+         xaxis = list(title = "PC2 score",
+                      range = c(-0.4, 0.4)))
 pc2
+
+#p <- subplot(
+#  pc1,
+#  pc2,
+#  pc3,
+#  pc4,
+#  margin = 0.05
+#) %>% layout(showlegend = FALSE)
+#p
 
 pc3 <- my.scores.total %>% group_by(sexo) %>%
   summarise(mn = mean(PC3), sd = 1.96 * sd(PC3)) %>%
   arrange(desc(mn)) %>%
-  plot_ly(x = sexo, y = mn, error_y = list(value = sd),
-          mode = "markers", name = "Highway") %>%
-  layout(yaxis = list(title = "PC3 score"))
+  plot_ly(y = sexo, x = mn, error_x = list(value = sd),
+          mode = "markers", name = "Agrupado por Sexo") %>%
+  layout(yaxis = list(title = "Sexo"),
+         xaxis = list(title = "PC3 score",
+                      range = c(-0.4, 0.4)))
 pc3
+
+pc4 <- my.scores.total %>% group_by(sexo) %>%
+  summarise(mn = mean(PC4), sd = 1.96 * sd(PC4)) %>%
+  arrange(desc(mn)) %>%
+  plot_ly(y = sexo, x = mn, error_x = list(value = sd),
+          mode = "markers", name = "Agrupado por Sexo") %>%
+  layout(yaxis = list(title = "Sexo"),
+         xaxis = list(title = "PC4 score",
+                      range = c(-0.4, 0.4)))
+pc4
+
+pc5 <- my.scores.total %>% group_by(sexo) %>%
+  summarise(mn = mean(PC5), sd = 1.96 * sd(PC5)) %>%
+  arrange(desc(mn)) %>%
+  plot_ly(y = sexo, x = mn, error_x = list(value = sd),
+          mode = "markers", name = "Agrupado por Sexo") %>%
+  layout(yaxis = list(title = "Sexo"),
+         xaxis = list(title = "PC5 score",
+                      range = c(-0.4, 0.4)))
+pc5
+
+pc6 <- my.scores.total %>% group_by(sexo) %>%
+  summarise(mn = mean(PC6), sd = 1.96 * sd(PC6)) %>%
+  arrange(desc(mn)) %>%
+  plot_ly(y = sexo, x = mn, error_x = list(value = sd),
+          mode = "markers", name = "Agrupado por Sexo") %>%
+  layout(yaxis = list(title = "Sexo"),
+         xaxis = list(title = "PC6 score",
+                      range = c(-0.4, 0.4)))
+pc6
+
+pc7 <- my.scores.total %>% group_by(sexo) %>%
+  summarise(mn = mean(PC7), sd = 1.96 * sd(PC7)) %>%
+  arrange(desc(mn)) %>%
+  plot_ly(y = sexo, x = mn, error_x = list(value = sd),
+          mode = "markers", name = "Agrupado por Sexo") %>%
+  layout(yaxis = list(title = "Sexo"),
+         xaxis = list(title = "PC7 score",
+                      range = c(-0.4, 0.4)))
+pc7
 
 #pc1 <- plot_ly(mean.scores.sexo, y = PC1.medio, color = sexo, type = "point")
 #pc1 <- layout(pc1, title = "Componente PC1")
@@ -188,33 +284,83 @@ pc3
 
 ### Plots de Médias de Scores Por Idade ###
 
+Obs: algumas idades abaixo parecem muito altas. No entanto, foram deixadas para efeito de análise gráfica.
+Posteriormente, podem ser descartadas como pontos fora da curva.
+
 ```{r, echo=FALSE, warning=FALSE}
 pc1 <- my.scores.total %>% group_by(idade) %>%
   summarise(mn = mean(PC1), sd = 1.96 * sd(PC1)) %>%
   arrange(desc(mn)) %>%
-  plot_ly(x = idade, y = mn, error_y = list(value = sd),
+  plot_ly(y = idade, x = mn, error_x = list(value = sd),
           mode = "markers", name = "Agrupado por Idade") %>%
-  layout(yaxis = list(title = "PC1 score"))
-
+  layout(autosize = F,
+         width = 500,
+         height = 500,
+         margin = m,
+         yaxis = list(title = "idade"),
+         xaxis = list(title = "PC1 score",
+                      range = c(-4, 4)))
 pc1
 
 pc2 <- my.scores.total %>% group_by(idade) %>%
   summarise(mn = mean(PC2), sd = 1.96 * sd(PC2)) %>%
   arrange(desc(mn)) %>%
-  plot_ly(x = idade, y = mn, error_y = list(value = sd),
+  plot_ly(y = idade, x = mn, error_x = list(value = sd),
           mode = "markers", name = "Agrupado por Idade") %>%
-  layout(yaxis = list(title = "PC2 score"))
+  layout(yaxis = list(title = "idade"),
+         xaxis = list(title = "PC2 score",
+                      range = c(-4, 4)))
 pc2
 
 pc3 <- my.scores.total %>% group_by(idade) %>%
-  summarise(mn = mean(PC3), sd = 1.96 * sd(PC1)) %>%
+  summarise(mn = mean(PC3), sd = 1.96 * sd(PC3)) %>%
   arrange(desc(mn)) %>%
-  plot_ly(x = idade, y = mn, error_y = list(value = sd),
+  plot_ly(y = idade, x = mn, error_x = list(value = sd),
           mode = "markers", name = "Agrupado por Idade") %>%
-  layout(yaxis = list(title = "PC3 score"))
+  layout(yaxis = list(title = "idade"),
+         xaxis = list(title = "PC3 score",
+                      range = c(-4, 4)))
 pc3
 
+pc4 <- my.scores.total %>% group_by(idade) %>%
+  summarise(mn = mean(PC4), sd = 1.96 * sd(PC4)) %>%
+  arrange(desc(mn)) %>%
+  plot_ly(y = idade, x = mn, error_x = list(value = sd),
+          mode = "markers", name = "Agrupado por Idade") %>%
+  layout(yaxis = list(title = "idade"),
+         xaxis = list(title = "PC4 score",
+                      range = c(-4, 4)))
+pc4
 
+pc5 <- my.scores.total %>% group_by(idade) %>%
+  summarise(mn = mean(PC5), sd = 1.96 * sd(PC5)) %>%
+  arrange(desc(mn)) %>%
+  plot_ly(y = idade, x = mn, error_x = list(value = sd),
+          mode = "markers", name = "Agrupado por Idade") %>%
+  layout(yaxis = list(title = "idade"),
+         xaxis = list(title = "PC5 score",
+                      range = c(-4, 4)))
+pc5
+
+pc6 <- my.scores.total %>% group_by(idade) %>%
+  summarise(mn = mean(PC6), sd = 1.96 * sd(PC6)) %>%
+  arrange(desc(mn)) %>%
+  plot_ly(y = idade, x = mn, error_x = list(value = sd),
+          mode = "markers", name = "Agrupado por Idade") %>%
+  layout(yaxis = list(title = "idade"),
+         xaxis = list(title = "PC6 score",
+                      range = c(-4, 4)))
+pc6
+
+pc7 <- my.scores.total %>% group_by(idade) %>%
+  summarise(mn = mean(PC7), sd = 1.96 * sd(PC7)) %>%
+  arrange(desc(mn)) %>%
+  plot_ly(y = idade, x = mn, error_x = list(value = sd),
+          mode = "markers", name = "Agrupado por Idade") %>%
+  layout(yaxis = list(title = "idade"),
+         xaxis = list(title = "PC7 score",
+                      range = c(-4, 4)))
+pc7
 #df <- my.scores.total %>% group_by(idade) %>%
 #  summarise(mn = mean(PC3), sd = 1.96 * sd(PC1))
 #df <- as.data.frame(df)
@@ -228,24 +374,86 @@ pc3
 
 ### Plots de Médias de Scores Por Cidade ###
 
+No ordenamento por média, existe clara tendência de algumas cidades apresentarem resultados opostos nos componentes.
+Cabe uma análise tentando identificar o que agrupa estas cidades (Por exemplo, se são da mesma região, porte da cidade, renda per-capita, etc.).
+
 ```{r, echo=FALSE, warning=FALSE}
 pc1 <- my.scores.total %>% group_by(cidade) %>%
   summarise(mn = mean(PC1), sd = 1.96 * sd(PC1)) %>%
-  #arrange(desc(mn)) %>%
-  plot_ly(x = cidade, y = mn, error_y = list(value = sd),
-          mode = "markers", name = "Agrupado por Cidade") %>%
-  layout(yaxis = list(title = "PC1 score"))
-
+  arrange(desc(mn)) %>%
+  plot_ly(x = mn, y = cidade, error_x = list(value = sd),
+          mode = "markers", 
+          name = "Agrupado por Cidade") %>%
+    layout(yaxis = list(title = "cidade"),
+         xaxis = list(title = "PC1 score",
+                      range = c(-4, 5)))
 pc1
-# TESTE DE CLUSTER
 
 pc2 <- my.scores.total %>% group_by(cidade) %>%
   summarise(mn = mean(PC2), sd = 1.96 * sd(PC2)) %>%
   arrange(desc(mn)) %>%
-  plot_ly(x = cidade, y = mn, error_y = list(value = sd),
-          mode = "markers", name = "Agrupado por Cidade") %>%
-  layout(yaxis = list(title = "PC2 score"))
+  plot_ly(x = mn, y = cidade, error_x = list(value = sd),
+          mode = "markers", 
+          name = "Agrupado por Cidade") %>%
+    layout(yaxis = list(title = "cidade"),
+         xaxis = list(title = "PC2 score",
+                      range = c(-4, 5)))
 pc2
+
+pc3 <- my.scores.total %>% group_by(cidade) %>%
+  summarise(mn = mean(PC3), sd = 1.96 * sd(PC3)) %>%
+  arrange(desc(mn)) %>%
+  plot_ly(x = mn, y = cidade, error_x = list(value = sd),
+          mode = "markers", 
+          name = "Agrupado por Cidade") %>%
+    layout(yaxis = list(title = "cidade"),
+         xaxis = list(title = "PC3 score",
+                      range = c(-4, 5)))
+pc3
+
+pc4 <- my.scores.total %>% group_by(cidade) %>%
+  summarise(mn = mean(PC4), sd = 1.96 * sd(PC4)) %>%
+  arrange(desc(mn)) %>%
+  plot_ly(x = mn, y = cidade, error_x = list(value = sd),
+          mode = "markers", 
+          name = "Agrupado por Cidade") %>%
+    layout(yaxis = list(title = "cidade"),
+         xaxis = list(title = "PC4 score",
+                      range = c(-4, 5)))
+pc4
+
+pc5 <- my.scores.total %>% group_by(cidade) %>%
+  summarise(mn = mean(PC5), sd = 1.96 * sd(PC5)) %>%
+  arrange(desc(mn)) %>%
+  plot_ly(x = mn, y = cidade, error_x = list(value = sd),
+          mode = "markers", 
+          name = "Agrupado por Cidade") %>%
+    layout(yaxis = list(title = "cidade"),
+         xaxis = list(title = "PC5 score",
+                      range = c(-4, 5)))
+pc5
+
+pc6 <- my.scores.total %>% group_by(cidade) %>%
+  summarise(mn = mean(PC6), sd = 1.96 * sd(PC6)) %>%
+  arrange(desc(mn)) %>%
+  plot_ly(x = mn, y = cidade, error_x = list(value = sd),
+          mode = "markers", 
+          name = "Agrupado por Cidade") %>%
+    layout(yaxis = list(title = "cidade"),
+         xaxis = list(title = "PC6 score",
+                      range = c(-4, 5)))
+pc6
+
+pc7 <- my.scores.total %>% group_by(cidade) %>%
+  summarise(mn = mean(PC7), sd = 1.96 * sd(PC7)) %>%
+  arrange(desc(mn)) %>%
+  plot_ly(x = mn, y = cidade, error_x = list(value = sd),
+          mode = "markers", 
+          name = "Agrupado por Cidade") %>%
+    layout(yaxis = list(title = "cidade"),
+         xaxis = list(title = "PC7 score",
+                      range = c(-4, 5)))
+pc7
 
 # por CEP cabe um scatter plot!!!!
 #pc1 <- my.scores.total %>% group_by(cidade) %>%
@@ -258,24 +466,96 @@ pc2
 
 ### Plots de Médias de Scores Por CEP ###
 
+Para a análise do CEP, este foi subdividido utilizando como parâmetro as regiões de acordo com o desenvolvimento sócio-econômico e fatores de crescimento demográfico de cada Unidade da Federação ou conjunto delas, conforme critério definido pelos Correios.
+Os plots abaixo estão separados por regiões.
+
+Esta mesma análise pode ser feita ocm granularidade maior, agrupando por subregiões, setores e assim por diante.
+
+
+<center>![CEP-Regioes](./CEP-Regioes.jpg)</center>
+
+<center>![CEP-TabelaRegioes](./CEP-Tabela-Regioes.jpg)</center>
+
+#### Plots por Região ####
+
 ```{r, echo=FALSE, warning=FALSE}
-pc1 <- my.scores.total %>% group_by(cep) %>%
+
+pc1 <- my.scores.total %>% group_by(CEP.regiao) %>%
   summarise(mn = mean(PC1), sd = 1.96 * sd(PC1)) %>%
   arrange(desc(mn)) %>%
-  plot_ly(x = cep, y = mn, error_y = list(value = sd), 
-          mode = "markers", name = "Agrupado por CEP") %>%
-  layout(yaxis = list(title = "PC1 score"))
-
+  plot_ly(x = mn, y = CEP.regiao, error_x = list(value = sd),
+          mode = "markers", 
+          name = "Agrupado por Região do CEP") %>%
+    layout(yaxis = list(title = "Região do CEP"),
+         xaxis = list(title = "PC1 score",
+                      range = c(-.4, .4)))
 pc1
 
-pc2 <- my.scores.total %>% group_by(cep) %>%
+pc2 <- my.scores.total %>% group_by(CEP.regiao) %>%
   summarise(mn = mean(PC2), sd = 1.96 * sd(PC2)) %>%
   arrange(desc(mn)) %>%
-  plot_ly(x = cep, y = mn, error_y = list(value = sd),
-          mode = "markers", name = "Agrupado por CEP") %>%
-  layout(yaxis = list(title = "PC2 score"))
-
+  plot_ly(x = mn, y = CEP.regiao, error_x = list(value = sd),
+          mode = "markers", 
+          name = "Agrupado por Região do CEP") %>%
+    layout(yaxis = list(title = "Região do CEP"),
+         xaxis = list(title = "PC2 score",
+                      range = c(-.4, .4)))
 pc2
+
+pc3 <- my.scores.total %>% group_by(CEP.regiao) %>%
+  summarise(mn = mean(PC3), sd = 1.96 * sd(PC3)) %>%
+  arrange(desc(mn)) %>%
+  plot_ly(x = mn, y = CEP.regiao, error_x = list(value = sd),
+          mode = "markers", 
+          name = "Agrupado por Região do CEP") %>%
+    layout(yaxis = list(title = "Região do CEP"),
+         xaxis = list(title = "PC3 score",
+                      range = c(-.4, .4)))
+pc3
+
+pc4 <- my.scores.total %>% group_by(CEP.regiao) %>%
+  summarise(mn = mean(PC4), sd = 1.96 * sd(PC4)) %>%
+  arrange(desc(mn)) %>%
+  plot_ly(x = mn, y = CEP.regiao, error_x = list(value = sd),
+          mode = "markers", 
+          name = "Agrupado por Região do CEP") %>%
+    layout(yaxis = list(title = "Região do CEP"),
+         xaxis = list(title = "PC4 score",
+                      range = c(-.4, .4)))
+pc4
+
+pc5 <- my.scores.total %>% group_by(CEP.regiao) %>%
+  summarise(mn = mean(PC5), sd = 1.96 * sd(PC5)) %>%
+  arrange(desc(mn)) %>%
+  plot_ly(x = mn, y = CEP.regiao, error_x = list(value = sd),
+          mode = "markers", 
+          name = "Agrupado por Região do CEP") %>%
+    layout(yaxis = list(title = "Região do CEP"),
+         xaxis = list(title = "PC5 score",
+                      range = c(-.4, .4)))
+pc5
+
+pc6 <- my.scores.total %>% group_by(CEP.regiao) %>%
+  summarise(mn = mean(PC6), sd = 1.96 * sd(PC6)) %>%
+  arrange(desc(mn)) %>%
+  plot_ly(x = mn, y = CEP.regiao, error_x = list(value = sd),
+          mode = "markers", 
+          name = "Agrupado por Região do CEP") %>%
+    layout(yaxis = list(title = "Região do CEP"),
+         xaxis = list(title = "PC6 score",
+                      range = c(-.4, .4)))
+pc6
+
+pc7 <- my.scores.total %>% group_by(CEP.regiao) %>%
+  summarise(mn = mean(PC7), sd = 1.96 * sd(PC7)) %>%
+  arrange(desc(mn)) %>%
+  plot_ly(x = mn, y = CEP.regiao, error_x = list(value = sd),
+          mode = "markers", 
+          name = "Agrupado por Região do CEP") %>%
+    layout(yaxis = list(title = "Região do CEP"),
+         xaxis = list(title = "PC7 score",
+                      range = c(-.4, .4)))
+pc7
 
 ```
 
@@ -285,696 +565,79 @@ pc2
 pc1 <- my.scores.total %>% group_by(tipouser) %>%
   summarise(mn = mean(PC1), sd = 1.96 * sd(PC1)) %>%
   arrange(desc(mn)) %>%
-  plot_ly(x = tipouser, y = mn, error_y = list(value = sd), 
-          mode = "markers", name = "Agrupado por Tipo de Usuário") %>%
-  layout(yaxis = list(title = "PC1 score"))
-
+  plot_ly(x = mn, y = tipouser, error_x = list(value = sd),
+          mode = "markers", 
+          name = "Agrupado por Tipo de Usuário") %>%
+    layout(yaxis = list(title = "Tipo de Usuário"),
+         xaxis = list(title = "PC1 score",
+                      range = c(-1, .8)))
 pc1
+
 
 pc2 <- my.scores.total %>% group_by(tipouser) %>%
   summarise(mn = mean(PC2), sd = 1.96 * sd(PC2)) %>%
   arrange(desc(mn)) %>%
-  plot_ly(x = tipouser, y = mn, error_y = list(value = sd),
-          mode = "markers", name = "Agrupado por Tipo de Usuário") %>%
-  layout(yaxis = list(title = "PC2 score"))
-
+  plot_ly(x = mn, y = tipouser, error_x = list(value = sd),
+          mode = "markers", 
+          name = "Agrupado por Tipo de Usuário") %>%
+    layout(yaxis = list(title = "Tipo de Usuário"),
+         xaxis = list(title = "PC2 score",
+                      range = c(-1, .8)))
 pc2
 
-```
+pc3 <- my.scores.total %>% group_by(tipouser) %>%
+  summarise(mn = mean(PC3), sd = 1.96 * sd(PC3)) %>%
+  arrange(desc(mn)) %>%
+  plot_ly(x = mn, y = tipouser, error_x = list(value = sd),
+          mode = "markers", 
+          name = "Agrupado por Tipo de Usuário") %>%
+    layout(yaxis = list(title = "Tipo de Usuário"),
+         xaxis = list(title = "PC3 score",
+                      range = c(-1, .8)))
+pc3
 
+pc4 <- my.scores.total %>% group_by(tipouser) %>%
+  summarise(mn = mean(PC4), sd = 1.96 * sd(PC4)) %>%
+  arrange(desc(mn)) %>%
+  plot_ly(x = mn, y = tipouser, error_x = list(value = sd),
+          mode = "markers", 
+          name = "Agrupado por Tipo de Usuário") %>%
+    layout(yaxis = list(title = "Tipo de Usuário"),
+         xaxis = list(title = "PC4 score",
+                      range = c(-1, .8)))
+pc4
 
-# FALTA USAR FAIXAS DE CEP E IDADE (QUARTIL?)
-# TENTAR coloar em um datafram todas as médias para criar a assinatura ocm os erros 95%
+pc5 <- my.scores.total %>% group_by(tipouser) %>%
+  summarise(mn = mean(PC5), sd = 1.96 * sd(PC5)) %>%
+  arrange(desc(mn)) %>%
+  plot_ly(x = mn, y = tipouser, error_x = list(value = sd),
+          mode = "markers", 
+          name = "Agrupado por Tipo de Usuário") %>%
+    layout(yaxis = list(title = "Tipo de Usuário"),
+         xaxis = list(title = "PC5 score",
+                      range = c(-1, .8)))
+pc5
 
+pc6 <- my.scores.total %>% group_by(tipouser) %>%
+  summarise(mn = mean(PC6), sd = 1.96 * sd(PC6)) %>%
+  arrange(desc(mn)) %>%
+  plot_ly(x = mn, y = tipouser, error_x = list(value = sd),
+          mode = "markers", 
+          name = "Agrupado por Tipo de Usuário") %>%
+    layout(yaxis = list(title = "Tipo de Usuário"),
+         xaxis = list(title = "PC6 score",
+                      range = c(-1, .8)))
+pc6
 
-
-# DAQUI PARA CIMA #
-
-```{r, echo=FALSE, warning=FALSE}
-# DAQUI PARA BAIXO SÓ PRECISA PARA TRATAR DE CLASSIFICAÇÃO EM CAMPOS PROFISSIONAIS
-#-----------------------------------------------------------------------------------
-# renomeando colunas
-df_forms <-
-    df_forms %>%
-    rename(formacao.em = DE)
-
-# substituindo a coluna de formação antiga para a convertida na tabela principal
-df_change <- left_join(my.scores.total, df_forms, by=c("formacao.em")) 
-df_change <-
-    df_change %>%
-    select(-formacao.em) %>%
-    rename(formacao.em = PARA)
-
-# renomeando colunas
-df_profs <-
-    df_profs %>%
-    rename(profissao.na.area.de = DE)
-
-# substituindo a coluna de profissão antiga para a convertida na tabela principal
-df_change <- left_join(df_change, df_profs, by=c("profissao.na.area.de")) 
-df_change <-
-    df_change %>%
-    select(-profissao.na.area.de) %>%
-    rename(profissao.na.area.de = PARA)
-
-# eliminar formação e profissão marcadas como a "eliminar"
-df_change <-
-    df_change %>%
-    filter(formacao.em != "eliminar" & profissao.na.area.de != "eliminar")
-```
-
-#### Avaliando a Normalidade dos Scores da Amostra ####
-
-Tomando somente a amostra que tem as carreiras definidas entre os respondentes obtemos 76545 observações e seus respectivos scores calculados.
-Analisando os histogramas dos scores por componentes abaixo verificamos que a distribuição é bme próxima da normal, indicando que uma análise das médias dos scores se mostra adequada para a análise que se segue referente à classificação dos respondentes do teste Human Guide nos campos profissionais definidos.
-
-```{r,echo=FALSE}
-# comprovando que a distribuição dos scores é aproximadamente normal, assim a média é ok para usar nas previsões
-par(mfrow=c(2,4))
-hist(df_change$PC1, main = "Histograma de Scores da Amostra (PC1)", xlab = "PC1")
-hist(df_change$PC2, main = "Histograma de Scores da Amostra (PC2)", xlab = "PC1")
-hist(df_change$PC3, main = "Histograma de Scores da Amostra (PC3)", xlab = "PC1")
-hist(df_change$PC4, main = "Histograma da de Scores Amostra (PC4)", xlab = "PC1")
-hist(df_change$PC5, main = "Histograma da de Scores Amostra (PC5)", xlab = "PC1")
-hist(df_change$PC6, main = "Histograma da de Scores Amostra (PC6)", xlab = "PC1")
-hist(df_change$PC7, main = "Histograma da de Scores Amostra (PC7)", xlab = "PC1")
-```
-
-```{r, echo=FALSE, warning=FALSE}
-# FORMACAO x CLASSE
-# criando novo dataframe para tratar mais de uma formacao por classe de carreira
-#----------------------------------------------------------------------------------
-df_form <- data.frame()
-
-for (j in 1:ncol(df_campos)) {
-    # percorre todas as linhas da coluna corrente de df_campos
-    for (i in 1:length(df_change$formacao.em)) {
-        # somente pega o string com match exato (ex. administração)
-        i_aux <- sum(!is.na(str_match(df_campos[,j],
-                                      paste0("^", as.character(df_change$formacao.em[i]), "$"))))
-        # para cada profissão encontrada em uma determinada classe, marca a posição correspondente
-        # com 1, na célula do dataframe correspondente. Caso contrario, coloca NA
-        if(i_aux) {
-            df_form[i,j] = i_aux
-        } else {
-            df_form[i,j] = NA
-        }
-    }
-}
-# colocando os nomes das classes no dataframe gerado
-names(df_form) <- colnames(df_campos)
-
-# concatenando a coluna de formações ao dataframe gerado
-my.prev.form <- cbind(df_change, df_form)
-
-# duplicar colunas que aparecem com mais de uma classe
-# transformando colunas em valores por linha, eliminando NAs, de forma a poder ter os scores de
-# cada profissão duplicado para cada classe onde a profissão se encontra
-# Desta forma, a análise não perde a contribuição do score de cada profissão para cada classe
-formMelt <- melt(my.prev.form,id=c("ID","formacao.em",
-                                   "PC1","PC2","PC3","PC4","PC5","PC6","PC7"),
-                 measure.vars=colnames(df_campos), na.rm = TRUE)
-# mudando o nome da variavel de classe
-colnames(formMelt)[10] <- "class.form"
-# eliminando coluna desnecessária
-my.prev.form <-
-    formMelt %>%
-    select (-value)
+pc7 <- my.scores.total %>% group_by(tipouser) %>%
+  summarise(mn = mean(PC7), sd = 1.96 * sd(PC7)) %>%
+  arrange(desc(mn)) %>%
+  plot_ly(x = mn, y = tipouser, error_x = list(value = sd),
+          mode = "markers", 
+          name = "Agrupado por Tipo de Usuário") %>%
+    layout(yaxis = list(title = "Tipo de Usuário"),
+         xaxis = list(title = "PC7 score",
+                      range = c(-1, .8)))
+pc7
 
 ```
-
-```{r,echo=FALSE}
-require("Hmisc", quietly = TRUE, warn.conflicts = FALSE)
-my.PC.Campo <-
-    my.prev.form %>%
-    group_by(class.form) %>%
-    summarise(PC1.medio = mean(PC1),
-              PC2.medio = mean(PC2),
-              PC3.medio = mean(PC3),
-              PC4.medio = mean(PC4),
-              PC5.medio = mean(PC5),
-              PC6.medio = mean(PC6),
-              PC7.medio = mean(PC7),
-              PC1.sd = sd(PC1),
-              PC2.sd = sd(PC2),
-              PC3.sd = sd(PC3),
-              PC4.sd = sd(PC4),
-              PC5.sd = sd(PC5),
-              PC6.sd = sd(PC6),
-              PC7.sd = sd(PC7)
-              )
-```
-
-```{r,echo=FALSE}
-# inserindo numero sequencial para representar os campos
-my.PC.Campo <-
-    my.PC.Campo %>%
-    mutate(ID.campo = seq(nrow((my.PC.Campo))))
-# para as medias transpostas    #AQUI
-my.PC.Campo.t <- t(my.PC.Campo)
-colnames(my.PC.Campo.t) <- my.PC.Campo.t[1,]
-
-my.PC.Campo.t <- my.PC.Campo.t[-16,] # elimina linhas indesejadas
-my.PC.Campo.t <- my.PC.Campo.t[-1,] # elimina linhas indesejadas
-my.PC.Campo.t <- as.data.frame(my.PC.Campo.t)
-my.PC.Campo.t <-
-    my.PC.Campo.t %>%
-    mutate(PC.stat = rownames(my.PC.Campo.t))
-my.PC.Campo.t <-
-    my.PC.Campo.t %>%
-    mutate(CFM = as.numeric(as.vector(CFM)),
-           CFQ = as.numeric(as.vector(CFQ)),
-           CCF = as.numeric(as.vector(CCF)),
-           COA = as.numeric(as.vector(COA)),
-           CJS = as.numeric(as.vector(CJS)),
-           CCP = as.numeric(as.vector(CCP)),
-           CSL = as.numeric(as.vector(CSL)),
-           CMA = as.numeric(as.vector(CMA)),
-           CCE = as.numeric(as.vector(CCE)),
-           CBS = as.numeric(as.vector(CBS)))
-# inserindo numero sequencial para representar os campos
-my.PC.Campo.t <-
-    my.PC.Campo.t %>%
-    mutate(ID.PC = seq(nrow((my.PC.Campo.t))))
-#knitr::kable(my.PC.Campo.t[1:7,1:11])
-```
-
-#### Definição do Conceito de Perfil ou Assinatura ####
-
-Validado o uso das médias, foi criado o conceito de **perfil**, onde se considerou que a distribuição média dos scores de componentes para um dado campo profissional, obtidas dos dados históricos, é característica única do mesmo.
-
-A análise a seguir procura mostrar a validade desta premissa.
-Como cada ** perfil** pode ser representado como uma curva, conforme mostram os plots abaixo, foi feita uma análise de correlação entre os perfis dos campos profissionais, de forma a validar que campos similares tenham correlação positiva significativa e campo sem similaridades apresentem correlação negativa significativa.
-
-```{r,echo=FALSE}
-# considerando apenas as médias para a assinatura
-require("Rmisc", quietly = TRUE, warn.conflicts = FALSE)
-require("gridExtra", quietly = TRUE, warn.conflicts = FALSE)
-require("ggplot2", quietly = TRUE, warn.conflicts = FALSE)
-cpo1 <- ggplot(my.PC.Campo.t[1:7,], aes(x=ID.PC, y=CFM, ymin = -0.3, ymax = 0.3)) +
-    #geom_pointrange(ymin = -0.3, ymax = 0.3) +
-    #geom_errorbar(ymin = 0.01, ymax = -0.01) +
-    #geom_smooth(method="loess") +
-    geom_line() +
-    ggtitle("CFM x PC médio")
-
-cpo2 <- ggplot(my.PC.Campo.t[1:7,], aes(x=ID.PC, y=CFQ, ymin = -0.3, ymax = 0.3)) +
-    geom_line() +
-    ggtitle("CFQ x PC médio")
-cpo3 <- ggplot(my.PC.Campo.t[1:7,], aes(x=ID.PC, y=CCF, ymin = -0.3, ymax = 0.3)) +
-    geom_line() +
-    ggtitle("CCF x PC médio")
-cpo4 <- ggplot(my.PC.Campo.t[1:7,], aes(x=ID.PC, y=COA, ymin = -0.3, ymax = 0.3)) +
-    geom_line() +
-    ggtitle("COA x PC médio")
-cpo5 <- ggplot(my.PC.Campo.t[1:7,], aes(x=ID.PC, y=CJS, ymin = -0.3, ymax = 0.3)) +
-    geom_line() +
-    ggtitle("CJS x PC médio")
-cpo6 <- ggplot(my.PC.Campo.t[1:7,], aes(x=ID.PC, y=CCP, ymin = -0.3, ymax = 0.3)) +
-    geom_line() +
-    ggtitle("CCP x PC médio")
-cpo7 <- ggplot(my.PC.Campo.t[1:7,], aes(x=ID.PC, y=CSL, ymin = -0.3, ymax = 0.3)) +
-    geom_line() +
-    ggtitle("CSL x PC médio")
-cpo8 <- ggplot(my.PC.Campo.t[1:7,], aes(x=ID.PC, y=CMA, ymin = -0.3, ymax = 0.3)) +
-    geom_line() +
-    ggtitle("CMA x PC médio")
-cpo9 <- ggplot(my.PC.Campo.t[1:7,], aes(x=ID.PC, y=CCE, ymin = -0.3, ymax = 0.3)) +
-    geom_line() +
-    ggtitle("CCE x PC médio")
-cpo10 <- ggplot(my.PC.Campo.t[1:7,], aes(x=ID.PC, y=CBS, ymin = -0.3, ymax = 0.3)) +
-    geom_line() +
-    ggtitle("CBS x PC médio")
-grid.arrange(cpo1, cpo2,cpo3, cpo4,cpo5, cpo6, cpo7, cpo8, cpo9, cpo10, nrow=3, ncol=4)
-#multiplot(cpo1, cpo2, cpo3, cpo4, cpo5, cpo6, cpo7, cpo8, cpo9, cpo10, cols=2)
-```
-
-### Análise da Correlação entre os Perfis dos campos profissionais ###
-
-A análise realizada mostra como os perfis de cada campo profissional se correlacionam, indicando campos que sejam similares ou opostos mais fortemente.
-Na figura abaixo, a cor azul mostra a intensidade da correlação positiva, enquanto a cor magenta mostra a intensidade da correlação negativa entre pares de campos profissionais. Na parte inferior à esquerda aparecem os valores das correlações.
-
-```{r,echo=FALSE}
-require("corrplot", quietly = TRUE, warn.conflicts = FALSE)
-my.cor <- cor(my.PC.Campo.t[1:7,1:10])
-corrplot.mixed(my.cor, insig = "p-value", sig.level = -1, is.corr = TRUE)
-```
-
-### Correlação dos Perfis dos Campos Profissionais com o Perfil de um Respondente Selecionado ###
-
-Como um exemplo de análise que pode ser feita em relação ao **perfil** de um respondente específico do teste Human Guide, pode ser colocado o score de determinado respondente no quadro de correlações acima para examinar onde o respondente se encaixa.
-
-```{r,echo=FALSE}
-my.PC.Campo.t.nomes <- my.PC.Campo.t
-scores.alex <- c(-2.296264822,-1.735027078,2.862688958,-2.022102719,-0.256122419,-1.251091201,-0.06664273)
-my.PC.Campo.t.nomes$alex <- scores.alex
-my.cor.alex <- cor(my.PC.Campo.t.nomes[1:7,c(1:10,13)])
-corrplot.mixed(my.cor.alex, insig = "p-value", sig.level = -1, is.corr = TRUE)
-```
-
-### Correlação dos Perfis entre Respondentes Selecionados ###
-
-Também comparamos a correlação dos Perfis de respondentes conhecidos, sem levar em conta seus campos profisisonais, com a intenção de avaliar se este tipo de análise mostra similaridade ou não de perfis individuais. 
-
-```{r,echo=FALSE}
-scores.arlindo <- c(6.215298989, -0.179402156,2.192249661,-0.629228456,1.445510203,0.721397732, -0.934846735)
-scores.laura <- c(-0.880558127,-0.310320799,1.41442788,-3.047761097,-0.700773651,1.72406918,-0.082153033)
-scores.beatriz <- c(1.967845169,-0.024716848,0.972965178,2.217476245,-0.164333631,-1.748897734,-0.433052634)
-scores.eneko <- c(1.327869429,-1.82247322,2.158161567,1.257910708,2.418553145,-1.472161385,-0.535689283)
-my.PC.Campo.t.nomes$arlindo <- scores.arlindo
-my.PC.Campo.t.nomes$beatriz <- scores.beatriz
-my.PC.Campo.t.nomes$laura <- scores.laura
-my.PC.Campo.t.nomes$eneko <- scores.eneko
-
-my.cor <- cor(my.PC.Campo.t.nomes[1:7,c(13:17)])
-corrplot.mixed(my.cor, insig = "p-value", sig.level = -1, is.corr = TRUE)
-```
-
-#### Classificando o Respondente nos Campos Profissionais (ALGORITMO I)####
-
-Como resultado da validação do modelo de correlações acima, foi criado um algoritmo que classifica um respondente selecionado por meio de suas correlações com os campos porfissionais.
-
-```{r,echo=FALSE}
-require("gridExtra", quietly = TRUE, warn.conflicts = FALSE)
-source("./R/f_classifica_HG.R") # usar esta função para ler os dados novos. 
-#x <- my.PC.Campo.t.nomes
-# CFM
-#cfm.mean <- x$CFM[x$PC.stat == "PC1.medio"] # PC1.medio
-#cfm.sd <- x$CFM[x$PC.stat == "PC1.sd"] # PC1.sd
-#cfm.alex <- x$alex[x$PC.stat == "PC1.medio"] # score do Alex
-# intervalo de confiança para CFM
-# 95% of confidence interval. So alpha = .05
-#ci <- qnorm(.95)
-# margin of error
-#me <- ci * (cfm.sd/sqrt(nrow(my.prev.carr)))
-# lower an upper bounds
-#lower.bound <- cfm.mean - me
-#upper.bound <- cfm.mean + me
-
-
-
-# CCP
-#ccp.mean <- x$CCP[x$PC.stat == "PC1.medio"] # PC1.medio
-#ccp.sd <- x$CCP[x$PC.stat == "PC1.sd"] # PC1.sd
-#ccp.alex <- x$alex[x$PC.stat == "PC1.medio"] # score do Alex
-# intervalo de confiança para CCP
-# 95% of confidence interval. So alpha = .05
-#ci <- qnorm(.95)
-# margin of error
-#me <- ci * (ccp.sd/sqrt(nrow(my.prev.carr)))
-# lower an upper bounds
-#lower.bound <- ccp.mean - me
-#upper.bound <- ccp.mean + me
-
-# outra abordagem: intervalo de confiança de correlação
-# correlação de alex com CFM
-#corr.cfm.alex <- my.cor.alex["CFM", "alex"]
-#CIr(r=.9, n = 100, level = .95)
-#require(psychometric)
-#lcl.cfm.alex <- CIr(r=corr.cfm.alex, n = 7, level = .95)[1] # lower confidence interval
-#ucl.cfm.alex <- CIr(r=corr.cfm.alex, n = 7, level = .95)[2] # upper confidence interval
-
-# correlação de alex com CCP
-#corr.ccp.alex <- my.cor.alex["CCP", "alex"]
-#CIr(r=.9, n = 100, level = .95)
-#require(psychometric)
-#lcl.ccp.alex <- CIr(r=corr.ccp.alex, n = 7, level = .95)[1] # lower confidence interval
-#ucl.ccp.alex <- CIr(r=corr.ccp.alex, n = 7, level = .95)[2] # upper confidence interval
-
-# posso usar o IC para medir se a correlação está nas faixas Não! sempre cai na faixa
-# posso usar 
-# -1.0 to -0.5 or 1.0 to 0.5	Strong
-# -0.5 to -0.3 or 0.3 to 0.5	Moderate
-# -0.3 to -0.1 or 0.1 to 0.3	Weak
-# -0.1 to 0.1	None or very weak
-# ou
-# > 30% = marcante
-# 15%-30% = moderado
-# 5%-15% = fraco
-# 0%-5% = inexpressivo
-# obs: posso colocar no shiny permitindo entrar com as faixas
-# dataframe para cada respondente com linhas = campos, colunas = corr, classif
-# constantes
-#lims.corr <- c(.3, .15, .05) # classificação HG
-nome.resp <- "Alex"
-lims.corr <- c(.6, .3, .1) # classificação cass
-
-# funcao que gera a tabela de classificacao do respondente
-# obs: somente valores de scores médios, sem linhas de desvio padrao para my.PC.Campo.t
-df_class.resp <- f_classifica_HG(nome.resp,scores.alex, my.PC.Campo.t[1:7,], lims.corr)
-#plotar
-df_class.resp <-
-    df_class.resp %>%
-    mutate(ID.campo = seq(nrow((df_class.resp))))
-# plot com pontos
-#qplot(df_class.resp$campo.prof,df_class.resp$corr, colour = df_class.resp$class.campo)
-# alternativa
-plot.alex <- ggplot(df_class.resp, aes(x=campo.prof, y=corr, fill= class.campo)) +
- #   scale_colour_brewer(palette = "Greens") +
-    geom_bar(stat="identity") +
-    ggtitle(paste("Correlações com Campos Profisisonais (", nome.resp,")"))
-#(plot.alex)
-# cria tabela para acompanhar o plot
-# Set theme to allow for plotmath expressions
-#tt <- ttheme_default(colhead=list(fg_params = list(parse=TRUE)))
-tbl.alex <- tableGrob(df_class.resp[,-5], rows=NULL)
-# Plot chart and table into one object
-grid.arrange(plot.alex, tbl.alex,
-nrow=2,
-as.table=TRUE,
-heights=c(1,1))
-```
-
-#### Classificando os Respondentes em Relação aos Componentes (ALGORITMO II) ####
-
-O segundo algoritmo criado classifica o respondente de acordo com os scores máximos e mínimos obtidos dos dados históricos.
-O percentual considerado para a intensidade de cada componente no plot abaixo está baseado nestes limites. 
-
-```{r,echo=FALSE}
-# PARTIR DE my.scores.total
-# criando data.frame por PC, contendo máximo, mínimo para componentes
-my.score.limites <- data.frame(componente = c("PC1", "PC2", "PC3", "PC4", "PC5", "PC6", "PC7"),
-                               max.score = c(max(my.scores.total$PC1),
-                                             max(my.scores.total$PC2),
-                                             max(my.scores.total$PC3),
-                                             max(my.scores.total$PC4),
-                                             max(my.scores.total$PC5),
-                                             max(my.scores.total$PC6),
-                                             max(my.scores.total$PC7)),
-                               min.score = c(min(my.scores.total$PC1),
-                                             min(my.scores.total$PC2),
-                                             min(my.scores.total$PC3),
-                                             min(my.scores.total$PC4),
-                                             min(my.scores.total$PC5),
-                                             min(my.scores.total$PC6),
-                                             min(my.scores.total$PC7))              
-                                             )
-# limites considerados para percentual de intensidade
-lims.corr <- c(.3, .15, .05) # classificação cass
-```
-
-```{r,echo=FALSE}
-# considerar max score para cada componente como 100% (positivo ou negativo)
-# posicionar score do respondente Alex percentualmente em relação a estes valores
-my.score.limites$scores.pessoa <- scores.alex
-nome.resp <- "Alex"
-
-# se score é negativo, calcula o percentual em relação ao mínimo e vice-versa
-my.classif <- 
-    my.score.limites %>%
-    mutate(perc = abs(ifelse(scores.pessoa <= 0, -(scores.pessoa/min.score), (scores.pessoa/max.score))))
-# inserindo o atributo do componente (positivo ou negativo)
-    my.classif <-
-        my.classif %>%
-        mutate(atributo = ifelse(scores.pessoa >= 0 & componente == "PC1","OPENNESS/EXPLORATION",
-                         ifelse(scores.pessoa < 0 & componente == "PC1","COMPLIANCE/OBSERVÂNCIA",
-                         ifelse(scores.pessoa >= 0 & componente == "PC2","AGREEABLENESS/AMABILIDADE",
-                         ifelse(scores.pessoa < 0 & componente == "PC2","ANALÍTICO E INDEPENDENTE/FOCO EM RESULTADO",
-                         ifelse(scores.pessoa >= 0 & componente == "PC3","INVESTIGATIVO/RESEARCH ORIENTED",
-                         ifelse(scores.pessoa < 0 & componente == "PC3","COMMITMENT/ENGAJAMENTO",
-                         ifelse(scores.pessoa >= 0 & componente == "PC4","PEOPLE DEVELOPMENT ORIENTED",
-                         ifelse(scores.pessoa < 0 & componente == "PC4","TASK ORIENTED/ORIENTAÇÃO PARA A TAREFA",
-                         ifelse(scores.pessoa >= 0 & componente == "PC5","EXTROVERSÃO/AUTENTICIDADE",
-                         ifelse(scores.pessoa < 0 & componente == "PC5","SOBRIEDADE/COMPOSTURA/COMEDIMENTO",
-                         ifelse(scores.pessoa >= 0 & componente == "PC6","MANAGEMENT",
-                         ifelse(scores.pessoa < 0 & componente == "PC6","ASSISTÊNCIA/RECEPTIVIDADE ATIVA",
-                         ifelse(scores.pessoa >= 0 & componente == "PC7","AUSTERIDADE/PONDERAÇÃO",
-                         "ADAPTABILIDADE/AJUSTAMENTO"
-        ))))))))))))))
-
-# inserindo classificaçao segundo intensidade do score
-    my.classif <-
-        my.classif %>%
-        mutate(intensidade = ifelse(perc > lims.corr[1],"marcante",
-                                    ifelse(perc <= lims.corr[1] & perc > lims.corr[2] ,"moderado",
-                                           ifelse(perc <= lims.corr[2] & perc > lims.corr[3] ,"fraco",
-                                                  "inexpressivo"
-                                           ))))
-       
-#knitr::kable(my.classif[,c(1,4,6,7)])
-
-#plotar
-df_class.resp <-
-    df_class.resp %>%
-    mutate(ID.campo = seq(nrow((df_class.resp))))
-# plot com pontos
-#qplot(df_class.resp$campo.prof,df_class.resp$corr, colour = df_class.resp$class.campo)
-# alternativa
-plot.pessoa <- ggplot(my.classif, aes(x=componente, y=perc, fill= intensidade)) +
- #   scale_colour_brewer(palette = "Greens") +
-    geom_bar(stat="identity") +
-    ggtitle(paste("Classificação de Respondente (", nome.resp,")"))
-#(plot.alex)
-# cria tabela para acompanhar o plot
-tbl.pessoa <- tableGrob(my.classif[,c(1,4,6,7)], rows=NULL)
-# Plot chart and table into one object
-grid.arrange(plot.pessoa, tbl.pessoa,
-nrow=2,
-as.table=TRUE,
-heights=c(1,1))
-```
-
-```{r,echo=FALSE}
-# considerar max score para cada componente como 100% (positivo ou negativo)
-# posicionar score do respondente Alex percentualmente em relação a estes valores
-my.score.limites$scores.pessoa <- scores.arlindo
-nome.resp <- "Arlindo"
-
-# se score é negativo, calcula o percentual em relação ao mínimo e vice-versa
-my.classif <- 
-    my.score.limites %>%
-    mutate(perc = abs(ifelse(scores.pessoa <= 0, -(scores.pessoa/min.score), (scores.pessoa/max.score))))
-# inserindo o atributo do componente (positivo ou negativo)
-    my.classif <-
-        my.classif %>%
-        mutate(atributo = ifelse(scores.pessoa >= 0 & componente == "PC1","OPENNESS/EXPLORATION",
-                         ifelse(scores.pessoa < 0 & componente == "PC1","COMPLIANCE/OBSERVÂNCIA",
-                         ifelse(scores.pessoa >= 0 & componente == "PC2","AGREEABLENESS/AMABILIDADE",
-                         ifelse(scores.pessoa < 0 & componente == "PC2","ANALÍTICO E INDEPENDENTE/FOCO EM RESULTADO",
-                         ifelse(scores.pessoa >= 0 & componente == "PC3","INVESTIGATIVO/RESEARCH ORIENTED",
-                         ifelse(scores.pessoa < 0 & componente == "PC3","COMMITMENT/ENGAJAMENTO",
-                         ifelse(scores.pessoa >= 0 & componente == "PC4","PEOPLE DEVELOPMENT ORIENTED",
-                         ifelse(scores.pessoa < 0 & componente == "PC4","TASK ORIENTED/ORIENTAÇÃO PARA A TAREFA",
-                         ifelse(scores.pessoa >= 0 & componente == "PC5","EXTROVERSÃO/AUTENTICIDADE",
-                         ifelse(scores.pessoa < 0 & componente == "PC5","SOBRIEDADE/COMPOSTURA/COMEDIMENTO",
-                         ifelse(scores.pessoa >= 0 & componente == "PC6","MANAGEMENT",
-                         ifelse(scores.pessoa < 0 & componente == "PC6","ASSISTÊNCIA/RECEPTIVIDADE ATIVA",
-                         ifelse(scores.pessoa >= 0 & componente == "PC7","AUSTERIDADE/PONDERAÇÃO",
-                         "ADAPTABILIDADE/AJUSTAMENTO"
-        ))))))))))))))
-
-# inserindo classificaçao segundo intensidade do score
-    my.classif <-
-        my.classif %>%
-        mutate(intensidade = ifelse(perc > lims.corr[1],"marcante",
-                                    ifelse(perc <= lims.corr[1] & perc > lims.corr[2] ,"moderado",
-                                           ifelse(perc <= lims.corr[2] & perc > lims.corr[3] ,"fraco",
-                                                  "inexpressivo"
-                                           ))))
-       
-#knitr::kable(my.classif[,c(1,4,6,7)])
-
-#plotar
-df_class.resp <-
-    df_class.resp %>%
-    mutate(ID.campo = seq(nrow((df_class.resp))))
-# plot com pontos
-#qplot(df_class.resp$campo.prof,df_class.resp$corr, colour = df_class.resp$class.campo)
-# alternativa
-plot.pessoa <- ggplot(my.classif, aes(x=componente, y=perc, fill= intensidade)) +
- #   scale_colour_brewer(palette = "Greens") +
-    geom_bar(stat="identity") +
-    ggtitle(paste("Classificação de Respondente (", nome.resp,")"))
-#(plot.alex)
-# cria tabela para acompanhar o plot
-tbl.pessoa <- tableGrob(my.classif[,c(1,4,6,7)], rows=NULL)
-# Plot chart and table into one object
-grid.arrange(plot.pessoa, tbl.pessoa,
-nrow=2,
-as.table=TRUE,
-heights=c(1,1))
-```
-
-```{r,echo=FALSE}
-# considerar max score para cada componente como 100% (positivo ou negativo)
-# posicionar score do respondente Alex percentualmente em relação a estes valores
-my.score.limites$scores.pessoa <- scores.laura
-nome.resp <- "Laura"
-
-# se score é negativo, calcula o percentual em relação ao mínimo e vice-versa
-my.classif <- 
-    my.score.limites %>%
-    mutate(perc = abs(ifelse(scores.pessoa <= 0, -(scores.pessoa/min.score), (scores.pessoa/max.score))))
-# inserindo o atributo do componente (positivo ou negativo)
-    my.classif <-
-        my.classif %>%
-        mutate(atributo = ifelse(scores.pessoa >= 0 & componente == "PC1","OPENNESS/EXPLORATION",
-                         ifelse(scores.pessoa < 0 & componente == "PC1","COMPLIANCE/OBSERVÂNCIA",
-                         ifelse(scores.pessoa >= 0 & componente == "PC2","AGREEABLENESS/AMABILIDADE",
-                         ifelse(scores.pessoa < 0 & componente == "PC2","ANALÍTICO E INDEPENDENTE/FOCO EM RESULTADO",
-                         ifelse(scores.pessoa >= 0 & componente == "PC3","INVESTIGATIVO/RESEARCH ORIENTED",
-                         ifelse(scores.pessoa < 0 & componente == "PC3","COMMITMENT/ENGAJAMENTO",
-                         ifelse(scores.pessoa >= 0 & componente == "PC4","PEOPLE DEVELOPMENT ORIENTED",
-                         ifelse(scores.pessoa < 0 & componente == "PC4","TASK ORIENTED/ORIENTAÇÃO PARA A TAREFA",
-                         ifelse(scores.pessoa >= 0 & componente == "PC5","EXTROVERSÃO/AUTENTICIDADE",
-                         ifelse(scores.pessoa < 0 & componente == "PC5","SOBRIEDADE/COMPOSTURA/COMEDIMENTO",
-                         ifelse(scores.pessoa >= 0 & componente == "PC6","MANAGEMENT",
-                         ifelse(scores.pessoa < 0 & componente == "PC6","ASSISTÊNCIA/RECEPTIVIDADE ATIVA",
-                         ifelse(scores.pessoa >= 0 & componente == "PC7","AUSTERIDADE/PONDERAÇÃO",
-                         "ADAPTABILIDADE/AJUSTAMENTO"
-        ))))))))))))))
-
-# inserindo classificaçao segundo intensidade do score
-    my.classif <-
-        my.classif %>%
-        mutate(intensidade = ifelse(perc > lims.corr[1],"marcante",
-                                    ifelse(perc <= lims.corr[1] & perc > lims.corr[2] ,"moderado",
-                                           ifelse(perc <= lims.corr[2] & perc > lims.corr[3] ,"fraco",
-                                                  "inexpressivo"
-                                           ))))
-       
-#knitr::kable(my.classif[,c(1,4,6,7)])
-
-#plotar
-df_class.resp <-
-    df_class.resp %>%
-    mutate(ID.campo = seq(nrow((df_class.resp))))
-# plot com pontos
-#qplot(df_class.resp$campo.prof,df_class.resp$corr, colour = df_class.resp$class.campo)
-# alternativa
-plot.pessoa <- ggplot(my.classif, aes(x=componente, y=perc, fill= intensidade)) +
- #   scale_colour_brewer(palette = "Greens") +
-    geom_bar(stat="identity") +
-    ggtitle(paste("Classificação de Respondente (", nome.resp,")"))
-#(plot.alex)
-# cria tabela para acompanhar o plot
-tbl.pessoa <- tableGrob(my.classif[,c(1,4,6,7)], rows=NULL)
-# Plot chart and table into one object
-grid.arrange(plot.pessoa, tbl.pessoa,
-nrow=2,
-as.table=TRUE,
-heights=c(1,1))
-```
-
-```{r,echo=FALSE}
-# considerar max score para cada componente como 100% (positivo ou negativo)
-# posicionar score do respondente Alex percentualmente em relação a estes valores
-my.score.limites$scores.pessoa <- scores.beatriz
-nome.resp <- "Beatriz"
-
-# se score é negativo, calcula o percentual em relação ao mínimo e vice-versa
-my.classif <- 
-    my.score.limites %>%
-    mutate(perc = abs(ifelse(scores.pessoa <= 0, -(scores.pessoa/min.score), (scores.pessoa/max.score))))
-# inserindo o atributo do componente (positivo ou negativo)
-    my.classif <-
-        my.classif %>%
-        mutate(atributo = ifelse(scores.pessoa >= 0 & componente == "PC1","OPENNESS/EXPLORATION",
-                         ifelse(scores.pessoa < 0 & componente == "PC1","COMPLIANCE/OBSERVÂNCIA",
-                         ifelse(scores.pessoa >= 0 & componente == "PC2","AGREEABLENESS/AMABILIDADE",
-                         ifelse(scores.pessoa < 0 & componente == "PC2","ANALÍTICO E INDEPENDENTE/FOCO EM RESULTADO",
-                         ifelse(scores.pessoa >= 0 & componente == "PC3","INVESTIGATIVO/RESEARCH ORIENTED",
-                         ifelse(scores.pessoa < 0 & componente == "PC3","COMMITMENT/ENGAJAMENTO",
-                         ifelse(scores.pessoa >= 0 & componente == "PC4","PEOPLE DEVELOPMENT ORIENTED",
-                         ifelse(scores.pessoa < 0 & componente == "PC4","TASK ORIENTED/ORIENTAÇÃO PARA A TAREFA",
-                         ifelse(scores.pessoa >= 0 & componente == "PC5","EXTROVERSÃO/AUTENTICIDADE",
-                         ifelse(scores.pessoa < 0 & componente == "PC5","SOBRIEDADE/COMPOSTURA/COMEDIMENTO",
-                         ifelse(scores.pessoa >= 0 & componente == "PC6","MANAGEMENT",
-                         ifelse(scores.pessoa < 0 & componente == "PC6","ASSISTÊNCIA/RECEPTIVIDADE ATIVA",
-                         ifelse(scores.pessoa >= 0 & componente == "PC7","AUSTERIDADE/PONDERAÇÃO",
-                         "ADAPTABILIDADE/AJUSTAMENTO"
-        ))))))))))))))
-
-# inserindo classificaçao segundo intensidade do score
-    my.classif <-
-        my.classif %>%
-        mutate(intensidade = ifelse(perc > lims.corr[1],"marcante",
-                                    ifelse(perc <= lims.corr[1] & perc > lims.corr[2] ,"moderado",
-                                           ifelse(perc <= lims.corr[2] & perc > lims.corr[3] ,"fraco",
-                                                  "inexpressivo"
-                                           ))))
-       
-#knitr::kable(my.classif[,c(1,4,6,7)])
-
-#plotar
-df_class.resp <-
-    df_class.resp %>%
-    mutate(ID.campo = seq(nrow((df_class.resp))))
-# plot com pontos
-#qplot(df_class.resp$campo.prof,df_class.resp$corr, colour = df_class.resp$class.campo)
-# alternativa
-plot.pessoa <- ggplot(my.classif, aes(x=componente, y=perc, fill= intensidade)) +
- #   scale_colour_brewer(palette = "Greens") +
-    geom_bar(stat="identity") +
-    ggtitle(paste("Classificação de Respondente (", nome.resp,")"))
-#(plot.alex)
-# cria tabela para acompanhar o plot
-tbl.pessoa <- tableGrob(my.classif[,c(1,4,6,7)], rows=NULL)
-# Plot chart and table into one object
-grid.arrange(plot.pessoa, tbl.pessoa,
-nrow=2,
-as.table=TRUE,
-heights=c(1,1))
-```
-
-```{r,echo=FALSE}
-# considerar max score para cada componente como 100% (positivo ou negativo)
-# posicionar score do respondente Alex percentualmente em relação a estes valores
-my.score.limites$scores.pessoa <- scores.eneko
-nome.resp <- "Eneko"
-
-# se score é negativo, calcula o percentual em relação ao mínimo e vice-versa
-my.classif <- 
-    my.score.limites %>%
-    mutate(perc = abs(ifelse(scores.pessoa <= 0, -(scores.pessoa/min.score), (scores.pessoa/max.score))))
-# inserindo o atributo do componente (positivo ou negativo)
-    my.classif <-
-        my.classif %>%
-        mutate(atributo = ifelse(scores.pessoa >= 0 & componente == "PC1","OPENNESS/EXPLORATION",
-                         ifelse(scores.pessoa < 0 & componente == "PC1","COMPLIANCE/OBSERVÂNCIA",
-                         ifelse(scores.pessoa >= 0 & componente == "PC2","AGREEABLENESS/AMABILIDADE",
-                         ifelse(scores.pessoa < 0 & componente == "PC2","ANALÍTICO E INDEPENDENTE/FOCO EM RESULTADO",
-                         ifelse(scores.pessoa >= 0 & componente == "PC3","INVESTIGATIVO/RESEARCH ORIENTED",
-                         ifelse(scores.pessoa < 0 & componente == "PC3","COMMITMENT/ENGAJAMENTO",
-                         ifelse(scores.pessoa >= 0 & componente == "PC4","PEOPLE DEVELOPMENT ORIENTED",
-                         ifelse(scores.pessoa < 0 & componente == "PC4","TASK ORIENTED/ORIENTAÇÃO PARA A TAREFA",
-                         ifelse(scores.pessoa >= 0 & componente == "PC5","EXTROVERSÃO/AUTENTICIDADE",
-                         ifelse(scores.pessoa < 0 & componente == "PC5","SOBRIEDADE/COMPOSTURA/COMEDIMENTO",
-                         ifelse(scores.pessoa >= 0 & componente == "PC6","MANAGEMENT",
-                         ifelse(scores.pessoa < 0 & componente == "PC6","ASSISTÊNCIA/RECEPTIVIDADE ATIVA",
-                         ifelse(scores.pessoa >= 0 & componente == "PC7","AUSTERIDADE/PONDERAÇÃO",
-                         "ADAPTABILIDADE/AJUSTAMENTO"
-        ))))))))))))))
-
-# inserindo classificaçao segundo intensidade do score
-    my.classif <-
-        my.classif %>%
-        mutate(intensidade = ifelse(perc > lims.corr[1],"marcante",
-                                    ifelse(perc <= lims.corr[1] & perc > lims.corr[2] ,"moderado",
-                                           ifelse(perc <= lims.corr[2] & perc > lims.corr[3] ,"fraco",
-                                                  "inexpressivo"
-                                           ))))
-       
-#knitr::kable(my.classif[,c(1,4,6,7)])
-
-#plotar
-df_class.resp <-
-    df_class.resp %>%
-    mutate(ID.campo = seq(nrow((df_class.resp))))
-# plot com pontos
-#qplot(df_class.resp$campo.prof,df_class.resp$corr, colour = df_class.resp$class.campo)
-# alternativa
-plot.pessoa <- ggplot(my.classif, aes(x=componente, y=perc, fill= intensidade)) +
- #   scale_colour_brewer(palette = "Greens") +
-    geom_bar(stat="identity") +
-    ggtitle(paste("Classificação de Respondente (", nome.resp,")"))
-#(plot.alex)
-# cria tabela para acompanhar o plot
-tbl.pessoa <- tableGrob(my.classif[,c(1,4,6,7)], rows=NULL)
-# Plot chart and table into one object
-grid.arrange(plot.pessoa, tbl.pessoa,
-nrow=2,
-as.table=TRUE,
-heights=c(1,1))
-```
-

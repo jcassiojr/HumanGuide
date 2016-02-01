@@ -322,7 +322,12 @@ HG.o1
 
 
 
+
+
+#+++++++++++++++++++++++++++++++
 # REPETINDO TUDO ACIMA PARA HG
+#+++++++++++++++++++++++++++++++
+
 ############ PRINCIPAL COMPONENT ANALYSIS ############
 
 # Using PRINCIPAL COMPONENTS EXTRACTION 
@@ -447,6 +452,10 @@ fa.4 <- factanal(~sensibility+power+quality+exposure+structure+imagination+stabi
                  rotation="varimax", scores="regression", start=c(1, 1, 1, 1, 1, 1, 1, 1), data=df_tidy_hg)
 fa.4
 
+FA <- 
+    factanal(~contacts+exposure+imagination+power+quality+sensibility+stability+structure,
+             factors=4, rotation="varimax", scores="none", data=df_tidy_hg)
+print(FA)
 # Display just the factor scores, and assign them to an object for later use (if desired).
 
 fa.4$scores
@@ -520,11 +529,15 @@ cor(bt,apt,method="spearman")
 # Reliability coefficient (Cronbach's Alpha) for the AP scale.
 library(Rcmdr)
 
-reliability(cov(df_tidy_hg[,c("sensibility","power","quality","exposure",
+
+reliability(cor(df_tidy_hg[,c("sensibility","power","quality","exposure",
                               "structure","imagination","stability","contacts")], use="complete.obs"))
 
+reliability(cor(df_tidy_hg[,c("sensibility","power","quality")], use="complete.obs"))
+reliability(HG.cor)
+
 # abaixo, não sei se faz sentido aplicar nos componentes!
-reliability(cov(df_change[,c("PC1","PC2","PC3","PC4","PC5","PC6","PC7","PC8")], use="complete.obs"))
+#reliability(cov(df_change[,c("PC1","PC2","PC3","PC4","PC5","PC6","PC7","PC8")], use="complete.obs"))
 
 ### Another (easier) way to get Cronbach's Alpha (here on all the items & total scores together):
 
@@ -532,7 +545,7 @@ library(psy)
 cronbach(df_tidy_hg[,c("sensibility","power","quality","exposure",
                        "structure","imagination","stability","contacts")])
 # abaixo, não sei se faz sentido aplicar nos componentes!
-cronbach(df_change[,4:11])
+#cronbach(df_change[,4:11])
 
 ###### USE OMEGA RATHER THAN ALPHA.
 
@@ -573,4 +586,82 @@ HG.o1
 # and then 'Packages' to find documentation on those two packages/libraries.
 
 
+# Using package coefficientalpha
+#+++++++++++++++++++++++++++++++++++++
+# alpha de Cronbach
+library(coefficientalpha)
+alpha(df_tidy_hg[,7:14], varphi = 0.1, se = FALSE, complete =FALSE)
+# omega de Mc'donalds
+omega(df_tidy_hg[,7:14], varphi = 0.1, se = FALSE, 
+      complete =FALSE)
 
+# teste
+df1 <- data.frame(a = c(1,1,1,1), b = c(1,1,1,1), c = c(1,1,1,1))
+df2 <- data.frame(a = c(1,2,3,4), b = c(9,10,11,12), c = c(4,3,2,1))
+reliability(cor(df2, use="complete.obs"))
+QUEST <- data.frame(
+    Q1=c(1,5,2,3,4,2,3,4,3,2), 
+    Q2=c(2,4,1,2,4,1,2,5,2,1), 
+    Q3=c(2,5,1,3,3,2,2,4,2,2))
+reliability(cor(QUEST, use="complete.obs"))
+plot(QUEST)
+cor1 <- cor(QUEST)
+
+library("corrplot")
+corrplot.mixed(cor1, insig = "p-value", sig.level = -1, is.corr = TRUE)
+alpha(QUEST, varphi = .01)
+library(fmsb)
+CronbachAlpha(QUEST)
+cor2 <- cor(df_tidy_hg[,7:14])
+reliability(cor2)
+
+cronbach(df_tidy_hg[,7:14])
+CronbachAlpha(cor(df_tidy_hg[,7:14]))
+
+#+++++++++++++++++++++++++++
+# clusters para fatores
+r2 <- cor(df_tidy_hg[,7:14]) # correlacão entre os fatores
+k2 <- kmeans(r2, centers = 2)
+print(k2,digits=2)
+
+# com 2 clusters, identificados: 
+#    power, exposure, imagination, contacts
+#    sensibility, quality, structure, stability
+#    
+# agora aplicar alpha
+cor3 <- cor(df_tidy_hg[,c(7,9,11,13)])
+reliability(cor3)
+cor4 <- cor(df_tidy_hg[,c(8,10,12,14)])
+reliability(cor4)
+cor5 <- cor(df_tidy_hg[,7:14])
+reliability(cor5)
+
+#library(cluster)
+#library(fpc)
+#plotcluster(r2, k2$cluster)
+
+#library(psych)
+#keys2 <- cluster2keys(k2)
+#k4 <- kmeans(r2,4)
+#keys4 <- cluster2keys(k4)
+#keys24 <- cbind(keys2,keys4)
+#colnames(keys24) <- c("C2.1","C2.2","C4.1","C4.2","C4.3", "C4.4")
+#cluster.cor(keys24,r2)
+
+#+++++++++++++++++++++++++++
+# clusters para componentes
+r2 <- cor(scores.total) # correlacão entre os fatores
+k2 <- kmeans(r2, centers = 3)
+print(k2,digits=2)
+
+# com 2 clusters, identificados: 
+#    power, exposure, imagination, contacts
+#    sensibility, quality, structure, stability
+#    
+# agora aplicar alpha
+cor3 <- cor(scores.total[,c("PC1","PC2","PC3","PC6")])
+reliability(cor3)
+cor4 <- cor(scores.total[,c("PC5","PC7","PC8")]) # parece ser o maior alpha!!
+reliability(cor4)
+cor5 <- cor(scores.total)
+reliability(cor5)

@@ -1,0 +1,98 @@
+---
+title: "Análise Descritiva - Alpha de Cronbach -  DRAFT"
+author: "José Cassio"
+date: "Janeiro 29, 2016"
+output:
+  html_document
+---
+
+<center>![agileBIGDATA](./logoAgileBD.png)</center>
+
+Apresenta os resultados da análise de alpha de Cronbach.
+
+#### Amostra dos Fatores ####
+
+```{r,echo=FALSE}
+require("corrplot", quietly = TRUE, warn.conflicts = FALSE)
+require("doMC", quietly = TRUE, warn.conflicts = FALSE)
+
+#source("./R/f_le_raw_HG_ori.R") # usar esta função para ler os dados originais da tese. 
+source("./R/f_le_raw_HG.R") # usar esta função para ler os dados novos. 
+source("./R/f_tidy_scores_HG.R") # alterada em 07/12/2015 para trazer nome do respondente tb
+
+registerDoMC(5) # parallel processing
+#df_raw_hg <- f_le_raw_HG_ori() # retorna colunas: ID, sexo, pontos
+df_raw_hg <- f_le_raw_HG() # retorna colunas: todas
+df_tidy_hg <- f_tidy_scores_HG(df_raw_hg)
+
+df_tidy_hg <-
+    df_tidy_hg %>%
+    mutate(sensibility = as.numeric(as.vector(sensibility)),
+           power = as.numeric(as.vector(power)),
+           quality = as.numeric(as.vector(quality)),
+           exposure = as.numeric(as.vector(exposure)),
+           structure = as.numeric(as.vector(structure)),
+           imagination = as.numeric(as.vector(imagination)),
+           stability = as.numeric(as.vector(stability)),
+           contacts = as.numeric(as.vector(contacts)))
+#head(df_tidy_hg)
+knitr::kable(head(df_tidy_hg[,7:14]))
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# OBTENÇÃO DOS SCORES A PARTIR DE TODA A AMOSTRA
+#-----------------------------------------------------------------------------------
+# obtendo os scores previstos de acordo com a análise de componentes principais
+pca1 = prcomp(df_tidy_hg[,7:14], scale. = TRUE, center = TRUE)
+# scores obtidos
+scores.total <- as.data.frame(pca1$x)
+```
+
+
+#### Correlação dos Fatores ####
+
+
+
+```{r, echo=FALSE}
+# correlação de spearman
+    my.cor <- cor(df_tidy_hg[,7:14], method = "spearman")
+    #print(my.cor, digits = 4)
+    knitr::kable(my.cor, digits = 3)
+```
+
+
+
+### Análise de Alpha de Cronbach sobre os 8 Fatores ###
+
+Alguns dos itens abaixo são negativamente correlacionados. Isto é indicado pelo sinal negativo ao lado do nome do fator em questão.
+
+```{r, echo=FALSE}
+#HG.cor <- cov(df_tidy_hg[,c("sensibility","power","quality","exposure",
+#                              "structure","imagination","stability","contacts")], method = "spearman")
+#library(Rcmdr)
+#reliability(cov(df_tidy_hg[,c("sensibility","power","quality","exposure",
+#                              "structure","imagination","stability","contacts")], use="complete.obs"))
+    #library(psy)
+#cronbach(df_tidy_hg[,c("sensibility","power","quality","exposure",
+#                              "structure","imagination","stability","contacts")])
+
+HG.factor.alpha <- suppressWarnings(psych::alpha(my.cor, check.keys=TRUE))
+    
+knitr::kable(HG.factor.alpha$alpha.drop[,1:2], digits = 3)  
+```
+
+### Análise de Alpha de Cronbach sobre os 8 Componentes Principais ###
+
+Veja que o raw alpha, baseado nas covarianças é praticamente 0, enquanto o standard alpha, baseado nas correlações entre os componentes apresentou valores mais significativos.
+Alguns dos itens abaixo são negativamente correlacionados. Isto é indicado pelo sinal negativo ao lado do nome do fator em questão.
+
+```{r, echo=FALSE}
+# aplicando ao componentes. check.keys deve se TRUE para reverter os componetes negativos
+HG.pc.alpha <- suppressWarnings(psych::alpha(scores.total, check.keys=TRUE)) 
+knitr::kable(HG.pc.alpha$alpha.drop[,1:2], digits = 3)
+#(HG.pc.alpha)
+```    
+    
+
+
+

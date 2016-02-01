@@ -55,7 +55,7 @@ knitr::kable(my.descr)
 É realizada uma análise de correlação entre os 8 fatores, conforme os plots abaixo.
 
 ```{r, echo=FALSE}
-my.cor <- cor(df_tidy_hg[,7:14])
+my.cor <- cor(df_tidy_hg[,7:14],method = "spearman")
 corrplot.mixed(my.cor, insig = "p-value", sig.level = -1, is.corr = TRUE)
 ```
 
@@ -75,7 +75,7 @@ O plot acima mostra na metade superior a força da correlação entre os fatores
 
 ```{r, echo=FALSE}
 # correlação de spearman
-    my.cor <- cor(df_tidy_hg[,7:14], method = "spearman")
+    #my.cor <- cor(df_tidy_hg[,7:14], method = "spearman")
     #print(my.cor, digits = 4)
     knitr::kable(my.cor)
 ```
@@ -148,6 +148,24 @@ df_cor <-
 knitr::kable(df_cor)
 ```
 
+### Validação do Modelo Usando Alpha de Cronbach ###
+
+Alguns dos itens abaixo são negativamente correlacionados. Isto é indicado pelo sinal negativo ao lado do nome do fator em questão.
+
+```{r, echo=FALSE}
+#HG.cor <- cov(df_tidy_hg[,c("sensibility","power","quality","exposure",
+#                              "structure","imagination","stability","contacts")], method = "spearman")
+#library(Rcmdr)
+#reliability(cov(df_tidy_hg[,c("sensibility","power","quality","exposure",
+#                              "structure","imagination","stability","contacts")], use="complete.obs"))
+HG.alpha <- suppressWarnings(psych::alpha(my.cor, check.keys=TRUE))
+
+#library(psy)
+#cronbach(df_tidy_hg[,c("sensibility","power","quality","exposure",
+#                              "structure","imagination","stability","contacts")])
+
+knitr::kable(HG.alpha$alpha.drop[,1:2], digits = 3)  
+```
 
 
 #### Análise Cluster ####
@@ -641,33 +659,14 @@ pc1 <- layout(pc1, title = "Scores Médios por Área de Formação - PC1 x PC2 X
 pc1
 ```
 
-### Validação do Modelo Usando Alpha de Cronbach ###
 
 ```{r, echo=FALSE}
-# APLICANDO OMEGA ACIMA NOS DADOS DE NOSSA ANALISE (FALTA REFAZER USANDO FA) E RODAR DE NOVO
-# restaura fatores como numericos
-df_tidy_hg <-
-    df_tidy_hg %>%
-    mutate(sensibility = as.numeric(as.vector(sensibility)),
-           power = as.numeric(as.vector(power)),
-           quality = as.numeric(as.vector(quality)),
-           exposure = as.numeric(as.vector(exposure)),
-           structure = as.numeric(as.vector(structure)),
-           imagination = as.numeric(as.vector(imagination)),
-           stability = as.numeric(as.vector(stability)),
-           contacts = as.numeric(as.vector(contacts)))
+# Omega
+#library(psych)
+#HG.cor <- cor(my.scores.total[,6:13])
+#HG.o1 <- omega(HG.cor, nfactors = 3, n.iter = 1, fm = "ml", poly = F, digits = 3,
+#               n.obs = 116603, rotate = "oblimin")
 
-summary(df_change[,4:11])
-HG.cor <- cor(df_change[,4:11])
-HG.o1 <- omega(HG.cor, nfactors = 3, n.iter = 1, fm = "ml", poly = F, digits = 3,
-               n.obs = 76545, rotate = "oblimin")
-
-# tentar acima com viramax
-HG.o1
-```
-
-### Validação do Modleo Usando Ômega ###
-
-```{r, echo=FALSE}
+#HG.omega
 
 ```
