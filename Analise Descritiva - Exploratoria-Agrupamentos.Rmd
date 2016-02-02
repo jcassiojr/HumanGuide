@@ -175,15 +175,15 @@ require("ggplot2", quietly = TRUE, warn.conflicts = FALSE)
 #  layout(yaxis = list(title = "Miles Per Gallon"))
 #p
 
-m = list(
-  l = 100, # quanto maior, maior a distância do eixo da esquerda
-  r = 100, # quanto maior, maior a distância do eixo da esquerda
-  b = 100, # quanto maior, maior a distância do eixo da parte de baixo
-  t = 100, # quanto maior, maior a distância do eixo da parte de baixo
-  pad = 4
-)
-plot_ly(x = seq(0, 8), y = seq(0, 8)) %>%
-  layout(autosize = F, width = 500, height = 500, margin = m)
+#m = list(
+#  l = 100, # quanto maior, maior a distância do eixo da esquerda
+#  r = 100, # quanto maior, maior a distância do eixo da esquerda
+#  b = 100, # quanto maior, maior a distância do eixo da parte de baixo
+#  t = 100, # quanto maior, maior a distância do eixo da parte de baixo
+#  pad = 4
+#)
+#plot_ly(x = seq(0, 8), y = seq(0, 8)) %>%
+#  layout(autosize = F, width = 500, height = 500, margin = m)
 
 
 pc1 <- my.scores.total %>% group_by(sexo) %>%
@@ -564,7 +564,7 @@ pc7
 ```{r, echo=FALSE, warning=FALSE}
 pc1 <- my.scores.total %>% group_by(tipouser) %>%
   summarise(mn = mean(PC1), sd = 1.96 * sd(PC1)) %>%
-  arrange(desc(mn)) %>%
+  arrange(desc(tipouser)) %>%
   plot_ly(x = mn, y = tipouser, error_x = list(value = sd),
           mode = "markers", 
           name = "Agrupado por Tipo de Usuário") %>%
@@ -576,7 +576,7 @@ pc1
 
 pc2 <- my.scores.total %>% group_by(tipouser) %>%
   summarise(mn = mean(PC2), sd = 1.96 * sd(PC2)) %>%
-  arrange(desc(mn)) %>%
+  arrange(desc(tipouser)) %>%
   plot_ly(x = mn, y = tipouser, error_x = list(value = sd),
           mode = "markers", 
           name = "Agrupado por Tipo de Usuário") %>%
@@ -587,7 +587,7 @@ pc2
 
 pc3 <- my.scores.total %>% group_by(tipouser) %>%
   summarise(mn = mean(PC3), sd = 1.96 * sd(PC3)) %>%
-  arrange(desc(mn)) %>%
+  arrange(desc(tipouser)) %>%
   plot_ly(x = mn, y = tipouser, error_x = list(value = sd),
           mode = "markers", 
           name = "Agrupado por Tipo de Usuário") %>%
@@ -598,7 +598,7 @@ pc3
 
 pc4 <- my.scores.total %>% group_by(tipouser) %>%
   summarise(mn = mean(PC4), sd = 1.96 * sd(PC4)) %>%
-  arrange(desc(mn)) %>%
+  arrange(desc(tipouser)) %>%
   plot_ly(x = mn, y = tipouser, error_x = list(value = sd),
           mode = "markers", 
           name = "Agrupado por Tipo de Usuário") %>%
@@ -609,7 +609,7 @@ pc4
 
 pc5 <- my.scores.total %>% group_by(tipouser) %>%
   summarise(mn = mean(PC5), sd = 1.96 * sd(PC5)) %>%
-  arrange(desc(mn)) %>%
+  arrange(desc(tipouser)) %>%
   plot_ly(x = mn, y = tipouser, error_x = list(value = sd),
           mode = "markers", 
           name = "Agrupado por Tipo de Usuário") %>%
@@ -620,7 +620,7 @@ pc5
 
 pc6 <- my.scores.total %>% group_by(tipouser) %>%
   summarise(mn = mean(PC6), sd = 1.96 * sd(PC6)) %>%
-  arrange(desc(mn)) %>%
+  arrange(desc(tipouser)) %>%
   plot_ly(x = mn, y = tipouser, error_x = list(value = sd),
           mode = "markers", 
           name = "Agrupado por Tipo de Usuário") %>%
@@ -631,7 +631,7 @@ pc6
 
 pc7 <- my.scores.total %>% group_by(tipouser) %>%
   summarise(mn = mean(PC7), sd = 1.96 * sd(PC7)) %>%
-  arrange(desc(mn)) %>%
+  arrange(desc(tipouser)) %>%
   plot_ly(x = mn, y = tipouser, error_x = list(value = sd),
           mode = "markers", 
           name = "Agrupado por Tipo de Usuário") %>%

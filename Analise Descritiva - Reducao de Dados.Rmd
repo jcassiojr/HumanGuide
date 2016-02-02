@@ -195,6 +195,10 @@ A análise de PCA foi implementada aos dados processados, gerando oito component
 ##### Desvio Padrão associado aos Componentes #####
 
 ```{r, echo=FALSE}
+#    Scaling or Center the data depends on your study question and your data. As a rule of thumb, # if all your variables are measured on the same scale and have the same unit, it might be a good # idea *not* to scale the variables (i.e., PCA based on the covariance matrix). If you want to
+# maximize variation, it is fair to let variables with more variation contribute more. On the
+# other hand, if you have different types of variables with different units, it is probably wise
+#    to scale the data first (i.e., PCA based on the correlation matrix).
     pca1 = prcomp(df_tidy_hg[,7:14], scale. = TRUE, center = TRUE)
     print (pca1$sdev)
     #knitr::kable(pca1$sdev)

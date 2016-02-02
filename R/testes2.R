@@ -665,3 +665,283 @@ cor4 <- cor(scores.total[,c("PC5","PC7","PC8")]) # parece ser o maior alpha!!
 reliability(cor4)
 cor5 <- cor(scores.total)
 reliability(cor5)
+
+
+# ++++++++++++++++++
+# Wiks Lambda Test
+X <- structure(c(9, 6, 9, 3, 2, 7), .Dim = as.integer(c(3, 2)))
+Y <- structure(c(0, 2, 4, 0), .Dim = as.integer(c(2, 2)))
+Z <- structure(c(3, 1, 2, 8, 9, 7), .Dim = as.integer(c(3, 2)))
+U <- rbind(X,Y,Z)
+# abaixo: 
+# formula indicando
+f <- factor(rep(1:3, c(3, 2, 3)))
+#m <- manova(U~factor(rep(1:3, c(3, 2, 3))))
+# aqui, U representa os valores independentes e f os valores que identificam os grupos
+m <- manova(U~f)
+summary(m,test="Wilks")
+
+#+++++++++++
+# com HG
+#+++++++++++
+
+f_acentos <- function(df_in) { # funcao que tira os acentos e deixa tudo em minuscula
+    df_in <- mutate_each(df_in, funs(tolower)) # forçando minúsculas
+    df_in <- as.data.frame(sapply(df_in, FUN = function(x) as.character(gsub("á", "a", x))))
+    df_in <- as.data.frame(sapply(df_in, FUN = function(x) as.character(gsub("é", "e", x))))
+    df_in <- as.data.frame(sapply(df_in, FUN = function(x) as.character(gsub("í", "i", x))))
+    df_in <- as.data.frame(sapply(df_in, FUN = function(x) as.character(gsub("ó", "o", x))))
+    df_in <- as.data.frame(sapply(df_in, FUN = function(x) as.character(gsub("ú", "u", x))))
+    df_in <- as.data.frame(sapply(df_in, FUN = function(x) as.character(gsub("ã", "a", x))))
+    df_in <- as.data.frame(sapply(df_in, FUN = function(x) as.character(gsub("õ", "o", x))))
+    df_in <- as.data.frame(sapply(df_in, FUN = function(x) as.character(gsub("ç", "c", x))))
+    df_in <- as.data.frame(sapply(df_in, FUN = function(x) as.character(gsub("â", "a", x))))
+    df_in <- as.data.frame(sapply(df_in, FUN = function(x) as.character(gsub("ê", "e", x))))
+    df_in <- as.data.frame(sapply(df_in, FUN = function(x) as.character(gsub("ô", "o", x))))
+    df_in <- as.data.frame(sapply(df_in, FUN = function(x) as.character(gsub("  ", " ", x))))
+    return (df_in)
+}
+df_tidy_hg <- f_acentos(df_tidy_hg)
+# restaura fatores como numericos
+df_tidy_hg <-
+    df_tidy_hg %>%
+    mutate(sensibility = as.numeric(as.vector(sensibility)),
+           power = as.numeric(as.vector(power)),
+           quality = as.numeric(as.vector(quality)),
+           exposure = as.numeric(as.vector(exposure)),
+           structure = as.numeric(as.vector(structure)),
+           imagination = as.numeric(as.vector(imagination)),
+           stability = as.numeric(as.vector(stability)),
+           contacts = as.numeric(as.vector(contacts)))
+
+# obtendo os scores previstos de acordo com a análise de componentes principais
+pca1 = prcomp(df_tidy_hg[,7:14], scale. = TRUE, center = TRUE)
+# scores obtidos
+scores.total <- as.data.frame(pca1$x)
+my.scores.total <- as.data.frame(cbind(ID = df_tidy_hg$ID, 
+                                       sexo = df_tidy_hg$sexo, 
+                                       tipouser = df_tidy_hg$TIPOUSER, 
+                                       profissao.na.area.de = df_tidy_hg$profissao.na.area.de, 
+                                       formacao.em = df_tidy_hg$formacao.em,
+                                       scores.total))
+my.scores.total <-
+    my.scores.total %>%
+    mutate(tipouser = ifelse(tipouser == "", "indefinido", as.character(tipouser)),
+           sexo = ifelse(sexo == "f", "feminino","masculino"))
+# SEXO
+my.scores.sex <- 
+    my.scores.total %>%
+    select(sexo,PC1,PC2,PC3,PC4,PC5,PC6,PC7,PC8) %>%
+    mutate(sexo = as.factor(sexo))
+#anova(lm(U~factor(rep(1:3, c(3, 2, 3)))), test="Wilks")
+#m <- manova(my.scores.sex~PC1+PC2+PC3+PC4+PC5+PC6+PC7+PC8)
+# aqui tem a media em relacao a todos os ocmponentes
+library(rrcov)
+Wilks.test(sexo~PC1+PC2+PC3+PC4+PC5+PC6+PC7+PC8,data=my.scores.sex)
+# consigo a média em relação a cada um separado???
+library(rrcov)
+x <- my.scores.sex %>% select(sexo,PC1,PC2)
+Wilks.test(sexo~.,data=x)
+y <- my.scores.sex %>% select(sexo,PC3,PC4)
+Wilks.test(sexo~.,data=y)
+z <- my.scores.sex %>% select(sexo,PC5,PC6)
+Wilks.test(sexo~.,data=z)
+w <- my.scores.sex %>% select(sexo,PC7,PC8)
+Wilks.test(sexo~.,data=w)
+#Wilks.test(sexo~.,data=my.scores.sex)
+
+# TIPOUSER
+my.scores.tipouser <- 
+    my.scores.total %>%
+    select(tipouser,PC1,PC2,PC3,PC4,PC5,PC6,PC7,PC8) %>%
+    mutate(tipouser = as.factor(tipouser))
+#anova(lm(U~factor(rep(1:3, c(3, 2, 3)))), test="Wilks")
+#m <- manova(my.scores.sex~PC1+PC2+PC3+PC4+PC5+PC6+PC7+PC8)
+
+# o teste abaixo mostra que as médias dos respondentes agrupados por tipo de usuário
+# têm diferença significativa em relação aos componentes considerados
+library(rrcov)
+Wilks.test(tipouser~PC1+PC2+PC3+PC4+PC5+PC6+PC7+PC8,data=my.scores.tipouser)
+Wilks.test(tipouser~.,data=my.scores.tipouser)
+
+# exemplo
+data(hemophilia)
+hemophilia$gr <- as.factor(hemophilia$gr)
+Wilks.test(gr~., data=hemophilia, method="c")
+#Wilks.test(gr~., data=hemophilia, method="rank")
+
+# teste de anova
+# preparando os dados
+my.smp.PC1.k <-
+    my.scores.tipouser %>%
+    select(tipouser,PC1) %>%
+    filter(tipouser == "kroton") %>%
+    sample_n(15)
+my.smp.PC1.a <-
+    my.scores.tipouser %>%
+    select(tipouser,PC1) %>%
+    filter(tipouser == "ambev") %>%
+    sample_n(15)
+my.smp.PC1.f <-
+    my.scores.tipouser %>%
+    select(tipouser,PC1) %>%
+    filter(tipouser == "func publico") %>%
+    sample_n(15)
+
+# montando o dataframe
+library(psych)
+# abaixo acho que não faz sentido!!
+#my.smp.PC1 <- data.frame(ambev = my.smp.PC1.a[,"PC1"],
+#                         func.publico = my.smp.PC1.f[,"PC1"],
+#                         kroton = my.smp.PC1.k[,"PC1"])
+
+fivenum(my.smp.PC1$ambev) #Tukey fivenumbers min, lowerhinge, median, upper hinge, max
+mad(my.smp.PC1$ambev) #(median absolute deviation)
+var(my.smp.PC1$ambev)     #produces the variance covariance matrix
+sd(my.smp.PC1$ambev)      #standard deviation
+describe(my.smp.PC1)
+epiz <- scale(my.smp.PC1)          #centers (around the mean) and scales by the sd (sd = 1)
+epic <- scale(my.smp.PC1,scale=FALSE) #centers but does not Scale (sd remain as they were)
+describe(epiz)
+describe(epic)
+sd(my.smp.PC1$ambev)
+stem(my.smp.PC1$ambev)       #stem and leaf diagram
+round(cor(my.smp.PC1),2) # correlation matrix with values rounded to 2 decimals
+corr.test(my.smp.PC1)
+
+
+# exemplo de uso de anova em R abaixo
+# ONE WAY ANALYSIS
+#+++++++++++++++++++++++
+datafilename="http://personality-project.org/r/datasets/R.appendix1.data"
+data.ex1=read.table(datafilename,header=T)   #read the data into a table
+aov.ex1 = aov(Alertness~Dosage,data=data.ex1)  #do the analysis of variance
+# obs: comando summary abaixo mostra na primeira linha os valores between group
+# enquanto a segunda linha mostra statisticas within-group
+summary(aov.ex1)                                    #show the summary table
+
+print(model.tables(aov.ex1,"means"),digits=3) #report the means and the number of subjects/cell
+
+boxplot(Alertness~Dosage,data=data.ex1) #graphical summary appears in graphics window
+
+# TWO WAY ANALYSIS
+#+++++++++++++++++++++++
+datafilename="http://personality-project.org/r/datasets/R.appendix2.data"
+data.ex2=read.table(datafilename,header=T)   #read the data into a table
+data.ex2                                      #show the data
+# obs: usar * abaixo se correlação entre variaveis independentes é importante, usar + caso contrario
+aov.ex2 = aov(Alertness~Gender*Dosage,data=data.ex2)         #do the analysis of variance
+summary(aov.ex2)
+print(model.tables(aov.ex2,"means"),digits=3)       #report the means and the number of subjects/cell
+boxplot(Alertness~Dosage*Gender,data=data.ex2) #graphical summary of means of the 4 cells
+
+aov.ex2 = aov(Alertness~Gender+Dosage,data=data.ex2)         #do the analysis of variance
+summary(aov.ex2)
+# aplicado a HG
+#++++++++++++++++++++
+# ONE WAY ANALYSIS
+#+++++++++++++++++++++++
+# a analise abaixo identifica se os grupos definidos em relação aos tipos de usuários 
+# apresentam diferença nos seus scores médios em relação ao primeiro componente(PC1)
+# os resultados de aplicação de anova analysis mostram que sim.
+# repetir abaixo para sexo, ext, para todos os componentes e gerar tabela
+# em seguida, rodar o Wilks para todos os grupos mas para todos os PCs tb
+my.aov.tipouser <-
+    my.scores.tipouser %>%
+    filter(!(tipouser == "indefinido"))
+    #select(tipouser,PC1) 
+    #filter(tipouser == "func publico") %>%
+    #sample_n(15)
+# AOV
+# aplica analise de variancia para cada componente
+aov.tipouser.PC1 = aov(PC1~tipouser,data=my.aov.tipouser)  #do the analysis of variance    
+summary(aov.tipouser.PC1)
+print(model.tables(aov.tipouser.PC1,"means"),digits=3)
+boxplot(PC1~tipouser,data=my.aov.tipouser) #graphical summary appears in graphics window
+
+aov.tipouser.PC2 = aov(PC2~tipouser,data=my.aov.tipouser)  #do the analysis of variance    
+summary(aov.tipouser.PC2)
+aov.tipouser.PC3 = aov(PC3~tipouser,data=my.aov.tipouser)  #do the analysis of variance    
+summary(aov.tipouser.PC3)
+aov.tipouser.PC4 = aov(PC4~tipouser,data=my.aov.tipouser)  #do the analysis of variance    
+summary(aov.tipouser.PC4)
+aov.tipouser.PC1 = aov(PC1~tipouser,data=my.aov.tipouser)  #do the analysis of variance    
+summary(aov.tipouser.PC1)
+aov.tipouser.PC5 = aov(PC5~tipouser,data=my.aov.tipouser)  #do the analysis of variance    
+summary(aov.tipouser.PC5)
+aov.tipouser.PC6 = aov(PC6~tipouser,data=my.aov.tipouser)  #do the analysis of variance    
+summary(aov.tipouser.PC6)
+aov.tipouser.PC7 = aov(PC7~tipouser,data=my.aov.tipouser)  #do the analysis of variance    
+summary(aov.tipouser.PC7)
+aov.tipouser.PC8 = aov(PC8~tipouser,data=my.aov.tipouser)  #do the analysis of variance    
+summary(aov.tipouser.PC8)#show the summary table
+# WILKS
+grp <- as.factor(my.aov.tipouser$tipouser)
+x <- as.matrix(my.aov.tipouser[,2:9])
+Wilks.test(x, grouping=grp, method="c")
+
+
+# USAR ACIM PARA CONSIDERAÇÕES FINAIS (TANTO AOV quanto Wilks)
+
+# TWO WAY ANALYSIS
+#+++++++++++++++++++++++
+my.twoway <-
+    my.scores.total %>%
+    filter(!(tipouser == "indefinido")) %>%
+    select(tipouser,sexo,PC1,PC2,PC3,PC4,PC5,PC6,PC7,PC8) %>%
+    mutate(tipouser = as.factor(tipouser),
+           sexo = as.factor(sexo))
+
+aov.twoway.PC1 = aov(PC1~tipouser*sexo,data=my.twoway)  #do the analysis of variance    
+summary(aov.twoway.PC1)
+print(model.tables(aov.twoway.PC1,"means"),digits=3)
+boxplot(PC1~tipouser*sexo,data=my.twoway) #graphical summary appears in graphics window
+
+# USING MANOVA
+#+++++++++++++++++++++++++
+Wilks.test(tipouser~., data=my.aov.tipouser, method="c")
+Wilks.test(tipouser~., grouping = tipouser, data=my.aov.tipouser, method="c")
+# explo
+library(MASS)
+data(anorexia)
+attach(anorexia)
+grp <- as.factor(anorexia[,1])
+x <- as.matrix(anorexia[,2:3])
+Wilks.test(x, grouping=grp, method="c")
+# agora aplicar para HG
+# acredito que precise mudar as linhas por colunas (transpose) para comparar os grupos
+# ou seja, grupos ficam nas colunas
+grp <- as.factor(my.aov.tipouser$tipouser)
+x <- as.matrix(my.aov.tipouser[,2:9])
+Wilks.test(x, grouping=grp, method="c")
+
+
+# TESTAR: manova usando uma coluna para cada média de PC1 para cada
+# FUNCIONOU!!!
+m <- manova(cbind(PC1,PC2,PC3,PC4,PC5,PC6,PC7,PC8) ~ as.factor(tipouser), data = my.aov.tipouser)
+summary(m, test = "Wilks")
+# anova
+m <- anova(lm(PC1,PC2,PC3,PC4,PC5,PC6,PC7,PC8 ~ tipouser,data = my.aov.tipouser), )
+summary(m)
+
+# TESTE DE AOV: categorizar PC1 em positivo e negativo!!!
+# repetir o memso para multiplo (ex. sexo e PC1)
+df.PC1 <-
+    my.scores.sex %>%
+    mutate(PC1tipo = ifelse(PC1 >=0,"POS","NEG"))
+df.PC1 <-
+    df.PC1 %>%
+    select(-sexo)
+
+aov.PC1 = aov(PC1~PC1tipo,data=df.PC1)  #do the analysis of variance    
+summary(aov.PC1)
+# agora aplicando manova para tipouser + PC1tipo
+my.twoway.PC1 <-
+    my.scores.total %>%
+    filter(!(tipouser == "indefinido")) %>%
+    mutate(tipouser = as.factor(tipouser),
+           PC1tipo = ifelse(PC1 >=0,"POS","NEG")) %>%
+    select(-sexo, -ID, -profissao.na.area.de, -formacao.em)
+
+aov.twoway.PC1 = aov(PC1~tipouser+PC1tipo,data=my.twoway.PC1)  #do the analysis of variance    
+summary(aov.twoway.PC1)
