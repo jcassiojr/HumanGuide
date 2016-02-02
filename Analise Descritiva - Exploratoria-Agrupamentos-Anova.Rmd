@@ -72,11 +72,6 @@ df_tidy_hg <- f_tidy_scores_HG(df_raw_hg) # calcula os fatores de acordo com a p
 # chama funcao que tira acentos e força minúsculos
 df_tidy_hg <- f_acentos(df_tidy_hg)
 
-# para testes usar somente 1000 ocorrências na amostra
-#tam.amostra = 1000
-#df_tidy_hg <- 
-#    df_tidy_hg %>%
-#    sample_n(tam.amostra)
 # restaura fatores como numericos
 df_tidy_hg <-
     df_tidy_hg %>%
@@ -93,16 +88,16 @@ df_tidy_hg <-
 ```{r,echo=FALSE}
 # obtém tabela DE-PARA para profissões, para alinhar com a classificação de Campos Profissionais
 
-#df_profs <- read.xlsx2("./data/profs.de.para-V1.xlsx", sheetIndex = 1, header = TRUE)
-#df_profs <- f_acentos(df_profs)
+df_profs <- read.xlsx2("./data/profs.de.para-V1.xlsx", sheetIndex = 1, header = TRUE)
+df_profs <- f_acentos(df_profs)
 
 #knitr::kable(df_profs)
 ```
 
 ```{r,echo=FALSE}
 # obtém tabela DE-PARA para formações, para alinhar com a classificação de Campos Profissionais
-#df_forms <- read.xlsx2("./data/forms.de.para-V1.xlsx", sheetIndex = 1, header = TRUE)
-#df_forms <- f_acentos(df_forms)
+df_forms <- read.xlsx2("./data/forms.de.para-V1.xlsx", sheetIndex = 1, header = TRUE)
+df_forms <- f_acentos(df_forms)
 #knitr::kable(df_forms)
 ```
 
@@ -168,6 +163,65 @@ df.stats.tipouser <- data.frame(agrupamento = "Tipo de Usuario",
                        Wilks.Lambda = summary(m, test = "Wilks")$stats[3],
                        F.rate = summary(m, test = "Wilks")$stats[5],
                        P.value = summary(m, test = "Wilks")$stats[11])
+
+# Manova Wilks sobre grupo SEXO
+#----------------------------------
+my.scores.sexo <- 
+    my.scores.total %>%
+    select(sexo,PC1,PC2,PC3,PC4,PC5,PC6,PC7,PC8) %>%
+    mutate(sexo = as.factor(sexo))
+
+m <- manova(cbind(PC1,PC2,PC3,PC4,PC5,PC6,PC7,PC8) ~ sexo, data = my.scores.sexo)
+summary(m, test = "Wilks")
+df.stats.sexo <- data.frame(agrupamento = "Sexo",
+                                Wilks.Lambda = summary(m, test = "Wilks")$stats[3],
+                                F.rate = summary(m, test = "Wilks")$stats[5],
+                                P.value = summary(m, test = "Wilks")$stats[11])
+
+# Manova Wilks sobre grupo Faixa Etária
+#----------------------------------
+my.scores.fxetaria <- 
+    my.scores.total %>%
+    select(idade,PC1,PC2,PC3,PC4,PC5,PC6,PC7,PC8) %>%
+    mutate(faixa.etaria = ifelse(idade <= 18, "adolescente",
+                                 ifelse(idade > 18 & idade <= 29, "jovem adulto",
+                                 ifelse(idade > 29 & idade <= 36, "adulto",
+                                 "adulto maduro"))))
+
+m <- manova(cbind(PC1,PC2,PC3,PC4,PC5,PC6,PC7,PC8) ~ as.factor(faixa.etaria), data = my.scores.fxetaria)
+summary(m, test = "Wilks")
+df.stats.fxet <- data.frame(agrupamento = "Faixa Etária",
+                            Wilks.Lambda = summary(m, test = "Wilks")$stats[3],
+                            F.rate = summary(m, test = "Wilks")$stats[5],
+                            P.value = summary(m, test = "Wilks")$stats[11])
+
+# Manova Wilks sobre região de CEP
+#----------------------------------
+my.scores.cep <-
+    my.scores.total %>%
+    filter(!(cep == ""))
+
+# separando as dimensões do CEP
+my.scores.cep <-
+    my.scores.cep %>%
+    mutate(CEP.regiao = substring(cep,1,1),
+           CEP.subregiao = substring(cep,1,2),
+           CEP.setor = substring(cep,1,3),
+           CEP.subsetor = substring(cep,1,4)
+    )
+
+
+m <- manova(cbind(PC1,PC2,PC3,PC4,PC5,PC6,PC7,PC8) ~ as.factor(CEP.regiao), data = my.scores.cep)
+summary(m, test = "Wilks")
+df.stats.cep <- data.frame(agrupamento = "Região de CEP",
+                            Wilks.Lambda = summary(m, test = "Wilks")$stats[3],
+                            F.rate = summary(m, test = "Wilks")$stats[5],
+                            P.value = summary(m, test = "Wilks")$stats[11])
+
+# agrupando em data frame todas as estatísticas
+#df.stats <- rbind(df.stats.cpoprf,df.stats.cep,df.stats.fxet,df.stats.sexo, df.stats.tipouser)
+df.stats <- rbind(df.stats.cep,df.stats.fxet,df.stats.sexo, df.stats.tipouser)
+knitr::kable(df.stats, digits = 3,format = "html")
 ```
 
 ### Plots de Médias de Scores Por sexo ###
@@ -298,13 +352,6 @@ pc7 <- my.scores.total %>% group_by(sexo) %>%
          xaxis = list(title = "PC7 score",
                       range = c(-0.4, 0.4)))
 pc7
-
-#pc1 <- plot_ly(mean.scores.sexo, y = PC1.medio, color = sexo, type = "point")
-#pc1 <- layout(pc1, title = "Componente PC1")
-#pc1
-
-#grid.arrange(pc1, pc2, nrow=1, ncol=2)
-# multiplot(pc1, pc2, cols=2)
 ```
 
 ### Plots de Médias de Scores Por Idade ###
@@ -386,107 +433,6 @@ pc7 <- my.scores.total %>% group_by(idade) %>%
          xaxis = list(title = "PC7 score",
                       range = c(-4, 4)))
 pc7
-#df <- my.scores.total %>% group_by(idade) %>%
-#  summarise(mn = mean(PC3), sd = 1.96 * sd(PC1))
-#df <- as.data.frame(df)
-#set.seed(101)
-
-#km <- kmeans(df[,1:2], 2)
-
-#plot(df[,1], df[,2], col=km$cluster)
-#points(km$centers[,c(1,2)], col=1:2, pch=19, cex=2)
-```
-
-### Plots de Médias de Scores Por Cidade ###
-
-No ordenamento por média, existe clara tendência de algumas cidades apresentarem resultados opostos nos componentes.
-Cabe uma análise tentando identificar o que agrupa estas cidades (Por exemplo, se são da mesma região, porte da cidade, renda per-capita, etc.).
-
-```{r, echo=FALSE, warning=FALSE}
-pc1 <- my.scores.total %>% group_by(cidade) %>%
-  summarise(mn = mean(PC1), sd = 1.96 * sd(PC1)) %>%
-  arrange(desc(mn)) %>%
-  plot_ly(x = mn, y = cidade, error_x = list(value = sd),
-          mode = "markers", 
-          name = "Agrupado por Cidade") %>%
-    layout(yaxis = list(title = "cidade"),
-         xaxis = list(title = "PC1 score",
-                      range = c(-4, 5)))
-pc1
-
-pc2 <- my.scores.total %>% group_by(cidade) %>%
-  summarise(mn = mean(PC2), sd = 1.96 * sd(PC2)) %>%
-  arrange(desc(mn)) %>%
-  plot_ly(x = mn, y = cidade, error_x = list(value = sd),
-          mode = "markers", 
-          name = "Agrupado por Cidade") %>%
-    layout(yaxis = list(title = "cidade"),
-         xaxis = list(title = "PC2 score",
-                      range = c(-4, 5)))
-pc2
-
-pc3 <- my.scores.total %>% group_by(cidade) %>%
-  summarise(mn = mean(PC3), sd = 1.96 * sd(PC3)) %>%
-  arrange(desc(mn)) %>%
-  plot_ly(x = mn, y = cidade, error_x = list(value = sd),
-          mode = "markers", 
-          name = "Agrupado por Cidade") %>%
-    layout(yaxis = list(title = "cidade"),
-         xaxis = list(title = "PC3 score",
-                      range = c(-4, 5)))
-pc3
-
-pc4 <- my.scores.total %>% group_by(cidade) %>%
-  summarise(mn = mean(PC4), sd = 1.96 * sd(PC4)) %>%
-  arrange(desc(mn)) %>%
-  plot_ly(x = mn, y = cidade, error_x = list(value = sd),
-          mode = "markers", 
-          name = "Agrupado por Cidade") %>%
-    layout(yaxis = list(title = "cidade"),
-         xaxis = list(title = "PC4 score",
-                      range = c(-4, 5)))
-pc4
-
-pc5 <- my.scores.total %>% group_by(cidade) %>%
-  summarise(mn = mean(PC5), sd = 1.96 * sd(PC5)) %>%
-  arrange(desc(mn)) %>%
-  plot_ly(x = mn, y = cidade, error_x = list(value = sd),
-          mode = "markers", 
-          name = "Agrupado por Cidade") %>%
-    layout(yaxis = list(title = "cidade"),
-         xaxis = list(title = "PC5 score",
-                      range = c(-4, 5)))
-pc5
-
-pc6 <- my.scores.total %>% group_by(cidade) %>%
-  summarise(mn = mean(PC6), sd = 1.96 * sd(PC6)) %>%
-  arrange(desc(mn)) %>%
-  plot_ly(x = mn, y = cidade, error_x = list(value = sd),
-          mode = "markers", 
-          name = "Agrupado por Cidade") %>%
-    layout(yaxis = list(title = "cidade"),
-         xaxis = list(title = "PC6 score",
-                      range = c(-4, 5)))
-pc6
-
-pc7 <- my.scores.total %>% group_by(cidade) %>%
-  summarise(mn = mean(PC7), sd = 1.96 * sd(PC7)) %>%
-  arrange(desc(mn)) %>%
-  plot_ly(x = mn, y = cidade, error_x = list(value = sd),
-          mode = "markers", 
-          name = "Agrupado por Cidade") %>%
-    layout(yaxis = list(title = "cidade"),
-         xaxis = list(title = "PC7 score",
-                      range = c(-4, 5)))
-pc7
-
-# por CEP cabe um scatter plot!!!!
-#pc1 <- my.scores.total %>% group_by(cidade) %>%
-#  summarise(mn = mean(PC1), sd = 1.96 * sd(PC1)) %>%
-#  arrange(desc(mn)) %>%
-#  plot_ly(x = cidade, y = mn, mode = "markers")
-#pc1
-
 ```
 
 ### Plots de Médias de Scores Por CEP ###
