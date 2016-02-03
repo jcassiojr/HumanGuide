@@ -59,7 +59,7 @@ my.cor <- cor(df_tidy_hg[,7:14],method = "spearman")
 corrplot.mixed(my.cor, insig = "p-value", sig.level = -1, is.corr = TRUE)
 ```
 
-O plot acima mostra na metade superior a força da correlação entre os fatores, expressa por meio do tamanho do círculo e da intensidade de sua cor. Na parte inferior o **p-value** relcionado a medida de correlação.
+O plot acima mostra na metade superior a força da correlação entre os fatores, expressa por meio do tamanho do círculo e da intensidade de sua cor. Na parte inferior o valor relacionado à medida de correlação.
 
 ```{r, echo=FALSE}
 #pairs(df_tidy_hg[,3:10], main = "Matriz de Dispersão (feminino: green, masculino: red)", 
@@ -218,8 +218,8 @@ Cada componente sendo uma combinação linear das variáveis (8 fatores). Os coe
 ```
 
 ##### Scores ##### 
-Os scores são calculados a partir da recombinação dos 8 fatores originais nos novos componentes. Eles representam o z-score do candidato em relação ao componente, ou seja, indica o número de desvios padrão acima ou abaixo do valor médio para o componente. Neste caso, por exemplo, como cada componente representa um par de categorias opostas, quanto mais o candidato se afasta da média, tanto positiva quanto negativamente, significa que ele apresenta com maior força aquela categoria representada.
-Abaixo são mostrados os cinco primeiros scores de todas as observações, associados aos novos componentes:
+Os scores são calculados a partir da recombinação dos 8 fatores originais nos novos componentes. Eles representam o z-score do candidato em relação ao componente, ou seja, indica o número de desvios padrão acima ou abaixo do valor médio para o componente. Neste caso, por exemplo, como cada componente representa um par de categorias opostas, quanto mais o candidato se afasta da média, tanto positiva quanto negativamente, significa que ele apresenta com maior força aquela característica representada pelo componente.
+Abaixo são mostrados os seis primeiros scores de todas as observações, associados aos novos componentes:
 ```{r, echo=FALSE}
     # head(pca1$x)
     #knitr::kable(head(pca1$x), digits = 4)
@@ -243,7 +243,7 @@ Um critério que pode ser usado para reduzir os componentes é o de selecionar a
     print(my.kayser.crit)
 ```
 
-Caso se opte pelo critério acima, deve-se considerar os cinco primeiros componentes no prosseguimento da análise 
+Caso se opte pelo critério acima, deve-se considerar os três primeiros componentes no prosseguimento da análise 
 
 ##### Redução pelo Scree plot ##### 
 
@@ -253,7 +253,7 @@ Um outro critério que pode ser usado para reduzir os componentes é o plotar as
     screeplot(pca1, main = "Scree Plot - Human Guide", type = "lines")
 ```
 
-Nesta abordagem, pode-se identificar um patamar inicial levemente destacado com os quatro primeiros componentes sendo mais significativos e um segundo patamar mais destacado com os sete primeiros componentes. No caso do primeiro patamar, verifica-se que estes componentes são responsáveis por cerca de *64%* da variação dos dados. 
+Nesta abordagem, pode-se identificar um patamar inicial levemente destacado com os três primeiros componentes sendo mais significativos e um segundo patamar mais destacado com quatro componentes. No caso do primeiro patamar, verifica-se que estes componentes são responsáveis por cerca de *61.5%* da variação dos dados, enquanto se considerarmos os 7 primeiros componentes, esta cobertura é de pratiamente *100%*. 
 
 #### Aplicando a rotação Varimax para interpretar os componentes ####
 
@@ -276,7 +276,7 @@ Opta-se, neste caso, pelo uso de 8 componentes para a rotação, de acordo com o
 ##### Plotando os fatores de acordo com os componentes após a rotação ##### 
 
 O plot abaixo mostra os eigenvalues dos fatores em relação aos pares de componentes encontrados.
-Obs: no momento somente para os 3 primeiros componentes (complementar a documentação final com todas as combinações)
+Obs: no momento somente para os 3 primeiros componentes mais significativos.
 
 ##### Componentes PC1 e PC2 #####
 
@@ -376,69 +376,48 @@ Obs: no momento somente para os 3 primeiros componentes (complementar a document
 
 ### Prevendo Scores de Novas Amostras ###
 
-A partir do modelo obtido com a Análise de Componentes Principais é possível posicionar novos candidatos em relação a seus scores nos componentes, conforme exemplificado abaixo, para 200 candidatos da amostra selecionados aleatóriamente.
-
-Considerando a pontuação dos candidatos abaixo (como amostra, mostramos somente os 10 primeiros):
+A partir do modelo obtido com a Análise de Componentes Principais é possível posicionar novos candidatos em relação a seus scores nos componentes, conforme exemplificado abaixo, para 200 candidatos da amostra selecionados aleatóriamente.Este é um exemplo de saída gráfica que pode ser disponibilizada para grupo de pessoas que realizem o teste **Human Guide**.
 
 ```{r, echo=FALSE}
-    #my.newdata <- head(df_tidy_hg[,c(1,2,3:10)])
+
+# A partir do modelo obtido com a Análise de Componentes Principais é possível posicionar novos
+# candidatos em relação a seus scores nos componentes, conforme exemplificado abaixo, para 200
+# candidatos da amostra selecionados aleatóriamente.
+
+# Considerando a pontuação dos candidatos abaixo (como amostra, mostramos somente os 10
+# primeiros):
+
     # cuidado que os IDs de rh99, Kroton e goe files se repetem!!!
     my.newdata <- 
         df_tidy_hg %>%
-        sample_n(100)
+        sample_n(200)
     # removing rownames
     rownames(my.newdata) <- NULL
     #print (my.newdata)
-    knitr::kable(head(my.newdata[,c(1:2,7:14)], n = 10))
+    #knitr::kable(head(my.newdata[,c(1:2,7:14)], n = 10))
 ```
 
-Aplicando o modelo, podemos obter os seguintes scores (como amostra, mostramos somente os 10 primeiros):
 ```{r, echo=FALSE}
+#    Aplicando o modelo, podemos obter os seguintes scores (como amostra, mostramos 
+# somente os 10 primeiros):
+
     # colocar aqui a diferenciação por cor e plotar os valores com as cores em 3D
     my.prev <- as.data.frame(predict(pca1, newdata=my.newdata))
     my.prev <- cbind(my.newdata, PC1 = my.prev$PC1, PC2 = my.prev$PC2, PC3 = my.prev$PC3)
     # removing rownames
     rownames(my.prev) <- NULL
-    #print(my.prev[,c(1,10:12)])
-    #ncomp <- 4
-    #my.scores <- scale(pca1$x[,1:ncomp]) %*% varimax(rawLoadings)$rotmat # score considerando Varimax
     
-    knitr::kable(head(my.prev[,c(1,2,15:17)], n = 10))
+    #knitr::kable(head(my.prev[,c(1,2,15:17)], n = 10))
 ```
 
-Considerando com cores direrentes os tipos de usuários: KROTON, AMBEV e FUNCIONÁRIO PÚBLICO, o gráfico abaixo permite uma análise das distribuições das previsões por tipo de usuário
+Considerando com cores direrentes os tipos de usuários: KROTON, AMBEV e FUNCIONÁRIO PÚBLICO, o gráfico abaixo permite uma análise inicial das distribuições das previsões por tipo de usuário
 ```{r, echo=FALSE}
-# aplicando a HG
-#library(scatterplot3d)
-# create column indicating point color
-#my.prev$pcolor[my.prev$TIPOUSER=="FUNC PUBLICO"] <- "red"
-#my.prev$pcolor[my.prev$TIPOUSER=="AMBEV"] <- "blue"
-#my.prev$pcolor[my.prev$TIPOUSER=="KROTON"] <- "green3"
-                         
-#with(my.prev, {
-#    s3d <- scatterplot3d(PC1, PC2, PC3,
-#                         color=pcolor, pch=19,
-#                         type="h", lty.hplot=2,
-#                         scale.y=.75,
-#                         main="3-D Scatterplot de Scores",
-#                         xlab="PC1",
-#                         ylab="PC2",
-#                         zlab="PC3")
-#    s3d.coords <- s3d$xyz.convert(PC1, PC2, PC3)
-#    # comentar as 3 linhas abaixo para eliminar o ID como label dos pontos (somente cores)
-#    #text(s3d.coords$x, s3d.coords$y,
-#    #     labels=row.names(my.prev),
-#    #     pos=4, cex=.5)
-#    legend("topright", inset=.05,
-#           bty="n", cex=.5,
-#           title="Tipo do Usuário",
-#           c("FUNC PUBLICO", "AMBEV", "KROTON"), fill=c("red", "blue", "green"))
-#})
-# plotly
+
     # eliminando linhas com TIPOUSER INDEFINIDO
     my.prev <-
         my.prev %>%
-        mutate(TIPOUSER = ifelse(TIPOUSER == "", "INDEFINIDO", as.character(TIPOUSER)))
+        mutate(TIPOUSER = ifelse(TIPOUSER == "", "INDEFINIDO", as.character(TIPOUSER))) %>%
+        filter(!(TIPOUSER == "INDEFINIDO"))
 require("plotly", quietly = TRUE, warn.conflicts = FALSE)
 pc1 <- plot_ly(my.prev, x = PC1, y = PC2, z = PC3, color = TIPOUSER, type = "scatter3d", mode = "markers")
 pc1 <- layout(pc1, title = "Scores Médios por Perfil de Organização - PC1 x PC2 X PC3")
@@ -446,231 +425,4 @@ pc1
     
 # fim plotly
     
-```
-
-
-A saída acima pode ser aplicada a um algoritmo para classificar candidato nos componentes associados.
-
-## Análise de Scores Médios ##
-
-### Plotando os scores médios de acordo com área de formação ###
-
-Abaixo, plotamos os scores médios para os 3 primeiros componentes, de forma a identificar a clusterização de dados segundo a área de formação dos respondentes (EXATAS, HUMANAS e BIOLÓGICAS).
-
-```{r, echo=FALSE}
-my.newdata <- df_tidy_hg
-# obtendo os scores previstos
-pca1 = prcomp(my.newdata[,7:14], scale. = TRUE, center = TRUE)
-# calculando os scores
-my.prev <- as.data.frame(predict(pca1, newdata=my.newdata))
-my.prev.form <- cbind(formacao.em = my.newdata$formacao.em, my.prev)
-# obtendo o score médio por formacao
-# OBS: repetir esta análise para agrupar por campo de atividade
-my.prev.form <-
-    my.prev.form %>%
-    group_by(formacao.em) %>%
-    summarise(PC1.medio = mean(PC1),
-              PC2.medio = mean(PC2),
-              PC3.medio = mean(PC3),
-              PC4.medio = mean(PC4),
-              PC5.medio = mean(PC5),
-              PC6.medio = mean(PC6),
-              PC7.medio = mean(PC7),
-              PC8.medio = mean(PC8))
-# classificando por área de formação
-my.area <- as.data.frame(my.prev.form[,1])
-my.area <-
-    my.area %>%
-    mutate(area.formacao = ifelse(formacao.em %in% c("Música",
-                                                     "Publicidade e Propaganda",
-                                                     "Comunicação e Marketing",
-                                                     "Estilismo e Moda",
-                                                     "Relações Internacionais",
-                                                     "Radialismo e Televisão",
-                                                     "Jornalismo",
-                                                     "Turismo",
-                                                     "Administração Hoteleira",
-                                                     "Administração",
-                                                     "Arquitetura e Urbanismo",
-                                                     "Economia",
-                                                     "Ciências Sociais",
-                                                     "Administração de Recursos Humanos",
-                                                     "Ensino Fundamental",
-                                                     "Direito",
-                                                     "Contabilidade + Informação",
-                                                     "Gestão Industrial",
-                                                     "Logistica",
-                                                     "Economia Doméstica",
-                                                     "Ciências Contábeis",
-                                                     "História",
-                                                     "Serviço Social",
-                                                     "Ensino Técnico",
-                                                     "Secretariado",
-                                                     "Pedagogia",
-                                                     "Letras",
-                                                     "Geografia",
-                                                     "Educação",
-                                                     "Ensino Médio",
-                                                     "Tecnólogo em Gestão de Recursos Humanos"),1, # PRETO
-                                  ifelse(formacao.em %in% c("Terapia Ocupacional",
-                                                            "Psicologia",
-                                                            "Farmacêutica Bioquímica",
-                                                            "Nutrição",
-                                                            "Medicina Veterinária",
-                                                            "Biomedicina",
-                                                            "Farmácia",
-                                                            "Educação Física",
-                                                            "Fonoaudiologia",
-                                                            "Enfermagem",
-                                                            "Ciências Biológicas",
-                                                            "Odontologia",
-                                                            "Fisioterapia",
-                                                            "Medicina",
-                                                            "Zootecnia"), 2, # VERMELHO
-                                         ifelse(formacao.em %in% c("Ciências Atuariais",
-                                                                   "Engenharia de Pesca",
-                                                                   "Ciências Econômicas",
-                                                                   "Engenharia Metalurgica",
-                                                                   "Engenharia de Alimentos",
-                                                                   "Engenharia da Computação",
-                                                                   "Engenharia Florestal",
-                                                                   "Agronomia",
-                                                                   "Engenharia Industrial",
-                                                                   "Engenharia de Produção",
-                                                                   "Engenharia Química",
-                                                                   "Engenharia Bioquimica",
-                                                                   "Computação",
-                                                                   "Engenharia Civil",
-                                                                   "Engenharia Agricola",
-                                                                   "Telecomunicações",
-                                                                   "Engenharia Ambiental",
-                                                                   "Biotecnologia",
-                                                                   "Ensino Tecnológico",
-                                                                   "Gestão da Informação",
-                                                                   "Estatística",
-                                                                   "Engenharia de Controle e Automação",
-                                                                   "Engenharia Elétrica",
-                                                                   "Engenharia Mecânica",
-                                                                   "Agrimensura",
-                                                                   "Geologia",
-                                                                   "Química",
-                                                                   "Engenharia Hidrica",
-                                                                   "Física",
-                                                                   "Eletrotécnica",
-                                                                   "Mecânica",
-                                                                   "Matemática",
-                                                                   "Engenharia da Segurança no Trabalho"), 3, # VERDE
-                                                0))))
-my.prev.form <- cbind(area.formacao = my.area$area.formacao, my.prev.form)
-
-#-------------------------------------------------
-# plot de cluster 
-#--------------------------------
-#plot(my.prev.form$PC1.medio, my.prev.form$PC2.medio, 
-#     col=my.prev.form$area.formacao,
-#     main = "Clusters por Área de Formação (PC1 x PC2)",
-#     xlab = "PC1", ylab = "PC2")
-#legend("topright", inset=.05,
-#       bty="n", cex=.5,
-#       title="Área de Formação",
-#       c("BIOLÓGICAS", "HUMANAS", "EXATAS"), fill=c("red", "black", "green"))
-
-# plotly
-# boxplot por área de formação
-require("plotly", quietly = TRUE, warn.conflicts = FALSE)
-# PC1
-my.prev.form2 <-
-    my.prev.form %>%
-    mutate(area.form.text = ifelse(area.formacao == 1, "HUMANAS",
-                                   ifelse(area.formacao == 2, "BIOLÓGICAS", "EXATAS")))
-
-### setting parameters
-#par(mfrow = c(2,2), mar =c(5,4,2,1))
-    
-pc1 <- plot_ly(my.prev.form2, x = PC1.medio, y = PC2.medio, color = area.form.text, type = "scatter", mode = "markers")
-pc1 <- layout(pc1, title = "Scores Médios por Área de Formação - PC1 x PC2")
-pc1
-
-pc2 <- plot_ly(my.prev.form2, x = PC2.medio, y = PC3.medio, color = area.form.text, type = "scatter", mode = "markers")
-pc2 <- layout(pc2, title = "Scores Médios por Área de Formação - PC2 x PC3")
-pc2
-
-pc3 <- plot_ly(my.prev.form2, x = PC1.medio, y = PC3.medio, color = area.form.text, type = "scatter", mode = "markers")
-pc3 <- layout(pc1, title = "Scores Médios por Área de Formação - PC1 x PC3")
-pc3
-# fim plotly
-
-#require("Rmisc", quietly = TRUE, warn.conflicts = FALSE)
-# multiplot(pc1, pc2, pc3, cols=2)
-
-
-#plot(my.prev.form$PC2.medio, my.prev.form$PC3.medio, col=my.prev.form$area.formacao,
-#     main = "Clusters por Área de Formação (PC2 x PC3)",
-#     xlab = "PC2", ylab = "PC3")
-#legend("topright", inset=.05,
-#       bty="n", cex=.5,
-#       title="Área de Formação",
-#       c("BIOLÓGICAS", "HUMANAS", "EXATAS"), fill=c("red", "black", "green"))
-
-#plot(my.prev.form$PC1.medio, my.prev.form$PC3.medio, col=my.prev.form$area.formacao,
-#     main = "Clusters por Área de Formação (PC1 x PC3)",
-#     xlab = "PC1", ylab = "PC3")
-#legend("topright", inset=.05,
-#       bty="n", cex=.5,
-#       title="Área de Formação",
-#       c("BIOLÓGICAS", "HUMANAS", "EXATAS"), fill=c("red", "black", "green"))
-
-
-#p <- plot_ly(midwest, x = percollege, color = state, type = "box")
-# testar com plot de scores por tipo formacao
-
-```
-
-### Componente PC1 ###
-
-```{r, echo=FALSE}
-# PC1
-pc1 <- plot_ly(my.prev.form2, x = PC1.medio, color = area.form.text, type = "box")
-pc1 <- layout(pc1, title = "Scores médios por Área de Formação - PC1")
-pc1
-```
-
-### Componente PC2 ###
-
-```{r, echo=FALSE}
-# PC2
-pc2 <- plot_ly(my.prev.form2, x = PC2.medio, color = area.form.text, type = "box")
-pc2 <- layout(pc2, title = "Scores médios por Área de Formação - PC2")
-pc2
-```
-
-### Componente PC3 ###
-
-```{r, echo=FALSE}
-# PC3
-pc3 <- plot_ly(my.prev.form2, x = PC3.medio, color = area.form.text, type = "box")
-pc3 <- layout(pc3, title = "Scores médios por Área de Formação - PC3")
-pc3
-
-```
-
-### Plotando 3D - Scores Médios por Área de Formação - PC1 x PC2 x PC3 ###
-
-```{r, echo=FALSE}
-require("plotly", quietly = TRUE, warn.conflicts = FALSE)
-pc1 <- plot_ly(my.prev.form2, x = PC1.medio, y = PC2.medio, z = PC3.medio, color = area.form.text, type = "scatter3d", mode = "markers")
-pc1 <- layout(pc1, title = "Scores Médios por Área de Formação - PC1 x PC2 X PC3")
-pc1
-```
-
-
-```{r, echo=FALSE}
-# Omega
-#library(psych)
-#HG.cor <- cor(my.scores.total[,6:13])
-#HG.o1 <- omega(HG.cor, nfactors = 3, n.iter = 1, fm = "ml", poly = F, digits = 3,
-#               n.obs = 116603, rotate = "oblimin")
-
-#HG.omega
-
 ```
