@@ -1,19 +1,22 @@
 ---
-title: "Análise Descritiva - Preditiva / Classificatória - DRAFT"
+title: "Análise Preditiva - Classificatória"
 author: "Cassio"
-date: "January 19, 2016"
+date: "February 3, 2016"
 output: 
    html_document
 ---
 
 <center>![agileBIGDATA](./logoAgileBD.png)</center>
 
-Este documento descreve a análise descritiva exploratória/preditiva, realizada com o objetivo de definir um algoritmo que classifique o resultado do teste **Human Guide** de um respondente.
-A partir da análise realizada, chegou-se a dois algoritmos de classificação: um levando em conta os campos profissionais definidos por Levenfus e outro considerando somente a pontuação do respondente em relação aos componentes.
+Este documento descreve a análise preditiva realizada com o objetivo de definir um algoritmo que classifique o resultado do teste **Human Guide** de um respondente.
+A partir da análise realizada, chegou-se a dois algoritmos de classificação: 
+
++ Classificação do respondente em relação aos campos profissionais definidos por Levenfus
++ Classificação do respondente em relação aos componentes.
 
 ### Análise de Aderência do Modelo de Componentes com os Campos Profissionais ###
 
-Antes das análises, foi validado que os scores dos componentes dados históricos seguem uma distribuição normal. Este fato comprova que podemos usar de forma adequada as médias dos scores para as análises posteriores.
+Antes das análises, foi necessário que os scores dos componentes dos dados históricos seguem uma distribuição normal. Este fato comprova que pode-se usar de forma adequada as médias dos scores para as análises posteriores.
 
 ```{r,echo=FALSE}
 
@@ -154,8 +157,8 @@ df_change <-
 
 #### Avaliando a Normalidade dos Scores da Amostra ####
 
-Tomando somente a amostra que tem as carreiras definidas entre os respondentes obtemos 76545 observações e seus respectivos scores calculados.
-Analisando os histogramas dos scores por componentes abaixo verificamos que a distribuição é bme próxima da normal, indicando que uma análise das médias dos scores se mostra adequada para a análise que se segue referente à classificação dos respondentes do teste Human Guide nos campos profissionais definidos.
+Tomando somente a amostra que tem as carreiras definidas entre os respondentes, obtemos 76545 observações e seus respectivos scores calculados.
+Analisando os histogramas dos scores por componentes abaixo, verificamos que a distribuição é bem próxima da normal, indicando que uma análise das médias dos scores se mostra adequada para a análise que se segue referente à classificação dos respondentes do teste **Human Guide** em relação aos campos profissionais definidos.
 
 ```{r,echo=FALSE}
 # comprovando que a distribuição dos scores é aproximadamente normal, assim a média é ok para usar nas previsões
@@ -272,15 +275,15 @@ my.PC.Campo.t <-
 #knitr::kable(my.PC.Campo.t[1:7,1:11])
 ```
 
-#### Definição do Conceito de Assinatura ####
+#### Definição do Conceito de Perfil de Teste ####
 
-Validado o uso das médias, foi criado o conceito de **assinatura**, onde se considerou que a distribuição média dos scores de componentes para um dado campo profissional, obtidas dos dados históricos, é característica única do mesmo.
+Validado o uso das médias, foi criado o conceito de **perfil de teste**, onde se considerou que a distribuição média dos scores de componentes para um dado campo profissional, obtidas dos dados históricos, é característica única do mesmo.
 
 A análise a seguir procura mostrar a validade desta premissa.
-Como cada assinatura pode ser representada como uma curva, conforme mostram os plots abaixo, foi feita uma análise de correlação entre as assinaturas dos campos profissionais, de forma a validar que campos similares tenham correlação positiva significativa e campo ssem similaridades apresentem correlação negativa significativa.
+Como cada **perfil do teste** pode ser representado como uma curva, conforme mostram os plots abaixo, foi feita uma análise de correlação entre os **perfis de teste** dos campos profissionais, de forma a validar que campos similares tenham correlação positiva significativa e campo sem similaridade apresentem correlação negativa significativa.
 
 ```{r,echo=FALSE}
-# considerando apenas as médias para a assinatura
+# considerando apenas as médias para a perfil do teste
 require("Rmisc", quietly = TRUE, warn.conflicts = FALSE)
 require("gridExtra", quietly = TRUE, warn.conflicts = FALSE)
 require("ggplot2", quietly = TRUE, warn.conflicts = FALSE)
@@ -322,9 +325,9 @@ grid.arrange(cpo1, cpo2,cpo3, cpo4,cpo5, cpo6, cpo7, cpo8, cpo9, cpo10, nrow=3, 
 #multiplot(cpo1, cpo2, cpo3, cpo4, cpo5, cpo6, cpo7, cpo8, cpo9, cpo10, cols=2)
 ```
 
-### Análise da Correlação entre as Assinaturas dos campos profissionais ###
+### Correlação entre os Perfis de Teste dos Campos Profissionais ###
 
-A análise realizada mostra como as assinaturas de cada campo profissional se correlacionam, indicando campos que sejam similares ou opostos mais fortemente.
+A análise realizada mostra como os **perfis de teste** de cada campo profissional se correlacionam, indicando campos que sejam similares ou opostos mais fortemente.
 Na figura abaixo, a cor azul mostra a intensidade da correlação positiva, enquanto a cor magenta mostra a intensidade da correlação negativa entre pares de campos profissionais. Na parte inferior à esquerda aparecem os valores das correlações.
 
 ```{r,echo=FALSE}
@@ -333,9 +336,9 @@ my.cor <- cor(my.PC.Campo.t[1:7,1:10])
 corrplot.mixed(my.cor, insig = "p-value", sig.level = -1, is.corr = TRUE)
 ```
 
-### Correlação das Assinaturas dos Campos Profissionais com a Assinatura de um Respondente Selecionado ###
+### Correlação dos Perfis de Campos Profissionais x Respondente Selecionado ###
 
-Como um exemplo de análise que pode ser feita em relação a assinatura de um respondente específico do teste Human Guide, pode ser colocado o score de determinado respondente no quadro de correlações acima par examinar onde o respondente se encaixa.
+Como um exemplo de análise que pode ser feita em relação ao **perfil de teste** de um respondente específico do teste **Human Guide**, pode ser colocado o score de determinado respondente no quadro de correlações acima par examinar onde o respondente se encaixa.
 
 ```{r,echo=FALSE}
 my.PC.Campo.t.nomes <- my.PC.Campo.t
@@ -345,9 +348,9 @@ my.cor.alex <- cor(my.PC.Campo.t.nomes[1:7,c(1:10,13)])
 corrplot.mixed(my.cor.alex, insig = "p-value", sig.level = -1, is.corr = TRUE)
 ```
 
-### Correlação das assinaturas entre Respondentes Selecionados ###
+### Correlação dos Perfis de Teste entre Respondentes Selecionados ###
 
-Também comparamos a correlação das assinaturas de respondentes conhecidos, sem levar em conta seus campos profisisonais, com a intenção de avaliar se este tipo de análise mostra similaridade ou não de assinaturas individuais. 
+Também comparamos a correlação dos **perfis de teste** de respondentes conhecidos, sem levar em conta seus campos profisisonais, com a intenção de avaliar se este tipo de análise mostra similaridade ou não de **perfis de teste** individuais. 
 
 ```{r,echo=FALSE}
 scores.arlindo <- c(6.215298989, -0.179402156,2.192249661,-0.629228456,1.445510203,0.721397732, -0.934846735)
@@ -434,7 +437,7 @@ lims.corr <- c(.6, .3, .1) # classificação cass
 
 # funcao que gera a tabela de classificacao do respondente
 # obs: somente valores de scores médios, sem linhas de desvio padrao para my.PC.Campo.t
-df_class.resp <- f_classifica_HG(nome.resp,scores.alex, my.PC.Campo.t[1:7,], lims.corr)
+df_class.resp <- suppressWarnings(f_classifica_HG(nome.resp,scores.alex, my.PC.Campo.t[1:7,], lims.corr))
 #plotar
 df_class.resp <-
     df_class.resp %>%
