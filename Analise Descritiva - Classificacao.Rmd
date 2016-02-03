@@ -284,7 +284,7 @@ Como cada **perfil do teste** pode ser representado como uma curva, conforme mos
 
 ```{r,echo=FALSE}
 # considerando apenas as médias para a perfil do teste
-require("Rmisc", quietly = TRUE, warn.conflicts = FALSE)
+#require("Rmisc", quietly = TRUE, warn.conflicts = FALSE)
 require("gridExtra", quietly = TRUE, warn.conflicts = FALSE)
 require("ggplot2", quietly = TRUE, warn.conflicts = FALSE)
 cpo1 <- ggplot(my.PC.Campo.t[1:7,], aes(x=ID.PC, y=CFM, ymin = -0.3, ymax = 0.3)) +
@@ -442,6 +442,10 @@ df_class.resp <- suppressWarnings(f_classifica_HG(nome.resp,scores.alex, my.PC.C
 df_class.resp <-
     df_class.resp %>%
     mutate(ID.campo = seq(nrow((df_class.resp))))
+# classificando class.campo para ordenar no label ggplot
+df_class.resp$class.campo <- factor(df_class.resp$class.campo, 
+                                    levels = c("marcante","moderado","fraco","inexpressivo"))
+
 # plot com pontos
 #qplot(df_class.resp$campo.prof,df_class.resp$corr, colour = df_class.resp$class.campo)
 # alternativa
@@ -502,20 +506,20 @@ my.classif <-
 # inserindo o atributo do componente (positivo ou negativo)
     my.classif <-
         my.classif %>%
-        mutate(atributo = ifelse(scores.pessoa >= 0 & componente == "PC1","OPENNESS/EXPLORATION",
-                         ifelse(scores.pessoa < 0 & componente == "PC1","COMPLIANCE/OBSERVÂNCIA",
-                         ifelse(scores.pessoa >= 0 & componente == "PC2","AGREEABLENESS/AMABILIDADE",
-                         ifelse(scores.pessoa < 0 & componente == "PC2","ANALÍTICO E INDEPENDENTE/FOCO EM RESULTADO",
-                         ifelse(scores.pessoa >= 0 & componente == "PC3","INVESTIGATIVO/RESEARCH ORIENTED",
-                         ifelse(scores.pessoa < 0 & componente == "PC3","COMMITMENT/ENGAJAMENTO",
-                         ifelse(scores.pessoa >= 0 & componente == "PC4","PEOPLE DEVELOPMENT ORIENTED",
-                         ifelse(scores.pessoa < 0 & componente == "PC4","TASK ORIENTED/ORIENTAÇÃO PARA A TAREFA",
-                         ifelse(scores.pessoa >= 0 & componente == "PC5","EXTROVERSÃO/AUTENTICIDADE",
-                         ifelse(scores.pessoa < 0 & componente == "PC5","SOBRIEDADE/COMPOSTURA/COMEDIMENTO",
+        mutate(atributo = ifelse(scores.pessoa >= 0 & componente == "PC1","OPENNESS",
+                         ifelse(scores.pessoa < 0 & componente == "PC1","COMPLIANCE",
+                         ifelse(scores.pessoa >= 0 & componente == "PC2","AGREEABLENESS",
+                         ifelse(scores.pessoa < 0 & componente == "PC2","FOCO EM RESULTADO",
+                         ifelse(scores.pessoa >= 0 & componente == "PC3","RESEARCH ORIENTED",
+                         ifelse(scores.pessoa < 0 & componente == "PC3","COMMITMENT",
+                         ifelse(scores.pessoa >= 0 & componente == "PC4","PEOPLE ORIENTED",
+                         ifelse(scores.pessoa < 0 & componente == "PC4","TASK ORIENTED",
+                         ifelse(scores.pessoa >= 0 & componente == "PC5","EXTROVERSION",
+                         ifelse(scores.pessoa < 0 & componente == "PC5","SOBRIEDADE",
                          ifelse(scores.pessoa >= 0 & componente == "PC6","MANAGEMENT",
-                         ifelse(scores.pessoa < 0 & componente == "PC6","ASSISTÊNCIA/RECEPTIVIDADE ATIVA",
-                         ifelse(scores.pessoa >= 0 & componente == "PC7","AUSTERIDADE/PONDERAÇÃO",
-                         "ADAPTABILIDADE/AJUSTAMENTO"
+                         ifelse(scores.pessoa < 0 & componente == "PC6","RECEPTIVIDADE ATIVA",
+                         ifelse(scores.pessoa >= 0 & componente == "PC7","PONDERAÇÃO",
+                         "ADAPTABILIDADE"
         ))))))))))))))
 
 # inserindo classificaçao segundo intensidade do score
@@ -526,6 +530,8 @@ my.classif <-
                                            ifelse(perc <= lims.corr[2] & perc > lims.corr[3] ,"fraco",
                                                   "inexpressivo"
                                            ))))
+    my.classif$intensidade <- factor(my.classif$intensidade, 
+                                    levels = c("marcante","moderado","fraco","inexpressivo"))
        
 #knitr::kable(my.classif[,c(1,4,6,7)])
 
@@ -533,6 +539,9 @@ my.classif <-
 df_class.resp <-
     df_class.resp %>%
     mutate(ID.campo = seq(nrow((df_class.resp))))
+df_class.resp$class.campo <- factor(df_class.resp$class.campo, 
+                                    levels = c("marcante","moderado","fraco","inexpressivo"))
+    
 # plot com pontos
 #qplot(df_class.resp$campo.prof,df_class.resp$corr, colour = df_class.resp$class.campo)
 # alternativa
@@ -563,20 +572,20 @@ my.classif <-
 # inserindo o atributo do componente (positivo ou negativo)
     my.classif <-
         my.classif %>%
-        mutate(atributo = ifelse(scores.pessoa >= 0 & componente == "PC1","OPENNESS/EXPLORATION",
-                         ifelse(scores.pessoa < 0 & componente == "PC1","COMPLIANCE/OBSERVÂNCIA",
-                         ifelse(scores.pessoa >= 0 & componente == "PC2","AGREEABLENESS/AMABILIDADE",
-                         ifelse(scores.pessoa < 0 & componente == "PC2","ANALÍTICO E INDEPENDENTE/FOCO EM RESULTADO",
-                         ifelse(scores.pessoa >= 0 & componente == "PC3","INVESTIGATIVO/RESEARCH ORIENTED",
-                         ifelse(scores.pessoa < 0 & componente == "PC3","COMMITMENT/ENGAJAMENTO",
-                         ifelse(scores.pessoa >= 0 & componente == "PC4","PEOPLE DEVELOPMENT ORIENTED",
-                         ifelse(scores.pessoa < 0 & componente == "PC4","TASK ORIENTED/ORIENTAÇÃO PARA A TAREFA",
-                         ifelse(scores.pessoa >= 0 & componente == "PC5","EXTROVERSÃO/AUTENTICIDADE",
-                         ifelse(scores.pessoa < 0 & componente == "PC5","SOBRIEDADE/COMPOSTURA/COMEDIMENTO",
+        mutate(atributo = ifelse(scores.pessoa >= 0 & componente == "PC1","OPENNESS",
+                         ifelse(scores.pessoa < 0 & componente == "PC1","COMPLIANCE",
+                         ifelse(scores.pessoa >= 0 & componente == "PC2","AGREEABLENESS",
+                         ifelse(scores.pessoa < 0 & componente == "PC2","FOCO EM RESULTADO",
+                         ifelse(scores.pessoa >= 0 & componente == "PC3","RESEARCH ORIENTED",
+                         ifelse(scores.pessoa < 0 & componente == "PC3","COMMITMENT",
+                         ifelse(scores.pessoa >= 0 & componente == "PC4","PEOPLE ORIENTED",
+                         ifelse(scores.pessoa < 0 & componente == "PC4","TASK ORIENTED",
+                         ifelse(scores.pessoa >= 0 & componente == "PC5","EXTROVERSION",
+                         ifelse(scores.pessoa < 0 & componente == "PC5","SOBRIEDADE",
                          ifelse(scores.pessoa >= 0 & componente == "PC6","MANAGEMENT",
-                         ifelse(scores.pessoa < 0 & componente == "PC6","ASSISTÊNCIA/RECEPTIVIDADE ATIVA",
-                         ifelse(scores.pessoa >= 0 & componente == "PC7","AUSTERIDADE/PONDERAÇÃO",
-                         "ADAPTABILIDADE/AJUSTAMENTO"
+                         ifelse(scores.pessoa < 0 & componente == "PC6","RECEPTIVIDADE ATIVA",
+                         ifelse(scores.pessoa >= 0 & componente == "PC7","PONDERAÇÃO",
+                         "ADAPTABILIDADE"
         ))))))))))))))
 
 # inserindo classificaçao segundo intensidade do score
@@ -587,13 +596,16 @@ my.classif <-
                                            ifelse(perc <= lims.corr[2] & perc > lims.corr[3] ,"fraco",
                                                   "inexpressivo"
                                            ))))
-       
+       my.classif$intensidade <- factor(my.classif$intensidade, 
+                                    levels = c("marcante","moderado","fraco","inexpressivo"))
 #knitr::kable(my.classif[,c(1,4,6,7)])
 
 #plotar
 df_class.resp <-
     df_class.resp %>%
     mutate(ID.campo = seq(nrow((df_class.resp))))
+df_class.resp$class.campo <- factor(df_class.resp$class.campo, 
+                                    levels = c("marcante","moderado","fraco","inexpressivo"))
 # plot com pontos
 #qplot(df_class.resp$campo.prof,df_class.resp$corr, colour = df_class.resp$class.campo)
 # alternativa
@@ -624,20 +636,20 @@ my.classif <-
 # inserindo o atributo do componente (positivo ou negativo)
     my.classif <-
         my.classif %>%
-        mutate(atributo = ifelse(scores.pessoa >= 0 & componente == "PC1","OPENNESS/EXPLORATION",
-                         ifelse(scores.pessoa < 0 & componente == "PC1","COMPLIANCE/OBSERVÂNCIA",
-                         ifelse(scores.pessoa >= 0 & componente == "PC2","AGREEABLENESS/AMABILIDADE",
-                         ifelse(scores.pessoa < 0 & componente == "PC2","ANALÍTICO E INDEPENDENTE/FOCO EM RESULTADO",
-                         ifelse(scores.pessoa >= 0 & componente == "PC3","INVESTIGATIVO/RESEARCH ORIENTED",
-                         ifelse(scores.pessoa < 0 & componente == "PC3","COMMITMENT/ENGAJAMENTO",
-                         ifelse(scores.pessoa >= 0 & componente == "PC4","PEOPLE DEVELOPMENT ORIENTED",
-                         ifelse(scores.pessoa < 0 & componente == "PC4","TASK ORIENTED/ORIENTAÇÃO PARA A TAREFA",
-                         ifelse(scores.pessoa >= 0 & componente == "PC5","EXTROVERSÃO/AUTENTICIDADE",
-                         ifelse(scores.pessoa < 0 & componente == "PC5","SOBRIEDADE/COMPOSTURA/COMEDIMENTO",
+        mutate(atributo = ifelse(scores.pessoa >= 0 & componente == "PC1","OPENNESS",
+                         ifelse(scores.pessoa < 0 & componente == "PC1","COMPLIANCE",
+                         ifelse(scores.pessoa >= 0 & componente == "PC2","AGREEABLENESS",
+                         ifelse(scores.pessoa < 0 & componente == "PC2","FOCO EM RESULTADO",
+                         ifelse(scores.pessoa >= 0 & componente == "PC3","RESEARCH ORIENTED",
+                         ifelse(scores.pessoa < 0 & componente == "PC3","COMMITMENT",
+                         ifelse(scores.pessoa >= 0 & componente == "PC4","PEOPLE ORIENTED",
+                         ifelse(scores.pessoa < 0 & componente == "PC4","TASK ORIENTED",
+                         ifelse(scores.pessoa >= 0 & componente == "PC5","EXTROVERSION",
+                         ifelse(scores.pessoa < 0 & componente == "PC5","SOBRIEDADE",
                          ifelse(scores.pessoa >= 0 & componente == "PC6","MANAGEMENT",
-                         ifelse(scores.pessoa < 0 & componente == "PC6","ASSISTÊNCIA/RECEPTIVIDADE ATIVA",
-                         ifelse(scores.pessoa >= 0 & componente == "PC7","AUSTERIDADE/PONDERAÇÃO",
-                         "ADAPTABILIDADE/AJUSTAMENTO"
+                         ifelse(scores.pessoa < 0 & componente == "PC6","RECEPTIVIDADE ATIVA",
+                         ifelse(scores.pessoa >= 0 & componente == "PC7","PONDERAÇÃO",
+                         "ADAPTABILIDADE"
         ))))))))))))))
 
 # inserindo classificaçao segundo intensidade do score
@@ -648,13 +660,16 @@ my.classif <-
                                            ifelse(perc <= lims.corr[2] & perc > lims.corr[3] ,"fraco",
                                                   "inexpressivo"
                                            ))))
-       
+       my.classif$intensidade <- factor(my.classif$intensidade, 
+                                    levels = c("marcante","moderado","fraco","inexpressivo"))
 #knitr::kable(my.classif[,c(1,4,6,7)])
 
 #plotar
 df_class.resp <-
     df_class.resp %>%
     mutate(ID.campo = seq(nrow((df_class.resp))))
+df_class.resp$class.campo <- factor(df_class.resp$class.campo, 
+                                    levels = c("marcante","moderado","fraco","inexpressivo"))
 # plot com pontos
 #qplot(df_class.resp$campo.prof,df_class.resp$corr, colour = df_class.resp$class.campo)
 # alternativa
@@ -664,6 +679,10 @@ plot.pessoa <- ggplot(my.classif, aes(x=componente, y=perc, fill= intensidade)) 
     ggtitle(paste("Classificação de Respondente (", nome.resp,")"))
 #(plot.alex)
 # cria tabela para acompanhar o plot
+#mytheme <- theme.default(
+#    core = list(fg_params=list(cex = 0.1)),
+#    colhead = list(fg_params=list(cex = 0.1)),
+#    rowhead = list(fg_params=list(cex = 0.1)))
 tbl.pessoa <- tableGrob(my.classif[,c(1,4,6,7)], rows=NULL)
 # Plot chart and table into one object
 grid.arrange(plot.pessoa, tbl.pessoa,
@@ -685,20 +704,20 @@ my.classif <-
 # inserindo o atributo do componente (positivo ou negativo)
     my.classif <-
         my.classif %>%
-        mutate(atributo = ifelse(scores.pessoa >= 0 & componente == "PC1","OPENNESS/EXPLORATION",
-                         ifelse(scores.pessoa < 0 & componente == "PC1","COMPLIANCE/OBSERVÂNCIA",
-                         ifelse(scores.pessoa >= 0 & componente == "PC2","AGREEABLENESS/AMABILIDADE",
-                         ifelse(scores.pessoa < 0 & componente == "PC2","ANALÍTICO E INDEPENDENTE/FOCO EM RESULTADO",
-                         ifelse(scores.pessoa >= 0 & componente == "PC3","INVESTIGATIVO/RESEARCH ORIENTED",
-                         ifelse(scores.pessoa < 0 & componente == "PC3","COMMITMENT/ENGAJAMENTO",
-                         ifelse(scores.pessoa >= 0 & componente == "PC4","PEOPLE DEVELOPMENT ORIENTED",
-                         ifelse(scores.pessoa < 0 & componente == "PC4","TASK ORIENTED/ORIENTAÇÃO PARA A TAREFA",
-                         ifelse(scores.pessoa >= 0 & componente == "PC5","EXTROVERSÃO/AUTENTICIDADE",
-                         ifelse(scores.pessoa < 0 & componente == "PC5","SOBRIEDADE/COMPOSTURA/COMEDIMENTO",
+        mutate(atributo = ifelse(scores.pessoa >= 0 & componente == "PC1","OPENNESS",
+                         ifelse(scores.pessoa < 0 & componente == "PC1","COMPLIANCE",
+                         ifelse(scores.pessoa >= 0 & componente == "PC2","AGREEABLENESS",
+                         ifelse(scores.pessoa < 0 & componente == "PC2","FOCO EM RESULTADO",
+                         ifelse(scores.pessoa >= 0 & componente == "PC3","RESEARCH ORIENTED",
+                         ifelse(scores.pessoa < 0 & componente == "PC3","COMMITMENT",
+                         ifelse(scores.pessoa >= 0 & componente == "PC4","PEOPLE ORIENTED",
+                         ifelse(scores.pessoa < 0 & componente == "PC4","TASK ORIENTED",
+                         ifelse(scores.pessoa >= 0 & componente == "PC5","EXTROVERSION",
+                         ifelse(scores.pessoa < 0 & componente == "PC5","SOBRIEDADE",
                          ifelse(scores.pessoa >= 0 & componente == "PC6","MANAGEMENT",
-                         ifelse(scores.pessoa < 0 & componente == "PC6","ASSISTÊNCIA/RECEPTIVIDADE ATIVA",
-                         ifelse(scores.pessoa >= 0 & componente == "PC7","AUSTERIDADE/PONDERAÇÃO",
-                         "ADAPTABILIDADE/AJUSTAMENTO"
+                         ifelse(scores.pessoa < 0 & componente == "PC6","RECEPTIVIDADE ATIVA",
+                         ifelse(scores.pessoa >= 0 & componente == "PC7","PONDERAÇÃO",
+                         "ADAPTABILIDADE"
         ))))))))))))))
 
 # inserindo classificaçao segundo intensidade do score
@@ -709,13 +728,16 @@ my.classif <-
                                            ifelse(perc <= lims.corr[2] & perc > lims.corr[3] ,"fraco",
                                                   "inexpressivo"
                                            ))))
-       
+       my.classif$intensidade <- factor(my.classif$intensidade, 
+                                    levels = c("marcante","moderado","fraco","inexpressivo"))
 #knitr::kable(my.classif[,c(1,4,6,7)])
 
 #plotar
 df_class.resp <-
     df_class.resp %>%
     mutate(ID.campo = seq(nrow((df_class.resp))))
+df_class.resp$class.campo <- factor(df_class.resp$class.campo, 
+                                    levels = c("marcante","moderado","fraco","inexpressivo"))
 # plot com pontos
 #qplot(df_class.resp$campo.prof,df_class.resp$corr, colour = df_class.resp$class.campo)
 # alternativa
@@ -746,20 +768,20 @@ my.classif <-
 # inserindo o atributo do componente (positivo ou negativo)
     my.classif <-
         my.classif %>%
-        mutate(atributo = ifelse(scores.pessoa >= 0 & componente == "PC1","OPENNESS/EXPLORATION",
-                         ifelse(scores.pessoa < 0 & componente == "PC1","COMPLIANCE/OBSERVÂNCIA",
-                         ifelse(scores.pessoa >= 0 & componente == "PC2","AGREEABLENESS/AMABILIDADE",
-                         ifelse(scores.pessoa < 0 & componente == "PC2","ANALÍTICO E INDEPENDENTE/FOCO EM RESULTADO",
-                         ifelse(scores.pessoa >= 0 & componente == "PC3","INVESTIGATIVO/RESEARCH ORIENTED",
-                         ifelse(scores.pessoa < 0 & componente == "PC3","COMMITMENT/ENGAJAMENTO",
-                         ifelse(scores.pessoa >= 0 & componente == "PC4","PEOPLE DEVELOPMENT ORIENTED",
-                         ifelse(scores.pessoa < 0 & componente == "PC4","TASK ORIENTED/ORIENTAÇÃO PARA A TAREFA",
-                         ifelse(scores.pessoa >= 0 & componente == "PC5","EXTROVERSÃO/AUTENTICIDADE",
-                         ifelse(scores.pessoa < 0 & componente == "PC5","SOBRIEDADE/COMPOSTURA/COMEDIMENTO",
+        mutate(atributo = ifelse(scores.pessoa >= 0 & componente == "PC1","OPENNESS",
+                         ifelse(scores.pessoa < 0 & componente == "PC1","COMPLIANCE",
+                         ifelse(scores.pessoa >= 0 & componente == "PC2","AGREEABLENESS",
+                         ifelse(scores.pessoa < 0 & componente == "PC2","FOCO EM RESULTADO",
+                         ifelse(scores.pessoa >= 0 & componente == "PC3","RESEARCH ORIENTED",
+                         ifelse(scores.pessoa < 0 & componente == "PC3","COMMITMENT",
+                         ifelse(scores.pessoa >= 0 & componente == "PC4","PEOPLE ORIENTED",
+                         ifelse(scores.pessoa < 0 & componente == "PC4","TASK ORIENTED",
+                         ifelse(scores.pessoa >= 0 & componente == "PC5","EXTROVERSION",
+                         ifelse(scores.pessoa < 0 & componente == "PC5","SOBRIEDADE",
                          ifelse(scores.pessoa >= 0 & componente == "PC6","MANAGEMENT",
-                         ifelse(scores.pessoa < 0 & componente == "PC6","ASSISTÊNCIA/RECEPTIVIDADE ATIVA",
-                         ifelse(scores.pessoa >= 0 & componente == "PC7","AUSTERIDADE/PONDERAÇÃO",
-                         "ADAPTABILIDADE/AJUSTAMENTO"
+                         ifelse(scores.pessoa < 0 & componente == "PC6","RECEPTIVIDADE ATIVA",
+                         ifelse(scores.pessoa >= 0 & componente == "PC7","PONDERAÇÃO",
+                         "ADAPTABILIDADE"
         ))))))))))))))
 
 # inserindo classificaçao segundo intensidade do score
@@ -770,13 +792,16 @@ my.classif <-
                                            ifelse(perc <= lims.corr[2] & perc > lims.corr[3] ,"fraco",
                                                   "inexpressivo"
                                            ))))
-       
+       my.classif$intensidade <- factor(my.classif$intensidade, 
+                                    levels = c("marcante","moderado","fraco","inexpressivo"))
 #knitr::kable(my.classif[,c(1,4,6,7)])
 
 #plotar
 df_class.resp <-
     df_class.resp %>%
     mutate(ID.campo = seq(nrow((df_class.resp))))
+df_class.resp$class.campo <- factor(df_class.resp$class.campo, 
+                                    levels = c("marcante","moderado","fraco","inexpressivo"))
 # plot com pontos
 #qplot(df_class.resp$campo.prof,df_class.resp$corr, colour = df_class.resp$class.campo)
 # alternativa

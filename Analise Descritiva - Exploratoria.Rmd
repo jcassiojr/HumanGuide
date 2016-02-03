@@ -1,0 +1,1040 @@
+---
+title: "Análise Descritiva - Agrupamentos"
+author: "Cassio"
+date: "February 3, 2016"
+output: 
+   html_document
+---
+
+<center>![agileBIGDATA](./logoAgileBD.png)</center>
+
+Este documento descreve a análise descritiva exploratória posterior à redução de componentes principais realizada.
+Seu objetivo é avaliar diversos agrupamentos dos dados originais, obtendo os scores médios de cada grupo e realizando testes estatísticos para confirmar se as médias obtidas nos grupos podem ser consideradas significativas estatisticamente.
+Foram considerados os agrupamentos abaixo nesta análise:
+
++ sexo
++ idade
++ CEP
++ região de CEP
++ cidade
++ tipo de usuário
+    + estudantes (Kroton)
+    + empresa privada (Ambev)
+    + empresa pública (Funcionários Públicos)
++ campo profissional
+    
+Todos os plots apresentados apresentam intervalos de erro de acordo com o desvio padrão das médias obtidas e considerando um intervalo de confiança de 95%.
+
+```{r,echo=FALSE}
+
+require("doMC", quietly = TRUE, warn.conflicts = FALSE)
+require("xlsx", quietly = TRUE, warn.conflicts = FALSE)
+require("plyr", quietly = TRUE, warn.conflicts = FALSE)
+require("dplyr", quietly = TRUE, warn.conflicts = FALSE)
+
+registerDoMC(5) # parallel processing
+
+# prepara os dados, tirando acentos, brancos em excesso 
+f_acentos <- function(df_in) { # funcao que tira os acentos e deixa tudo em minuscula
+    df_in <- mutate_each(df_in, funs(tolower)) # forçando minúsculas
+    df_in <- as.data.frame(sapply(df_in, FUN = function(x) as.character(gsub("á", "a", x))))
+    df_in <- as.data.frame(sapply(df_in, FUN = function(x) as.character(gsub("é", "e", x))))
+    df_in <- as.data.frame(sapply(df_in, FUN = function(x) as.character(gsub("í", "i", x))))
+    df_in <- as.data.frame(sapply(df_in, FUN = function(x) as.character(gsub("ó", "o", x))))
+    df_in <- as.data.frame(sapply(df_in, FUN = function(x) as.character(gsub("ú", "u", x))))
+    df_in <- as.data.frame(sapply(df_in, FUN = function(x) as.character(gsub("ã", "a", x))))
+    df_in <- as.data.frame(sapply(df_in, FUN = function(x) as.character(gsub("õ", "o", x))))
+    df_in <- as.data.frame(sapply(df_in, FUN = function(x) as.character(gsub("ç", "c", x))))
+    df_in <- as.data.frame(sapply(df_in, FUN = function(x) as.character(gsub("â", "a", x))))
+    df_in <- as.data.frame(sapply(df_in, FUN = function(x) as.character(gsub("ê", "e", x))))
+    df_in <- as.data.frame(sapply(df_in, FUN = function(x) as.character(gsub("ô", "o", x))))
+    df_in <- as.data.frame(sapply(df_in, FUN = function(x) as.character(gsub("  ", " ", x))))
+    return (df_in)
+}
+```
+
+```{r,echo=FALSE}
+df_campos <- read.xlsx2("./data/Classificacao das carreiras-V2.xlsx", sheetIndex = 1, header = TRUE)
+# preparando os dados para as pesquisas a frente
+df_campos <- f_acentos(df_campos)
+# ATENCAO: depois melhorar funcao acima para tirar brancos no inicio e fim tb!!!!
+#knitr::kable(head(df_campos))
+```
+
+```{r, echo=FALSE, warning=FALSE}
+require("stringr", quietly = TRUE, warn.conflicts = FALSE)
+require("reshape2", quietly = TRUE, warn.conflicts = FALSE)
+
+source("./R/f_le_raw_HG.R") # usar esta função para ler os dados novos. 
+source("./R/f_tidy_scores_HG.R") # alterada em 07/12/2015 para trazer nome do respondente tb
+df_raw_hg <- f_le_raw_HG() # lê toda a amostra de dados HG
+
+df_tidy_hg <- f_tidy_scores_HG(df_raw_hg) # calcula os fatores de acordo com a puntuação
+
+# chama funcao que tira acentos e força minúsculos
+df_tidy_hg <- f_acentos(df_tidy_hg)
+
+# restaura fatores como numericos
+df_tidy_hg <-
+    df_tidy_hg %>%
+    mutate(sensibility = as.numeric(as.vector(sensibility)),
+           power = as.numeric(as.vector(power)),
+           quality = as.numeric(as.vector(quality)),
+           exposure = as.numeric(as.vector(exposure)),
+           structure = as.numeric(as.vector(structure)),
+           imagination = as.numeric(as.vector(imagination)),
+           stability = as.numeric(as.vector(stability)),
+           contacts = as.numeric(as.vector(contacts)))
+```
+
+```{r,echo=FALSE}
+# obtém tabela DE-PARA para profissões, para alinhar com a classificação de Campos Profissionais
+
+df_profs <- read.xlsx2("./data/profs.de.para-V1.xlsx", sheetIndex = 1, header = TRUE)
+df_profs <- f_acentos(df_profs)
+
+#knitr::kable(df_profs)
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# OBTENÇÃO DOS SCORES A PARTIR DE TODA A AMOSTRA
+#-----------------------------------------------------------------------------------
+# obtendo os scores previstos de acordo com a análise de componentes principais
+pca1 = prcomp(df_tidy_hg[,7:14], scale. = TRUE, center = TRUE)
+# scores obtidos
+scores.total <- as.data.frame(pca1$x)
+my.scores.total <- as.data.frame(cbind(ID = df_tidy_hg$ID, 
+                                 sexo = df_tidy_hg$sexo, 
+                                 tipouser = df_tidy_hg$TIPOUSER, 
+                                 profissao.na.area.de = df_tidy_hg$profissao.na.area.de, 
+                                 formacao.em = df_tidy_hg$formacao.em,
+                                 scores.total,
+                                 idade = as.numeric(df_tidy_hg$idade),
+                                 cep = df_tidy_hg$cep,
+                                 cidade = df_tidy_hg$cidade))
+# troca de TIPOUSER vazio por "indefinido", muda string de sexo
+my.scores.total <-
+        my.scores.total %>%
+        mutate(tipouser = ifelse(tipouser == "", "indefinido", as.character(tipouser)),
+               sexo = ifelse(sexo == "f", "feminino","masculino"))
+
+# eliminando ceps vazios
+my.scores.total <-
+        my.scores.total %>%
+        filter(!(cep == ""))
+
+# separando as dimensões do CEP
+my.scores.total <-
+    my.scores.total %>%
+    mutate(CEP.regiao = substring(cep,1,1),
+           CEP.subregiao = substring(cep,1,2),
+           CEP.setor = substring(cep,1,3),
+           CEP.subsetor = substring(cep,1,4)
+           )
+
+```
+
+```{r,echo=FALSE}
+# obtém tabela DE-PARA para formações, para alinhar com a classificação de Campos Profissionais
+df_forms <- read.xlsx2("./data/forms.de.para-V1.xlsx", sheetIndex = 1, header = TRUE)
+df_forms <- f_acentos(df_forms)
+#knitr::kable(df_forms)
+
+# PREPARANDO OS DADOS PARA USO DE CAMPOS PROFISSIONAIS
+df_forms <-
+    df_forms %>%
+    rename(formacao.em = DE)
+
+# substituindo a coluna de formação antiga para a convertida na tabela principal
+df_change <- left_join(my.scores.total, df_forms, by=c("formacao.em")) 
+df_change <-
+    df_change %>%
+    select(-formacao.em) %>%
+    rename(formacao.em = PARA)
+
+# renomeando colunas
+df_profs <-
+    df_profs %>%
+    rename(profissao.na.area.de = DE)
+
+# substituindo a coluna de profissão antiga para a convertida na tabela principal
+df_change <- left_join(df_change, df_profs, by=c("profissao.na.area.de")) 
+df_change <-
+    df_change %>%
+    select(-profissao.na.area.de) %>%
+    rename(profissao.na.area.de = PARA)
+
+# eliminar formação e profissão marcadas como a "eliminar"
+df_change <-
+    df_change %>%
+    filter(formacao.em != "eliminar" & profissao.na.area.de != "eliminar")
+
+df_carr <- data.frame()
+
+for (j in 1:ncol(df_campos)) {
+    # percorre todas as linhas da coluna corrente de df_campos
+    for (i in 1:length(df_change$profissao.na.area.de)) {
+        # somente pega o string com match exato (ex. administração)
+        i_aux <- sum(!is.na(str_match(df_campos[,j],
+                                      paste0("^", as.character(df_change$profissao.na.area.de[i]), "$"))))
+        
+        # para cada profissão encontrada em uma determinada classe, marca a posição correspondente
+        # com 1, na célula do dataframe correspondente. Caso contrario, coloca NA
+        if(i_aux) {
+            df_carr[i,j] = i_aux
+        } else {
+            df_carr[i,j] = NA
+        }
+    }
+}
+# colocando os nomes das classes no dataframe gerado
+names(df_carr) <- colnames(df_campos)
+
+# concatenando a coluna de profissoes ao dataframe gerado
+my.prev.carr <- cbind(df_change, df_carr)
+
+# transformando colunas em valores por linha, eliminando NAs, de forma a poder ter os scores de
+# cada profissão duplicado para cada classe onde a profissão se encontra
+# Desta forma, a análise não perde a contribuição do score de cada profissão para cada classe
+carrMelt <- melt(my.prev.carr,id=c("ID","profissao.na.area.de",
+                                   "PC1","PC2","PC3","PC4","PC5","PC6","PC7"),
+                 measure.vars=colnames(df_campos), na.rm = TRUE)
+# mudando o nome da variavel de classe
+colnames(carrMelt)[10] <- "class.carr"
+# eliminando coluna desnecessária
+my.prev.carr <-
+    carrMelt %>%
+    select (-value)
+```
+
+### Descrição dos Dados ###
+
+A partir da amostra inicial de dados de 116.606 observações originais com os scores do teste **Human Guide**, foram realizadas as seguintes manipulações para a preparação dos diferentes grupos trabalhados:
+
+#### Geração dos Scores Baseados nos Componentes Principais ####
+
+Foi aplicado o mesmo algoritmo de análise de componentes principais, aplicado na redução de dados, para obter a tabela de dados a ser trabalhada nesta análise.
+Para a explicação detalhada de seu significado, ver o *documento de redução de dados*.
+
+Abaixo se encontra a descrição de cada variável trabalhada.
+
++ ID - identificação única de cada observação
++ sexo - sexo do respondente do teste
++ tipouser - tipo do usuário respondente, podendo ser: AMBEV, FUNCIONÁRIO PÚBLICO, KROTON e INDEFINIDO
++ profissao.na.area.de - profissão informada pelo respondente
++ formacao.em - formação informada pelo respondente
++ idade - idade informada pelo respondente
++ cep - cep informado pelo respondente
++ cidade - cidade informada pelo respondente
++ PC1 a PC8 - scores calculados para os 7 componentes principais considerados 
+
+```{r, echo=FALSE, warning=FALSE}
+#+++++++++++++++++++++++
+# Manova Wilks sobre grupo TIPO USER
+#----------------------------------
+my.scores.tipouser <- 
+    my.scores.total %>%
+    select(tipouser,PC1,PC2,PC3,PC4,PC5,PC6,PC7,PC8) %>%
+    mutate(tipouser = as.factor(tipouser))
+
+my.aov.tipouser <-
+    my.scores.tipouser %>%
+    filter(!(tipouser == "indefinido"))
+
+m.aux <- manova(cbind(PC1,PC2,PC3,PC4,PC5,PC6,PC7,PC8) ~ tipouser, data = my.aov.tipouser)
+#summary(m, test = "Wilks")
+df.stats.tipouser <- data.frame(agrupamento = "Tipo de Usuario",
+                       Wilks.Lambda = summary(m.aux, test = "Wilks")$stats[3],
+                       F.rate = summary(m.aux, test = "Wilks")$stats[5],
+                       P.value = summary(m.aux, test = "Wilks")$stats[11])
+
+# Manova Wilks sobre grupo SEXO
+#----------------------------------
+my.scores.sexo <- 
+    my.scores.total %>%
+    select(sexo,PC1,PC2,PC3,PC4,PC5,PC6,PC7,PC8) %>%
+    mutate(sexo = as.factor(sexo))
+
+m.aux <- manova(cbind(PC1,PC2,PC3,PC4,PC5,PC6,PC7,PC8) ~ sexo, data = my.scores.sexo)
+#summary(m, test = "Wilks")
+df.stats.sexo <- data.frame(agrupamento = "Sexo",
+                                Wilks.Lambda = summary(m.aux, test = "Wilks")$stats[3],
+                                F.rate = summary(m.aux, test = "Wilks")$stats[5],
+                                P.value = summary(m.aux, test = "Wilks")$stats[11])
+
+# Manova Wilks sobre grupo Faixa Etária
+#----------------------------------
+my.scores.fxetaria <- 
+    my.scores.total %>%
+    select(idade,PC1,PC2,PC3,PC4,PC5,PC6,PC7,PC8) %>%
+    mutate(faixa.etaria = ifelse(idade <= 18, "adolescente",
+                                 ifelse(idade > 18 & idade <= 29, "jovem adulto",
+                                 ifelse(idade > 29 & idade <= 36, "adulto",
+                                 "adulto maduro"))))
+
+m.aux <- manova(cbind(PC1,PC2,PC3,PC4,PC5,PC6,PC7,PC8) ~ as.factor(faixa.etaria), data = my.scores.fxetaria)
+#summary(m, test = "Wilks")
+df.stats.fxet <- data.frame(agrupamento = "Faixa Etária",
+                            Wilks.Lambda = summary(m.aux, test = "Wilks")$stats[3],
+                            F.rate = summary(m.aux, test = "Wilks")$stats[5],
+                            P.value = summary(m.aux, test = "Wilks")$stats[11])
+
+# Manova Wilks sobre região de CEP
+#----------------------------------
+#my.scores.cep <-
+#    my.scores.total %>%
+#    filter(!(cep == ""))
+
+# separando as dimensões do CEP
+my.scores.cep <-
+    my.scores.total %>%
+    mutate(CEP.regiao = substring(cep,1,1),
+           CEP.subregiao = substring(cep,1,2),
+           CEP.setor = substring(cep,1,3),
+           CEP.subsetor = substring(cep,1,4)
+    )
+
+
+m.aux <- manova(cbind(PC1,PC2,PC3,PC4,PC5,PC6,PC7,PC8) ~ as.factor(CEP.regiao), data = my.scores.cep)
+#summary(m, test = "Wilks")
+df.stats.cep <- data.frame(agrupamento = "Região de CEP",
+                            Wilks.Lambda = summary(m.aux, test = "Wilks")$stats[3],
+                            F.rate = summary(m.aux, test = "Wilks")$stats[5],
+                            P.value = summary(m.aux, test = "Wilks")$stats[11])
+
+# Manova Wilks sobre Campo Prof
+#----------------------------------
+m.aux <- manova(cbind(PC1,PC2,PC3,PC4,PC5,PC6,PC7) ~ class.carr, data = my.prev.carr)
+#summary(m, test = "Wilks")
+df.stats.cpoprf <- data.frame(agrupamento = "Campo Profissional",
+                            Wilks.Lambda = summary(m.aux, test = "Wilks")$stats[3],
+                            F.rate = summary(m.aux, test = "Wilks")$stats[5],
+                            P.value = summary(m.aux, test = "Wilks")$stats[11])
+
+```
+
+#### Preparação dos Dados para Agrupamento por Tipo de Usuário ####
+
+Para o tratamento de tipo de usuário, foram eliminados os tipos indefinidos do total de 116.603 observações originais, obtendo um total de 93.179 observações definidas entre:
+
++ Kroton
++ Ambev
++ Funcionário Público
+
+A distribuição é mostrada abaixo:
+
+```{r, echo=FALSE, warning=FALSE}
+# colocar aqui tabelas com os sumarios dos dados, table(), etc.
+df.1 <- as.data.frame(table(my.aov.tipouser$tipouser))
+names(df.1) <- c("grupo","ocorrências")
+df.1 <- df.1 %>% filter(!(grupo == "indefinido"))
+#df.2 <- as.data.frame(prop.table(table(my.aov.tipouser$tipouser)))
+knitr::kable(df.1)
+
+```
+
+#### Preparação dos Dados para Agrupamento por Sexo do Usuário ####
+
+Para o tratamento por sexo do usuário, foi considerado o total de 116.603 observações originais, cuja distribuição é mostrada abaixo:
+
+```{r, echo=FALSE, warning=FALSE}
+# colocar aqui tabelas com os sumarios dos dados, table(), etc.
+df.1 <- as.data.frame(table(my.scores.sexo$sexo))
+names(df.1) <- c("grupo","ocorrências")
+knitr::kable(df.1)
+```
+
+#### Preparação dos Dados para Agrupamento por Faixa Etária do Usuário ####
+
+Para o tratamento por faixa etária do usuário, foi considerado o total de 116.603 observações originais. As distribuição em faixa etária seguiu o critério abaixo:
+
++ adolescente - até 18 anos
++ adulto jovem - de 19 a 29 anos
++ adulto - de 30 a 36 anos
++ adulto maduro - acima de 36 anos
+
+A distribuição é mostrada abaixo:
+
+```{r, echo=FALSE, warning=FALSE}
+# colocar aqui tabelas com os sumarios dos dados, table(), etc.
+df.1 <- as.data.frame(table(my.scores.fxetaria$faixa.etaria))
+names(df.1) <- c("grupo","ocorrências")
+knitr::kable(df.1)
+```
+
+#### Preparação dos Dados para Agrupamento por Região do CEP do Usuário ####
+
+Para o tratamento por Campo Profissional do usuário, foi considerado o total de 116.601 observações a partir das 116.603 originais, eliminando apenas duas ocorrências de obvervações sem CEP informado. 
+
+Para a análise do CEP, este foi subdividido utilizando como parâmetro as regiões de acordo com o desenvolvimento sócio-econômico e fatores de crescimento demográfico de cada Unidade da Federação ou conjunto delas, conforme critério definido pelos Correios.
+Os plots abaixo estão separados por regiões.
+
+Esta mesma análise pode ser feita ocm granularidade maior, agrupando por subregiões, setores e assim por diante.
+
+<center>![CEP-Regioes](./CEP-Regioes.jpg)</center>
+
+<center>![CEP-TabelaRegioes](./CEP-Tabela-Regioes.jpg)</center>
+
+A distribuição é mostrada abaixo:
+
+```{r, echo=FALSE, warning=FALSE}
+# colocar aqui tabelas com os sumarios dos dados, table(), etc.
+df.1 <- as.data.frame(table(my.scores.cep$CEP.regiao))
+names(df.1) <- c("grupo","ocorrências")
+knitr::kable(df.1)
+```
+
+#### Preparação dos Dados para Agrupamento por Campo Profissional ####
+
+O arquivo *Classificacao das carreiras-V2.xlsx* foi usado como base para classificar a *profissão* do usuário em um dos 10 campos profissionais abaixo:
+
++ CFM - Campo Físico/matemático
++ CFQ - campo Físico/Quimico
++ CCF - Campo Cálculo/Finanças
++ COA - Campo Organizacional/Administrativo
++ CJS - Campo Jurídico/Social
++ CCP - Campo Comunicação/Persuasão
++ CSL - Campo Simbólico/Linguístico
++ CMA - Campo Manual/Artístico
++ CCE - Campo Comportamental/Educacional
++ CBS - Campo Biológico/Saúde
+        
+#### Tabela de Conversão dos Dados ####
+
+Como os campos de profissão têm textos diferentes daqueles encontrados na tabela de Campos Profissionais, foi criada uma tabela de conversão, de forma que os nomes das profissões obtidas do respondente possam estar alinhadas com os nomes das carreiras que aparecem na tabela de campos.
+
+#### Critérios usados para as profissões que não aparecem na tabela de campos profissionais ####
+
+Sempre que uma profissão informada pelo respondente não encontrou correspondente na tabela de campos profissionais, foi classificada por similaridade. Adicionalmente, algumas profissões que não faziam sentido serem usadas para a análise (por exemplo: aposentado, estagiário, etc.), foram eliminadas dos dados.
+
+Abaixo está a tabela usada para as conversões acima mencionadas:
+
+#### Tabela de Conversão de Profissões ####
+
+```{r,echo=FALSE}
+knitr::kable(df_profs)
+```
+
+Após implementadas as regras acima, chegamos a uma base de dados final, cuja distribuição entre os grupos de campos profissionais é mostrada abaixo:
+
+```{r, echo=FALSE, warning=FALSE}
+# colocar aqui tabelas com os sumarios dos dados, table(), etc.
+df.1 <- as.data.frame(table(my.prev.carr$class.carr))
+names(df.1) <- c("grupo","ocorrências")
+#df.2 <- as.data.frame(prop.table(table(my.aov.tipouser$tipouser)))
+knitr::kable(df.1)
+
+```
+
+### Análise de Variação dos Agrupamentos Considerados ###
+
+Abaixo são apresentados os resultados da análise multivariada de variância das médias (MANOVA) para todos os grupos considerados nesta análise.
+O objetivo desta análise é comprovar que as médias dos scores consideradas nos agrupamentos abaixo selecionados têm uma diferença estatística significante.
+É apresentada abaixo a tabela com valores de variação das médias por grupo mostrando o valor de **F-ratio**, do teste de **Lambda de Wilks** e o **P-value**. 
+Os valores comprovam que todos os grupos considerados apresentam diferenças significativas nas médias de seus scores, confirmando que exite comportamento diferenciado para cada grupo em relação aos scores obtidos com o teste **Human Guide**.
+
+```{r, echo=FALSE, warning=FALSE}
+# agrupando em data frame todas as estatísticas
+#df.stats <- rbind(df.stats.cpoprf,df.stats.cep,df.stats.fxet,df.stats.sexo, df.stats.tipouser)
+df.stats <- rbind(df.stats.cpoprf,df.stats.cep,df.stats.fxet,df.stats.sexo, df.stats.tipouser)
+knitr::kable(df.stats, digits = 3)
+```
+
+
+### Plots de Médias de Scores Por sexo ###
+
+```{r, echo=FALSE, warning=FALSE}
+require("plotly", quietly = TRUE, warn.conflicts = FALSE)
+#require("gridExtra", quietly = TRUE, warn.conflicts = FALSE)
+require("ggplot2", quietly = TRUE, warn.conflicts = FALSE)
+#require("Rmisc", quietly = TRUE, warn.conflicts = FALSE)
+
+# calcula média agrupada por sexo
+#mean.scores.sexo <-
+#    my.scores.total %>%
+#    group_by(sexo) %>%
+#    summarise(PC1.medio = mean(PC1),
+#              PC2.medio = mean(PC2),
+#              PC3.medio = mean(PC3),
+#              PC4.medio = mean(PC4),
+#              PC5.medio = mean(PC5),
+#              PC6.medio = mean(PC6),
+#              PC7.medio = mean(PC7)
+#              )
+
+# plots
+#p <- ggplot2::mpg %>% group_by(class) %>%
+#  summarise(mn = mean(hwy), sd = 1.96 * sd(hwy)) %>%
+#  arrange(desc(mn)) %>%
+#  plot_ly(x = class, y = mn, error_y = list(value = sd),
+#          mode = "markers", name = "Highway") %>%
+#  layout(yaxis = list(title = "Miles Per Gallon"))
+#p
+
+m = list(
+  l = 100, # quanto maior, maior a distância do eixo da esquerda
+  r = 100, # quanto maior, maior a distância do eixo da esquerda
+  b = 100, # quanto maior, maior a distância do eixo da parte de baixo
+  t = 100, # quanto maior, maior a distância do eixo da parte de baixo
+  pad = 4
+)
+#plot_ly(x = seq(0, 8), y = seq(0, 8)) %>%
+#  layout(autosize = F, width = 500, height = 500, margin = m)
+
+
+pc1 <- my.scores.total %>% group_by(sexo) %>%
+  summarise(mn = mean(PC1), sd = 1.96 * sd(PC1)) %>%
+  arrange(desc(mn)) %>%
+  plot_ly(y = sexo, x = mn, error_x = list(value = sd),
+          mode = "markers", name = "Agrupado por Sexo") %>%
+  layout(
+         autosize = F,
+         width = 500,
+         height = 500,
+         margin = m,
+         yaxis = list(title = "Sexo"),
+         xaxis = list(title = "PC1 score",
+                      range = c(-0.4, 0.4)))
+pc1
+
+pc2 <- my.scores.total %>% group_by(sexo) %>%
+  summarise(mn = mean(PC2), sd = 1.96 * sd(PC2)) %>%
+  arrange(desc(mn)) %>%
+  plot_ly(y = sexo, x = mn, error_x = list(value = sd),
+          mode = "markers", name = "Agrupado por Sexo") %>%
+  layout(autosize = F,
+         width = 500,
+         height = 500,
+         margin = m,
+         yaxis = list(title = "Sexo"),
+         xaxis = list(title = "PC2 score",
+                      range = c(-0.4, 0.4)))
+pc2
+
+#p <- subplot(
+#  pc1,
+#  pc2,
+#  pc3,
+#  pc4,
+#  margin = 0.05
+#) %>% layout(showlegend = FALSE)
+#p
+
+pc3 <- my.scores.total %>% group_by(sexo) %>%
+  summarise(mn = mean(PC3), sd = 1.96 * sd(PC3)) %>%
+  arrange(desc(mn)) %>%
+  plot_ly(y = sexo, x = mn, error_x = list(value = sd),
+          mode = "markers", name = "Agrupado por Sexo") %>%
+layout(
+         autosize = F,
+         width = 500,
+         height = 500,
+         margin = m,
+         yaxis = list(title = "Sexo"),
+         xaxis = list(title = "PC3 score",
+                      range = c(-0.4, 0.4)))
+pc3
+
+pc4 <- my.scores.total %>% group_by(sexo) %>%
+  summarise(mn = mean(PC4), sd = 1.96 * sd(PC4)) %>%
+  arrange(desc(mn)) %>%
+  plot_ly(y = sexo, x = mn, error_x = list(value = sd),
+          mode = "markers", name = "Agrupado por Sexo") %>%
+  layout(
+         autosize = F,
+         width = 500,
+         height = 500,
+         margin = m,
+         yaxis = list(title = "Sexo"),
+         xaxis = list(title = "PC4 score",
+                      range = c(-0.4, 0.4)))
+pc4
+
+pc5 <- my.scores.total %>% group_by(sexo) %>%
+  summarise(mn = mean(PC5), sd = 1.96 * sd(PC5)) %>%
+  arrange(desc(mn)) %>%
+  plot_ly(y = sexo, x = mn, error_x = list(value = sd),
+          mode = "markers", name = "Agrupado por Sexo") %>%
+  layout(
+         autosize = F,
+         width = 500,
+         height = 500,
+         margin = m,
+         yaxis = list(title = "Sexo"),
+         xaxis = list(title = "PC5 score",
+                      range = c(-0.4, 0.4)))
+pc5
+
+pc6 <- my.scores.total %>% group_by(sexo) %>%
+  summarise(mn = mean(PC6), sd = 1.96 * sd(PC6)) %>%
+  arrange(desc(mn)) %>%
+  plot_ly(y = sexo, x = mn, error_x = list(value = sd),
+          mode = "markers", name = "Agrupado por Sexo") %>%
+  layout(
+         autosize = F,
+         width = 500,
+         height = 500,
+         margin = m,
+         yaxis = list(title = "Sexo"),
+         xaxis = list(title = "PC6 score",
+                      range = c(-0.4, 0.4)))
+pc6
+
+pc7 <- my.scores.total %>% group_by(sexo) %>%
+  summarise(mn = mean(PC7), sd = 1.96 * sd(PC7)) %>%
+  arrange(desc(mn)) %>%
+  plot_ly(y = sexo, x = mn, error_x = list(value = sd),
+          mode = "markers", name = "Agrupado por Sexo") %>%
+  layout(
+         autosize = F,
+         width = 500,
+         height = 500,
+         margin = m,
+         yaxis = list(title = "Sexo"),
+         xaxis = list(title = "PC7 score",
+                      range = c(-0.4, 0.4)))
+pc7
+```
+
+### Plots de Médias de Scores Por Idade ###
+
+Obs: algumas idades abaixo parecem muito altas. No entanto, foram deixadas para efeito de análise gráfica.
+Posteriormente, podem ser descartadas como pontos fora da curva.
+
+```{r, echo=FALSE, warning=FALSE}
+pc1 <- my.scores.total %>% group_by(idade) %>%
+  summarise(mn = mean(PC1), sd = 1.96 * sd(PC1)) %>%
+  arrange(desc(mn)) %>%
+  plot_ly(y = idade, x = mn, error_x = list(value = sd),
+          mode = "markers", name = "Agrupado por Idade") %>%
+  layout(autosize = F,
+         width = 500,
+         height = 500,
+         margin = m,
+         yaxis = list(title = "idade"),
+         xaxis = list(title = "PC1 score",
+                      range = c(-4, 4)))
+pc1
+
+pc2 <- my.scores.total %>% group_by(idade) %>%
+  summarise(mn = mean(PC2), sd = 1.96 * sd(PC2)) %>%
+  arrange(desc(mn)) %>%
+  plot_ly(y = idade, x = mn, error_x = list(value = sd),
+          mode = "markers", name = "Agrupado por Idade") %>%
+  layout(autosize = F,
+         width = 500,
+         height = 500,
+         margin = m,
+         yaxis = list(title = "idade"),
+         xaxis = list(title = "PC2 score",
+                      range = c(-4, 4)))
+pc2
+
+pc3 <- my.scores.total %>% group_by(idade) %>%
+  summarise(mn = mean(PC3), sd = 1.96 * sd(PC3)) %>%
+  arrange(desc(mn)) %>%
+  plot_ly(y = idade, x = mn, error_x = list(value = sd),
+          mode = "markers", name = "Agrupado por Idade") %>%
+  layout(autosize = F,
+         width = 500,
+         height = 500,
+         margin = m,
+         yaxis = list(title = "idade"),
+         xaxis = list(title = "PC3 score",
+                      range = c(-4, 4)))
+pc3
+
+pc4 <- my.scores.total %>% group_by(idade) %>%
+  summarise(mn = mean(PC4), sd = 1.96 * sd(PC4)) %>%
+  arrange(desc(mn)) %>%
+  plot_ly(y = idade, x = mn, error_x = list(value = sd),
+          mode = "markers", name = "Agrupado por Idade") %>%
+  layout(autosize = F,
+         width = 500,
+         height = 500,
+         margin = m,
+         yaxis = list(title = "idade"),
+         xaxis = list(title = "PC4 score",
+                      range = c(-4, 4)))
+pc4
+
+pc5 <- my.scores.total %>% group_by(idade) %>%
+  summarise(mn = mean(PC5), sd = 1.96 * sd(PC5)) %>%
+  arrange(desc(mn)) %>%
+  plot_ly(y = idade, x = mn, error_x = list(value = sd),
+          mode = "markers", name = "Agrupado por Idade") %>%
+  layout(autosize = F,
+         width = 500,
+         height = 500,
+         margin = m,
+         yaxis = list(title = "idade"),
+         xaxis = list(title = "PC5 score",
+                      range = c(-4, 4)))
+pc5
+
+pc6 <- my.scores.total %>% group_by(idade) %>%
+  summarise(mn = mean(PC6), sd = 1.96 * sd(PC6)) %>%
+  arrange(desc(mn)) %>%
+  plot_ly(y = idade, x = mn, error_x = list(value = sd),
+          mode = "markers", name = "Agrupado por Idade") %>%
+  layout(autosize = F,
+         width = 500,
+         height = 500,
+         margin = m,
+         yaxis = list(title = "idade"),
+         xaxis = list(title = "PC6 score",
+                      range = c(-4, 4)))
+pc6
+
+pc7 <- my.scores.total %>% group_by(idade) %>%
+  summarise(mn = mean(PC7), sd = 1.96 * sd(PC7)) %>%
+  arrange(desc(mn)) %>%
+  plot_ly(y = idade, x = mn, error_x = list(value = sd),
+          mode = "markers", name = "Agrupado por Idade") %>%
+  layout(autosize = F,
+         width = 500,
+         height = 500,
+         margin = m,
+         yaxis = list(title = "idade"),
+         xaxis = list(title = "PC7 score",
+                      range = c(-4, 4)))
+pc7
+```
+
+### Plots de Médias de Scores Por CEP ###
+
+<center>![CEP-Regioes](./CEP-Regioes.jpg)</center>
+
+```{r, echo=FALSE, warning=FALSE}
+
+pc1 <- my.scores.total %>% group_by(CEP.regiao) %>%
+  summarise(mn = mean(PC1), sd = 1.96 * sd(PC1)) %>%
+  arrange(desc(mn)) %>%
+  plot_ly(x = mn, y = CEP.regiao, error_x = list(value = sd),
+          mode = "markers", 
+          name = "Agrupado por Região do CEP") %>%
+    layout(autosize = F,
+         width = 500,
+         height = 500,
+         margin = m,
+         yaxis = list(title = "Região do CEP"),
+         xaxis = list(title = "PC1 score",
+                      range = c(-.4, .4)))
+pc1
+
+pc2 <- my.scores.total %>% group_by(CEP.regiao) %>%
+  summarise(mn = mean(PC2), sd = 1.96 * sd(PC2)) %>%
+  arrange(desc(mn)) %>%
+  plot_ly(x = mn, y = CEP.regiao, error_x = list(value = sd),
+          mode = "markers", 
+          name = "Agrupado por Região do CEP") %>%
+    layout(autosize = F,
+         width = 500,
+         height = 500,
+         margin = m,
+         yaxis = list(title = "Região do CEP"),
+         xaxis = list(title = "PC2 score",
+                      range = c(-.4, .4)))
+pc2
+
+pc3 <- my.scores.total %>% group_by(CEP.regiao) %>%
+  summarise(mn = mean(PC3), sd = 1.96 * sd(PC3)) %>%
+  arrange(desc(mn)) %>%
+  plot_ly(x = mn, y = CEP.regiao, error_x = list(value = sd),
+          mode = "markers", 
+          name = "Agrupado por Região do CEP") %>%
+    layout(autosize = F,
+         width = 500,
+         height = 500,
+         margin = m,
+         yaxis = list(title = "Região do CEP"),
+         xaxis = list(title = "PC3 score",
+                      range = c(-.4, .4)))
+pc3
+
+pc4 <- my.scores.total %>% group_by(CEP.regiao) %>%
+  summarise(mn = mean(PC4), sd = 1.96 * sd(PC4)) %>%
+  arrange(desc(mn)) %>%
+  plot_ly(x = mn, y = CEP.regiao, error_x = list(value = sd),
+          mode = "markers", 
+          name = "Agrupado por Região do CEP") %>%
+    layout(autosize = F,
+         width = 500,
+         height = 500,
+         margin = m,
+         yaxis = list(title = "Região do CEP"),
+         xaxis = list(title = "PC4 score",
+                      range = c(-.4, .4)))
+pc4
+
+pc5 <- my.scores.total %>% group_by(CEP.regiao) %>%
+  summarise(mn = mean(PC5), sd = 1.96 * sd(PC5)) %>%
+  arrange(desc(mn)) %>%
+  plot_ly(x = mn, y = CEP.regiao, error_x = list(value = sd),
+          mode = "markers", 
+          name = "Agrupado por Região do CEP") %>%
+    layout(autosize = F,
+         width = 500,
+         height = 500,
+         margin = m,
+         yaxis = list(title = "Região do CEP"),
+         xaxis = list(title = "PC5 score",
+                      range = c(-.4, .4)))
+pc5
+
+pc6 <- my.scores.total %>% group_by(CEP.regiao) %>%
+  summarise(mn = mean(PC6), sd = 1.96 * sd(PC6)) %>%
+  arrange(desc(mn)) %>%
+  plot_ly(x = mn, y = CEP.regiao, error_x = list(value = sd),
+          mode = "markers", 
+          name = "Agrupado por Região do CEP") %>%
+    layout(autosize = F,
+         width = 500,
+         height = 500,
+         margin = m,
+         yaxis = list(title = "Região do CEP"),
+         xaxis = list(title = "PC6 score",
+                      range = c(-.4, .4)))
+pc6
+
+pc7 <- my.scores.total %>% group_by(CEP.regiao) %>%
+  summarise(mn = mean(PC7), sd = 1.96 * sd(PC7)) %>%
+  arrange(desc(mn)) %>%
+  plot_ly(x = mn, y = CEP.regiao, error_x = list(value = sd),
+          mode = "markers", 
+          name = "Agrupado por Região do CEP") %>%
+    layout(autosize = F,
+         width = 500,
+         height = 500,
+         margin = m,
+         yaxis = list(title = "Região do CEP"),
+         xaxis = list(title = "PC7 score",
+                      range = c(-.4, .4)))
+pc7
+
+```
+
+### Plots de Médias de Scores Por Tipo de Usuario ###
+
+```{r, echo=FALSE, warning=FALSE}
+pc1 <- my.scores.total %>% group_by(tipouser) %>%
+  summarise(mn = mean(PC1), sd = 1.96 * sd(PC1)) %>%
+  arrange(desc(tipouser)) %>%
+  plot_ly(x = mn, y = tipouser, error_x = list(value = sd),
+          mode = "markers", 
+          name = "Agrupado por Tipo de Usuário") %>%
+    layout(autosize = F,
+         width = 500,
+         height = 500,
+         margin = m,
+         yaxis = list(title = "Tipo de Usuário"),
+         xaxis = list(title = "PC1 score",
+                      range = c(-1, .8)))
+pc1
+
+
+pc2 <- my.scores.total %>% group_by(tipouser) %>%
+  summarise(mn = mean(PC2), sd = 1.96 * sd(PC2)) %>%
+  arrange(desc(tipouser)) %>%
+  plot_ly(x = mn, y = tipouser, error_x = list(value = sd),
+          mode = "markers", 
+          name = "Agrupado por Tipo de Usuário") %>%
+    layout(autosize = F,
+         width = 500,
+         height = 500,
+         margin = m,
+         yaxis = list(title = "Tipo de Usuário"),
+         xaxis = list(title = "PC2 score",
+                      range = c(-1, .8)))
+pc2
+
+pc3 <- my.scores.total %>% group_by(tipouser) %>%
+  summarise(mn = mean(PC3), sd = 1.96 * sd(PC3)) %>%
+  arrange(desc(tipouser)) %>%
+  plot_ly(x = mn, y = tipouser, error_x = list(value = sd),
+          mode = "markers", 
+          name = "Agrupado por Tipo de Usuário") %>%
+    layout(autosize = F,
+         width = 500,
+         height = 500,
+         margin = m,
+         yaxis = list(title = "Tipo de Usuário"),
+         xaxis = list(title = "PC3 score",
+                      range = c(-1, .8)))
+pc3
+
+pc4 <- my.scores.total %>% group_by(tipouser) %>%
+  summarise(mn = mean(PC4), sd = 1.96 * sd(PC4)) %>%
+  arrange(desc(tipouser)) %>%
+  plot_ly(x = mn, y = tipouser, error_x = list(value = sd),
+          mode = "markers", 
+          name = "Agrupado por Tipo de Usuário") %>%
+    layout(autosize = F,
+         width = 500,
+         height = 500,
+         margin = m,
+         yaxis = list(title = "Tipo de Usuário"),
+         xaxis = list(title = "PC4 score",
+                      range = c(-1, .8)))
+pc4
+
+pc5 <- my.scores.total %>% group_by(tipouser) %>%
+  summarise(mn = mean(PC5), sd = 1.96 * sd(PC5)) %>%
+  arrange(desc(tipouser)) %>%
+  plot_ly(x = mn, y = tipouser, error_x = list(value = sd),
+          mode = "markers", 
+          name = "Agrupado por Tipo de Usuário") %>%
+    layout(autosize = F,
+         width = 500,
+         height = 500,
+         margin = m,
+         yaxis = list(title = "Tipo de Usuário"),
+         xaxis = list(title = "PC5 score",
+                      range = c(-1, .8)))
+pc5
+
+pc6 <- my.scores.total %>% group_by(tipouser) %>%
+  summarise(mn = mean(PC6), sd = 1.96 * sd(PC6)) %>%
+  arrange(desc(tipouser)) %>%
+  plot_ly(x = mn, y = tipouser, error_x = list(value = sd),
+          mode = "markers", 
+          name = "Agrupado por Tipo de Usuário") %>%
+    layout(autosize = F,
+         width = 500,
+         height = 500,
+         margin = m,
+         yaxis = list(title = "Tipo de Usuário"),
+         xaxis = list(title = "PC6 score",
+                      range = c(-1, .8)))
+pc6
+
+pc7 <- my.scores.total %>% group_by(tipouser) %>%
+  summarise(mn = mean(PC7), sd = 1.96 * sd(PC7)) %>%
+  arrange(desc(tipouser)) %>%
+  plot_ly(x = mn, y = tipouser, error_x = list(value = sd),
+          mode = "markers", 
+          name = "Agrupado por Tipo de Usuário") %>%
+    layout(autosize = F,
+         width = 500,
+         height = 500,
+         margin = m,
+         yaxis = list(title = "Tipo de Usuário"),
+         xaxis = list(title = "PC7 score",
+                      range = c(-1, .8)))
+pc7
+
+```
+
+### Plots de Médias de Scores Por Campo Profisisonal do Usuario ###
+
+```{r, echo=FALSE, warning=FALSE}
+pc1 <- my.prev.carr %>% group_by(class.carr) %>%
+  summarise(mn = mean(PC1), sd = 1.96 * sd(PC1)) %>%
+  arrange(desc(class.carr)) %>%
+  plot_ly(x = mn, y = class.carr, error_x = list(value = sd),
+          mode = "markers", 
+          name = "Agrupado por Campo Profissional do Usuário") %>%
+    layout(autosize = F,
+         width = 500,
+         height = 500,
+         margin = m,
+         yaxis = list(title = "Campo Profissional do Usuário"),
+         xaxis = list(title = "PC1 score",
+                      range = c(-1, .8)))
+pc1
+
+pc2 <- my.prev.carr %>% group_by(class.carr) %>%
+  summarise(mn = mean(PC2), sd = 1.96 * sd(PC2)) %>%
+  arrange(desc(class.carr)) %>%
+  plot_ly(x = mn, y = class.carr, error_x = list(value = sd),
+          mode = "markers", 
+          name = "Agrupado por Campo Profissional do Usuário") %>%
+    layout(autosize = F,
+         width = 500,
+         height = 500,
+         margin = m,
+         yaxis = list(title = "Campo Profissional do Usuário"),
+         xaxis = list(title = "PC2 score",
+                      range = c(-1, .8)))
+pc2
+
+
+pc3 <- my.prev.carr %>% group_by(class.carr) %>%
+  summarise(mn = mean(PC3), sd = 1.96 * sd(PC3)) %>%
+  arrange(desc(class.carr)) %>%
+  plot_ly(x = mn, y = class.carr, error_x = list(value = sd),
+          mode = "markers", 
+          name = "Agrupado por Campo Profissional do Usuário") %>%
+    layout(autosize = F,
+         width = 500,
+         height = 500,
+         margin = m,
+         yaxis = list(title = "Campo Profissional do Usuário"),
+         xaxis = list(title = "PC3 score",
+                      range = c(-1, .8)))
+pc3
+
+pc4 <- my.prev.carr %>% group_by(class.carr) %>%
+  summarise(mn = mean(PC4), sd = 1.96 * sd(PC4)) %>%
+  arrange(desc(class.carr)) %>%
+  plot_ly(x = mn, y = class.carr, error_x = list(value = sd),
+          mode = "markers", 
+          name = "Agrupado por Campo Profissional do Usuário") %>%
+    layout(autosize = F,
+         width = 500,
+         height = 500,
+         margin = m,
+         yaxis = list(title = "Campo Profissional do Usuário"),
+         xaxis = list(title = "PC4 score",
+                      range = c(-1, .8)))
+pc4
+
+
+pc5 <- my.prev.carr %>% group_by(class.carr) %>%
+  summarise(mn = mean(PC5), sd = 1.96 * sd(PC5)) %>%
+  arrange(desc(class.carr)) %>%
+  plot_ly(x = mn, y = class.carr, error_x = list(value = sd),
+          mode = "markers", 
+          name = "Agrupado por Campo Profissional do Usuário") %>%
+    layout(autosize = F,
+         width = 500,
+         height = 500,
+         margin = m,
+         yaxis = list(title = "Campo Profissional do Usuário"),
+         xaxis = list(title = "PC5 score",
+                      range = c(-1, .8)))
+pc5
+
+pc6 <- my.prev.carr %>% group_by(class.carr) %>%
+  summarise(mn = mean(PC6), sd = 1.96 * sd(PC6)) %>%
+  arrange(desc(class.carr)) %>%
+  plot_ly(x = mn, y = class.carr, error_x = list(value = sd),
+          mode = "markers", 
+          name = "Agrupado por Campo Profissional do Usuário") %>%
+    layout(autosize = F,
+         width = 500,
+         height = 500,
+         margin = m,
+         yaxis = list(title = "Campo Profissional do Usuário"),
+         xaxis = list(title = "PC6 score",
+                      range = c(-1, .8)))
+pc6
+
+
+pc7 <- my.prev.carr %>% group_by(class.carr) %>%
+  summarise(mn = mean(PC7), sd = 1.96 * sd(PC7)) %>%
+  arrange(desc(class.carr)) %>%
+  plot_ly(x = mn, y = class.carr, error_x = list(value = sd),
+          mode = "markers", 
+          name = "Agrupado por Campo Profissional do Usuário") %>%
+    layout(autosize = F,
+         width = 500,
+         height = 500,
+         margin = m,
+         yaxis = list(title = "Campo Profissional do Usuário"),
+         xaxis = list(title = "PC7 score",
+                      range = c(-1, .8)))
+pc7
+
+
+```
