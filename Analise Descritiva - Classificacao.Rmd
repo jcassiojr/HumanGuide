@@ -507,19 +507,19 @@ my.classif <-
     my.classif <-
         my.classif %>%
         mutate(atributo = ifelse(scores.pessoa >= 0 & componente == "PC1","OPENNESS",
-                         ifelse(scores.pessoa < 0 & componente == "PC1","COMPLIANCE",
+                         ifelse(scores.pessoa < 0 & componente == "PC1","CONSCIOUSNESS",
                          ifelse(scores.pessoa >= 0 & componente == "PC2","AGREEABLENESS",
-                         ifelse(scores.pessoa < 0 & componente == "PC2","FOCO EM RESULTADO",
-                         ifelse(scores.pessoa >= 0 & componente == "PC3","RESEARCH ORIENTED",
+                         ifelse(scores.pessoa < 0 & componente == "PC2","DETERMINATION",
+                         ifelse(scores.pessoa >= 0 & componente == "PC3","LONG TERM VISION",
                          ifelse(scores.pessoa < 0 & componente == "PC3","COMMITMENT",
-                         ifelse(scores.pessoa >= 0 & componente == "PC4","PEOPLE ORIENTED",
-                         ifelse(scores.pessoa < 0 & componente == "PC4","TASK ORIENTED",
+                         ifelse(scores.pessoa >= 0 & componente == "PC4","IDEALISM",
+                         ifelse(scores.pessoa < 0 & componente == "PC4","REALISM",
                          ifelse(scores.pessoa >= 0 & componente == "PC5","EXTROVERSION",
-                         ifelse(scores.pessoa < 0 & componente == "PC5","SOBRIEDADE",
+                         ifelse(scores.pessoa < 0 & componente == "PC5","SOBRIETY",
                          ifelse(scores.pessoa >= 0 & componente == "PC6","MANAGEMENT",
-                         ifelse(scores.pessoa < 0 & componente == "PC6","RECEPTIVIDADE ATIVA",
-                         ifelse(scores.pessoa >= 0 & componente == "PC7","PONDERAÇÃO",
-                         "ADAPTABILIDADE"
+                         ifelse(scores.pessoa < 0 & componente == "PC6","RECEPTIVITY",
+                         ifelse(scores.pessoa >= 0 & componente == "PC7","PERSISTENCE",
+                         "ADJUSTMENT"
         ))))))))))))))
 
 # inserindo classificaçao segundo intensidade do score
@@ -573,21 +573,20 @@ my.classif <-
     my.classif <-
         my.classif %>%
         mutate(atributo = ifelse(scores.pessoa >= 0 & componente == "PC1","OPENNESS",
-                         ifelse(scores.pessoa < 0 & componente == "PC1","COMPLIANCE",
+                         ifelse(scores.pessoa < 0 & componente == "PC1","CONSCIOUSNESS",
                          ifelse(scores.pessoa >= 0 & componente == "PC2","AGREEABLENESS",
-                         ifelse(scores.pessoa < 0 & componente == "PC2","FOCO EM RESULTADO",
-                         ifelse(scores.pessoa >= 0 & componente == "PC3","RESEARCH ORIENTED",
+                         ifelse(scores.pessoa < 0 & componente == "PC2","DETERMINATION",
+                         ifelse(scores.pessoa >= 0 & componente == "PC3","LONG TERM VISION",
                          ifelse(scores.pessoa < 0 & componente == "PC3","COMMITMENT",
-                         ifelse(scores.pessoa >= 0 & componente == "PC4","PEOPLE ORIENTED",
-                         ifelse(scores.pessoa < 0 & componente == "PC4","TASK ORIENTED",
+                         ifelse(scores.pessoa >= 0 & componente == "PC4","IDEALISM",
+                         ifelse(scores.pessoa < 0 & componente == "PC4","REALISM",
                          ifelse(scores.pessoa >= 0 & componente == "PC5","EXTROVERSION",
-                         ifelse(scores.pessoa < 0 & componente == "PC5","SOBRIEDADE",
+                         ifelse(scores.pessoa < 0 & componente == "PC5","SOBRIETY",
                          ifelse(scores.pessoa >= 0 & componente == "PC6","MANAGEMENT",
-                         ifelse(scores.pessoa < 0 & componente == "PC6","RECEPTIVIDADE ATIVA",
-                         ifelse(scores.pessoa >= 0 & componente == "PC7","PONDERAÇÃO",
-                         "ADAPTABILIDADE"
+                         ifelse(scores.pessoa < 0 & componente == "PC6","RECEPTIVITY",
+                         ifelse(scores.pessoa >= 0 & componente == "PC7","PERSISTENCE",
+                         "ADJUSTMENT"
         ))))))))))))))
-
 # inserindo classificaçao segundo intensidade do score
     my.classif <-
         my.classif %>%
@@ -637,19 +636,19 @@ my.classif <-
     my.classif <-
         my.classif %>%
         mutate(atributo = ifelse(scores.pessoa >= 0 & componente == "PC1","OPENNESS",
-                         ifelse(scores.pessoa < 0 & componente == "PC1","COMPLIANCE",
+                         ifelse(scores.pessoa < 0 & componente == "PC1","CONSCIOUSNESS",
                          ifelse(scores.pessoa >= 0 & componente == "PC2","AGREEABLENESS",
-                         ifelse(scores.pessoa < 0 & componente == "PC2","FOCO EM RESULTADO",
-                         ifelse(scores.pessoa >= 0 & componente == "PC3","RESEARCH ORIENTED",
+                         ifelse(scores.pessoa < 0 & componente == "PC2","DETERMINATION",
+                         ifelse(scores.pessoa >= 0 & componente == "PC3","LONG TERM VISION",
                          ifelse(scores.pessoa < 0 & componente == "PC3","COMMITMENT",
-                         ifelse(scores.pessoa >= 0 & componente == "PC4","PEOPLE ORIENTED",
-                         ifelse(scores.pessoa < 0 & componente == "PC4","TASK ORIENTED",
+                         ifelse(scores.pessoa >= 0 & componente == "PC4","IDEALISM",
+                         ifelse(scores.pessoa < 0 & componente == "PC4","REALISM",
                          ifelse(scores.pessoa >= 0 & componente == "PC5","EXTROVERSION",
-                         ifelse(scores.pessoa < 0 & componente == "PC5","SOBRIEDADE",
+                         ifelse(scores.pessoa < 0 & componente == "PC5","SOBRIETY",
                          ifelse(scores.pessoa >= 0 & componente == "PC6","MANAGEMENT",
-                         ifelse(scores.pessoa < 0 & componente == "PC6","RECEPTIVIDADE ATIVA",
-                         ifelse(scores.pessoa >= 0 & componente == "PC7","PONDERAÇÃO",
-                         "ADAPTABILIDADE"
+                         ifelse(scores.pessoa < 0 & componente == "PC6","RECEPTIVITY",
+                         ifelse(scores.pessoa >= 0 & componente == "PC7","PERSISTENCE",
+                         "ADJUSTMENT"
         ))))))))))))))
 
 # inserindo classificaçao segundo intensidade do score
@@ -705,19 +704,19 @@ my.classif <-
     my.classif <-
         my.classif %>%
         mutate(atributo = ifelse(scores.pessoa >= 0 & componente == "PC1","OPENNESS",
-                         ifelse(scores.pessoa < 0 & componente == "PC1","COMPLIANCE",
+                         ifelse(scores.pessoa < 0 & componente == "PC1","CONSCIOUSNESS",
                          ifelse(scores.pessoa >= 0 & componente == "PC2","AGREEABLENESS",
-                         ifelse(scores.pessoa < 0 & componente == "PC2","FOCO EM RESULTADO",
-                         ifelse(scores.pessoa >= 0 & componente == "PC3","RESEARCH ORIENTED",
+                         ifelse(scores.pessoa < 0 & componente == "PC2","DETERMINATION",
+                         ifelse(scores.pessoa >= 0 & componente == "PC3","LONG TERM VISION",
                          ifelse(scores.pessoa < 0 & componente == "PC3","COMMITMENT",
-                         ifelse(scores.pessoa >= 0 & componente == "PC4","PEOPLE ORIENTED",
-                         ifelse(scores.pessoa < 0 & componente == "PC4","TASK ORIENTED",
+                         ifelse(scores.pessoa >= 0 & componente == "PC4","IDEALISM",
+                         ifelse(scores.pessoa < 0 & componente == "PC4","REALISM",
                          ifelse(scores.pessoa >= 0 & componente == "PC5","EXTROVERSION",
-                         ifelse(scores.pessoa < 0 & componente == "PC5","SOBRIEDADE",
+                         ifelse(scores.pessoa < 0 & componente == "PC5","SOBRIETY",
                          ifelse(scores.pessoa >= 0 & componente == "PC6","MANAGEMENT",
-                         ifelse(scores.pessoa < 0 & componente == "PC6","RECEPTIVIDADE ATIVA",
-                         ifelse(scores.pessoa >= 0 & componente == "PC7","PONDERAÇÃO",
-                         "ADAPTABILIDADE"
+                         ifelse(scores.pessoa < 0 & componente == "PC6","RECEPTIVITY",
+                         ifelse(scores.pessoa >= 0 & componente == "PC7","PERSISTENCE",
+                         "ADJUSTMENT"
         ))))))))))))))
 
 # inserindo classificaçao segundo intensidade do score
@@ -769,19 +768,19 @@ my.classif <-
     my.classif <-
         my.classif %>%
         mutate(atributo = ifelse(scores.pessoa >= 0 & componente == "PC1","OPENNESS",
-                         ifelse(scores.pessoa < 0 & componente == "PC1","COMPLIANCE",
+                         ifelse(scores.pessoa < 0 & componente == "PC1","CONSCIOUSNESS",
                          ifelse(scores.pessoa >= 0 & componente == "PC2","AGREEABLENESS",
-                         ifelse(scores.pessoa < 0 & componente == "PC2","FOCO EM RESULTADO",
-                         ifelse(scores.pessoa >= 0 & componente == "PC3","RESEARCH ORIENTED",
+                         ifelse(scores.pessoa < 0 & componente == "PC2","DETERMINATION",
+                         ifelse(scores.pessoa >= 0 & componente == "PC3","LONG TERM VISION",
                          ifelse(scores.pessoa < 0 & componente == "PC3","COMMITMENT",
-                         ifelse(scores.pessoa >= 0 & componente == "PC4","PEOPLE ORIENTED",
-                         ifelse(scores.pessoa < 0 & componente == "PC4","TASK ORIENTED",
+                         ifelse(scores.pessoa >= 0 & componente == "PC4","IDEALISM",
+                         ifelse(scores.pessoa < 0 & componente == "PC4","REALISM",
                          ifelse(scores.pessoa >= 0 & componente == "PC5","EXTROVERSION",
-                         ifelse(scores.pessoa < 0 & componente == "PC5","SOBRIEDADE",
+                         ifelse(scores.pessoa < 0 & componente == "PC5","SOBRIETY",
                          ifelse(scores.pessoa >= 0 & componente == "PC6","MANAGEMENT",
-                         ifelse(scores.pessoa < 0 & componente == "PC6","RECEPTIVIDADE ATIVA",
-                         ifelse(scores.pessoa >= 0 & componente == "PC7","PONDERAÇÃO",
-                         "ADAPTABILIDADE"
+                         ifelse(scores.pessoa < 0 & componente == "PC6","RECEPTIVITY",
+                         ifelse(scores.pessoa >= 0 & componente == "PC7","PERSISTENCE",
+                         "ADJUSTMENT"
         ))))))))))))))
 
 # inserindo classificaçao segundo intensidade do score
