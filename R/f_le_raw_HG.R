@@ -40,6 +40,8 @@ f_le_raw_HG <- function() {
     names(df_out) <- gsub("õ","o",names(df_out))
     names(df_out) <- gsub("á","a",names(df_out))
     
+    # acrescentar colunas para
+    # 
     #l_df <- list(df_hg_train = df_hg_train, df_hg_use = df_hg_use)
     
     # DESATIVADO ATÉ TER DADOS REAIS
