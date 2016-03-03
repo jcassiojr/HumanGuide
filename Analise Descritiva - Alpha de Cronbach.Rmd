@@ -137,7 +137,7 @@ HG.o1 <- suppressWarnings(omega(my.cor, nfactors = 8, n.iter = 100, fm = "ml", p
 #HG.o2 <-omega(my.cor)
 # tentar acima com viramax
 #(HG.o1)
-sprintf ("Coeficiente Ômega h: %.2f",HG.o1$om$omega_h)
+sprintf ("Coeficiente Ômega Hierárquico: %.2f",HG.o1$om$omega_h)
 my.df_omega <- as.data.frame(HG.o1$om$omega.group)
 my.df_omega <-
     my.df_omega %>%
