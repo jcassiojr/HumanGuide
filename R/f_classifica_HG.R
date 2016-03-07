@@ -4,7 +4,7 @@
 #' a intensidade da correlacao e direçao da correlacao (positivo ou negativo)
 #' a correlação entre as assinaturas indica o quanto a combinação dos scores do respondente se
 #' aproxima da combinação de scores do campo profissional. Correlação positiva indica que o respondente
-#' tem assinatura próxima do campo profissional. Correlação negativa indica que ele não tem asinatura
+#' tem assinatura próxima do campo profissional. Correlação negativa indica que ele não tem assinatura
 #' próxima do campo em questão. Atenção: o sinal da correlação aqui não está relacionada ao score positivo
 #' ou negativo em relação ao componente! Apenas indica o quanto se aproxima ou afasta do campo profissional
 
@@ -32,7 +32,7 @@ f_classifica_HG <- function(c_nome.in, v_scores.medios.in, df_cpo_pc.in, v_lim_c
         mutate(direcao = ifelse(corr >= 0,"positivo",
                                 "negativo"
         ))
-    # inserindo classificaçao e direcao (positiva ou negativa)
+    # inserindo classificaçao e direcao (positiva ou negativa) PODE HAVER ERRO AQUI AO CONSIDERAR ABS!!
     df.out <-
         df.out %>%
         mutate(corr.abs = abs(corr),

@@ -945,3 +945,13 @@ my.twoway.PC1 <-
 
 aov.twoway.PC1 = aov(PC1~tipouser+PC1tipo,data=my.twoway.PC1)  #do the analysis of variance    
 summary(aov.twoway.PC1)
+
+
+# FILTRAR DETERMINADOS USUÁRIOS
+x <- df_tidy_hg %>% filter(grepl("ricardo barbosa", df_tidy_hg$nomerespondente))
+y <- df_tidy_hg %>% filter(grepl("virgilio amaral", df_tidy_hg$nomerespondente))
+z <- df_tidy_hg %>% filter(grepl("vania cozzolino", df_tidy_hg$nomerespondente))
+w <- df_tidy_hg %>% filter(grepl("adriana gomes", df_tidy_hg$nomerespondente))
+w <- df_tidy_hg %>% filter(grepl("jose cassio", df_tidy_hg$nomerespondente))
+
+

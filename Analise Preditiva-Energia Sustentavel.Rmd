@@ -382,30 +382,56 @@ my.scores.usu.t <- as.data.frame(my.scores.usu.t[-c(1:5),]) # deixando somente c
 unfactorize<-c(1:dim(my.scores.usu.t)[2])
 my.scores.usu.t[,unfactorize]<-lapply(unfactorize, function(x) as.numeric(as.character(my.scores.usu.t[,x])))
 # correlacionando usuários com cada campo
-my.PC.usu <- cbind(my.PC.Campo.t[1:7,1:10],my.scores.usu.t) # unindo emmesmo data frame corr de usuario e baseline
-# correlacionando usuário 1 com baseline
+# primeiro concatenando a tabela de assinaturas dos usuários com a baseline de campos profissionais
+my.PC.usu <- cbind(my.PC.Campo.t[1:7,1:10],my.scores.usu.t) # unindo em mesmo data frame scores de usuario e scores medios de baseline
+# correlacionando usuários com baseline
 # obs: criar uma coluna nova para cada coor.usu1, corr.usu2, etc.
 
 #  fazer loop para cada campo
 #   salvar correlação em dataframe, na linha do usuário, coluna de cada campo (39linhas x 11 colunas)
-nr.usu <- ncol(my.scores.usu.t)
+nr.usu <- ncol(my.PC.usu)
 nr.cpo <- nrow(my.PC.Campo)
+my.v_cor <- matrix(nrow = nrow(my.scores.usu), ncol = nrow(my.PC.Campo)) # matrix para as correlações usuário x campo
 for (i in 11:nr.usu) { # loop para cada usuário
     # percorre todas as linhas da coluna corrente de df_campos
     for (j in 1:nr.cpo) { #  fazer loop para cada campo profissional
         # calcula correlação para usuário x campo
         #ini.usu <- j+10
-        my.cor <- cor(my.PC.usu[,c(i,j)])
+        my.v_cor[i-10,j] <- cor(my.PC.usu[,c(i,j)])[2]
         # para cada profissão encontrada em uma determinada classe, marca a posição correspondente
         # com 1, na célula do dataframe correspondente. Caso contrario, coloca NA
-        print(my.cor[2])
+        #print(my.cor[2])
     }
 }
+my.df_cor <- as.data.frame(my.v_cor)
+# colocando colunas com os nomes dos respondentes na matriz
+my.df_cor$nomerespondente <- my.scores.usu$nomerespondente
+# obs: testar manualmente para alguns aleatorios para ver se fez correto acima
+# mudando nomes das colunas
+names(my.df_cor) <- names(my.PC.usu[,1:10])
+colnames(my.df_cor)[11] <- "nomerespondente"
+
+# tomar as correlações positivas, acima de N % de correlação
+# para considerar correlacionado. c.c. não correlacionado
+my.corr_lim <- 0.6
+my.df_cor <-
+    my.df_cor %>%
+    mutate(CFM.prev = as.numeric(as.vector(CFM)),
+           CFQ.prev = as.numeric(as.vector(CFQ)),
+           CCF.prev = as.numeric(as.vector(CCF)),
+           COA.prev = as.numeric(as.vector(COA)),
+           CJS.prev = as.numeric(as.vector(CJS)),
+           CCP.prev = as.numeric(as.vector(CCP)),
+           CSL.prev = as.numeric(as.vector(CSL)),
+           CMA.prev = as.numeric(as.vector(CMA)),
+           CCE.prev = as.numeric(as.vector(CCE)),
+           CBS.prev = as.numeric(as.vector(CBS)))
 
 
 
-my.cor <- cor(my.PC.usu[,c(7,11)])
-corrplot.mixed(my.cor, insig = "p-value", sig.level = -1, is.corr = TRUE)
+# PAREI AQUI
+#my.cor <- cor(my.PC.usu[,c(7,11)])
+#corrplot.mixed(my.cor, insig = "p-value", sig.level = -1, is.corr = TRUE)
 ```
 
 
@@ -415,9 +441,9 @@ A análise realizada mostra como os perfis de cada campo profissional se correla
 Na figura abaixo, a cor azul mostra a intensidade da correlação positiva, enquanto a cor magenta mostra a intensidade da correlação negativa entre pares de campos profissionais. Na parte inferior à esquerda aparecem os valores das correlações.
 
 ```{r,echo=FALSE}
-require("corrplot", quietly = TRUE, warn.conflicts = FALSE)
-my.cor <- cor(my.PC.Campo.t[1:7,1:10])
-corrplot.mixed(my.cor, insig = "p-value", sig.level = -1, is.corr = TRUE)
+#require("corrplot", quietly = TRUE, warn.conflicts = FALSE)
+#my.cor <- cor(my.PC.Campo.t[1:7,1:10])
+#corrplot.mixed(my.cor, insig = "p-value", sig.level = -1, is.corr = TRUE)
 ```
 
 ### Correlação dos Perfis dos Campos Profissionais com o Perfil de um Respondente Selecionado ###
@@ -425,11 +451,11 @@ corrplot.mixed(my.cor, insig = "p-value", sig.level = -1, is.corr = TRUE)
 Como um exemplo de análise que pode ser feita em relação ao **perfil** de um respondente específico do teste Human Guide, pode ser colocado o score de determinado respondente no quadro de correlações acima para examinar onde o respondente se encaixa.
 
 ```{r,echo=FALSE}
-my.PC.Campo.t.nomes <- my.PC.Campo.t
-scores.alex <- c(-2.296264822,-1.735027078,2.862688958,-2.022102719,-0.256122419,-1.251091201,-0.06664273)
-my.PC.Campo.t.nomes$alex <- scores.alex
-my.cor.alex <- cor(my.PC.Campo.t.nomes[1:7,c(1:10,13)])
-corrplot.mixed(my.cor.alex, insig = "p-value", sig.level = -1, is.corr = TRUE)
+#my.PC.Campo.t.nomes <- my.PC.Campo.t
+#scores.alex <- c(-2.296264822,-1.735027078,2.862688958,-2.022102719,-0.256122419,-1.251091201,-0.06664273)
+#my.PC.Campo.t.nomes$alex <- scores.alex
+#my.cor.alex <- cor(my.PC.Campo.t.nomes[1:7,c(1:10,13)])
+#corrplot.mixed(my.cor.alex, insig = "p-value", sig.level = -1, is.corr = TRUE)
 ```
 
 ### Correlação dos Perfis entre Respondentes Selecionados ###
@@ -437,17 +463,17 @@ corrplot.mixed(my.cor.alex, insig = "p-value", sig.level = -1, is.corr = TRUE)
 Também comparamos a correlação dos Perfis de respondentes conhecidos, sem levar em conta seus campos profisisonais, com a intenção de avaliar se este tipo de análise mostra similaridade ou não de perfis individuais. 
 
 ```{r,echo=FALSE}
-scores.arlindo <- c(6.215298989, -0.179402156,2.192249661,-0.629228456,1.445510203,0.721397732, -0.934846735)
-scores.laura <- c(-0.880558127,-0.310320799,1.41442788,-3.047761097,-0.700773651,1.72406918,-0.082153033)
-scores.beatriz <- c(1.967845169,-0.024716848,0.972965178,2.217476245,-0.164333631,-1.748897734,-0.433052634)
-scores.eneko <- c(1.327869429,-1.82247322,2.158161567,1.257910708,2.418553145,-1.472161385,-0.535689283)
-my.PC.Campo.t.nomes$arlindo <- scores.arlindo
-my.PC.Campo.t.nomes$beatriz <- scores.beatriz
-my.PC.Campo.t.nomes$laura <- scores.laura
-my.PC.Campo.t.nomes$eneko <- scores.eneko
+#scores.arlindo <- c(6.215298989, -0.179402156,2.192249661,-0.629228456,1.445510203,0.721397732, -0.934846735)
+#scores.laura <- c(-0.880558127,-0.310320799,1.41442788,-3.047761097,-0.700773651,1.72406918,-0.082153033)
+#scores.beatriz <- c(1.967845169,-0.024716848,0.972965178,2.217476245,-0.164333631,-1.748897734,-0.433052634)
+#scores.eneko <- c(1.327869429,-1.82247322,2.158161567,1.257910708,2.418553145,-1.472161385,-0.535689283)
+#my.PC.Campo.t.nomes$arlindo <- scores.arlindo
+#my.PC.Campo.t.nomes$beatriz <- scores.beatriz
+#my.PC.Campo.t.nomes$laura <- scores.laura
+#my.PC.Campo.t.nomes$eneko <- scores.eneko
 
-my.cor <- cor(my.PC.Campo.t.nomes[1:7,c(13:17)])
-corrplot.mixed(my.cor, insig = "p-value", sig.level = -1, is.corr = TRUE)
+#my.cor <- cor(my.PC.Campo.t.nomes[1:7,c(13:17)])
+#corrplot.mixed(my.cor, insig = "p-value", sig.level = -1, is.corr = TRUE)
 ```
 
 #### Classificando o Respondente nos Campos Profissionais (ALGORITMO I)####
@@ -515,9 +541,9 @@ source("./R/f_classifica_HG.R") # usar esta função para ler os dados novos.
 # obs: posso colocar no shiny permitindo entrar com as faixas
 # dataframe para cada respondente com linhas = campos, colunas = corr, classif
 # constantes
-#lims.corr <- c(.3, .15, .05) # classificação HG
-nome.resp <- "Alex"
-lims.corr <- c(.6, .3, .1) # classificação cass
+lims.corr <- c(.3, .15, .05) # classificação HG
+#nome.resp <- "Alex"
+#lims.corr <- c(.6, .3, .1) # classificação cass
 
 # funcao que gera a tabela de classificacao do respondente
 # obs: somente valores de scores médios, sem linhas de desvio padrao para my.PC.Campo.t
