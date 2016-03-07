@@ -47,6 +47,33 @@ f_acentos <- function(df_in) { # funcao que tira os acentos e deixa tudo em minu
 ```
 
 ```{r,echo=FALSE}
+# obtém tabela DE-PARA para profissões, para alinhar com a classificação de Campos Profissionais
+
+df_profs <- read.xlsx2("./data/profs.de.para-V1.xlsx", sheetIndex = 1, header = TRUE)
+df_profs <- f_acentos(df_profs)
+
+# renomeando colunas
+df_profs <-
+    df_profs %>%
+    rename(profissao.na.area.de = DE)
+
+#knitr::kable(df_profs)
+```
+
+```{r,echo=FALSE}
+# obtém tabela DE-PARA para formações, para alinhar com a classificação de Campos Profissionais
+df_forms <- read.xlsx2("./data/forms.de.para-V1.xlsx", sheetIndex = 1, header = TRUE)
+df_forms <- f_acentos(df_forms)
+
+# renomeando colunas
+df_forms <-
+    df_forms %>%
+    rename(formacao.em = DE)
+
+#knitr::kable(df_forms)
+```
+
+```{r,echo=FALSE}
 require("doMC", quietly = TRUE, warn.conflicts = FALSE)
 require("xlsx", quietly = TRUE, warn.conflicts = FALSE)
 require("plyr", quietly = TRUE, warn.conflicts = FALSE)
@@ -54,8 +81,12 @@ require("dplyr", quietly = TRUE, warn.conflicts = FALSE)
 
 registerDoMC(5) # parallel processing
 
-# obtém dados do Human Guide para Energia Sutentável do Brasil
+# obtém e prepara dados do Human Guide para Energia Sutentável do Brasil
+##################################################################
 df_usu <- read.xlsx2("./data/PP_09029666000490_20160302.xlsx", sheetIndex = 1, header = TRUE)
+
+# TROCA CODIGO DA FORMACAO E OCUPACAO POR DESCRICAO
+####################################################
 # codigo das profisoes/formacoes
 df_cdprof <- read.xlsx2("./data/ref_profissao.xlsx", sheetIndex = 1, header = FALSE)
 names(df_cdprof) <- c("cod", "descr.prof")
@@ -72,6 +103,7 @@ df_usu <-
     df_usu %>%
     mutate (formacao = as.numeric(as.character(formacao)),
             profissao = as.numeric(as.character(profissao)))
+
 # trocando códigos por descricao para formacao e profissao
 df_usu <- inner_join(df_usu, df_cdprof, by = c("profissao" = "cod") )
 df_usu <- inner_join(df_usu, df_cdform, by = c("formacao" = "cod") )
@@ -88,22 +120,74 @@ df_usu[,unfactorize]<-lapply(unfactorize, function(x) as.numeric(as.character(df
     
 source("./R/f_tidy_scores_HG_geral.R") # usar esta função para ler os dados novos. 
 
-df_tidy_usu_hg <- f_tidy_scores_HG_geral(df_usu) # calcula os fatores de acordo com a puntuação
+# calculando os scores para usuários
+####################################
+df_tidy_usu_hg <- f_tidy_scores_HG_geral(df_usu) # calcula os fatores de acordo com a pontuação
 
 df_tidy_usu_hg <- f_acentos(df_tidy_usu_hg) # tirando acentos
 
 unfactorize<-c(12:19) # changing factor to numeric
 df_tidy_usu_hg[,unfactorize]<-lapply(unfactorize, function(x) as.numeric(as.character(df_tidy_usu_hg[,x])))
 
+```
+
+
+
+
+#### 2. Assinaturas de baseline dos Campos Profissionais ####
+
+Abaixo as assinaturas de baseline da cada campo profissional segundo a classificação de Levenfus, a partir dos dados da amostra original usada para calibrar o modelo
+
+```{r,echo=FALSE}
+# carrega tabela de ocupaccoes classificadas em campos profissionsis segundo Levenfus
+######################################################################################
+
+df_campos <- read.xlsx2("./data/Classificacao das carreiras-V2.xlsx", sheetIndex = 1, header = TRUE)
+# preparando os dados para as pesquisas a frente
+df_campos <- f_acentos(df_campos)
+# ATENCAO: depois melhorar funcao acima para tirar brancos no inicio e fim tb!!!!
+#knitr::kable(head(df_campos))
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# APLICA DE-PARA DE PROFISSAO E OCUPACAO PARA DADOS DE USUARIOS A PREVER
+#-----------------------------------------------------------------------------------
+
+
+# substituindo a coluna de formação antiga para a convertida na tabela principal
+df_change_usu <- left_join(df_tidy_usu_hg, df_forms, by=c("formacao.em")) 
+df_change_usu <-
+    df_change_usu %>%
+    select(-formacao.em) %>%
+    rename(formacao.em = PARA)
+
+
+# substituindo a coluna de profissão antiga para a convertida na tabela principal
+df_change_usu <- left_join(df_change_usu, df_profs, by=c("profissao.na.area.de")) 
+df_change_usu <-
+    df_change_usu %>%
+    select(-profissao.na.area.de) %>%
+    rename(profissao.na.area.de = PARA)
+
+# eliminar formação e profissão marcadas como a "eliminar"
+df_change_usu <-
+    df_change_usu %>%
+    filter(formacao.em != "eliminar" & profissao.na.area.de != "eliminar")
+```
+
+
+```{r,echo=FALSE}
 # obtendo os scores previstos de acordo com a análise de componentes principais
-pca1 = prcomp(df_tidy_usu_hg[,12:19], scale. = TRUE, center = TRUE)
+###############################################################################
+
+pca1 = prcomp(df_change_usu[,10:17], scale. = TRUE, center = TRUE)
 # scores obtidos
 scores.usu <- as.data.frame(pca1$x)
-my.scores.usu <- as.data.frame(cbind(ID = df_tidy_usu_hg$ID,
-                                 nomerespondente = df_tidy_usu_hg$nomerespondente,
-                                 sexo = df_tidy_usu_hg$sexo, 
-                                 profissao.na.area.de = df_tidy_usu_hg$profissao.na.area.de, 
-                                formacao.em = df_tidy_usu_hg$formacao.em,
+my.scores.usu <- as.data.frame(cbind(ID =  df_change_usu$ID,
+                                 nomerespondente = df_change_usu$nomerespondente,
+                                 sexo = df_change_usu$sexo, 
+                                 profissao.na.area.de = df_change_usu$profissao.na.area.de, 
+                                formacao.em = df_change_usu$formacao.em,
                                 scores.usu))
 # eliminando PC8
 my.scores.usu <-
@@ -113,30 +197,22 @@ my.scores.usu <-
 knitr::kable(my.scores.usu[c(2,6:12)])
 ```
 
-#### 2. Assinaturas de baseline dos Campos Profissionais ####
-
-Abaixo as assinaturas de baseline da cada campo profissional segundo a classificação de Levenfus, a partir dos dados da amostra original usada para calibrar o modelo
-
-```{r,echo=FALSE}
-df_campos <- read.xlsx2("./data/Classificacao das carreiras-V2.xlsx", sheetIndex = 1, header = TRUE)
-# preparando os dados para as pesquisas a frente
-df_campos <- f_acentos(df_campos)
-# ATENCAO: depois melhorar funcao acima para tirar brancos no inicio e fim tb!!!!
-#knitr::kable(head(df_campos))
-```
 
 ```{r, echo=FALSE, warning=FALSE}
 require("stringr", quietly = TRUE, warn.conflicts = FALSE)
 require("reshape2", quietly = TRUE, warn.conflicts = FALSE)
 
-source("./R/f_le_raw_HG.R") # usar esta função para ler os dados novos. 
-source("./R/f_tidy_scores_HG.R") # alterada em 07/12/2015 para trazer nome do respondente tb
-df_raw_hg <- f_le_raw_HG() # lê toda a amostra de dados HG
+# OBTEM ASSINATURAS DE BASELINE PARA CAMPO PROFISSIONAIS
+#########################################################
 
-df_tidy_hg <- f_tidy_scores_HG(df_raw_hg) # calcula os fatores de acordo com a puntuação
+#source("./R/f_le_raw_HG.R") # usar esta função para ler os dados novos. 
+#source("./R/f_tidy_scores_HG.R") # alterada em 07/12/2015 para trazer nome do respondente tb
+#df_raw_hg <- f_le_raw_HG() # lê toda a amostra de dados HG
+
+#df_tidy_hg <- f_tidy_scores_HG(df_raw_hg) # calcula os fatores de acordo com a puntuação
 
 # chama funcao que tira acentos e força minúsculos
-df_tidy_hg <- f_acentos(df_tidy_hg)
+#df_tidy_hg <- f_acentos(df_tidy_hg)
 
 # para testes usar somente 1000 ocorrências na amostra
 #tam.amostra = 1000
@@ -144,190 +220,181 @@ df_tidy_hg <- f_acentos(df_tidy_hg)
 #    df_tidy_hg %>%
 #    sample_n(tam.amostra)
 # restaura fatores como numericos
-df_tidy_hg <-
-    df_tidy_hg %>%
-    mutate(sensibility = as.numeric(as.vector(sensibility)),
-           power = as.numeric(as.vector(power)),
-           quality = as.numeric(as.vector(quality)),
-           exposure = as.numeric(as.vector(exposure)),
-           structure = as.numeric(as.vector(structure)),
-           imagination = as.numeric(as.vector(imagination)),
-           stability = as.numeric(as.vector(stability)),
-           contacts = as.numeric(as.vector(contacts)))
-```
+#df_tidy_hg <-
+#    df_tidy_hg %>%
+#    mutate(sensibility = as.numeric(as.vector(sensibility)),
+#           power = as.numeric(as.vector(power)),
+#           quality = as.numeric(as.vector(quality)),
+#           exposure = as.numeric(as.vector(exposure)),
+#           structure = as.numeric(as.vector(structure)),
+#           imagination = as.numeric(as.vector(imagination)),
+#           stability = as.numeric(as.vector(stability)),
+#           contacts = as.numeric(as.vector(contacts)))
 
-```{r,echo=FALSE}
-# obtém tabela DE-PARA para profissões, para alinhar com a classificação de Campos Profissionais
-
-df_profs <- read.xlsx2("./data/profs.de.para-V1.xlsx", sheetIndex = 1, header = TRUE)
-df_profs <- f_acentos(df_profs)
-
-#knitr::kable(df_profs)
-```
-
-```{r,echo=FALSE}
-# obtém tabela DE-PARA para formações, para alinhar com a classificação de Campos Profissionais
-df_forms <- read.xlsx2("./data/forms.de.para-V1.xlsx", sheetIndex = 1, header = TRUE)
-df_forms <- f_acentos(df_forms)
-#knitr::kable(df_forms)
-```
-
-```{r, echo=FALSE, warning=FALSE}
 # OBTENÇÃO DOS SCORES A PARTIR DE TODA A AMOSTRA
 #-----------------------------------------------------------------------------------
 # obtendo os scores previstos de acordo com a análise de componentes principais
-pca1 = prcomp(df_tidy_hg[,7:14], scale. = TRUE, center = TRUE)
+#pca1 = prcomp(df_tidy_hg[,7:14], scale. = TRUE, center = TRUE)
 # scores obtidos
-scores.total <- as.data.frame(pca1$x)
-my.scores.total <- as.data.frame(cbind(ID = df_tidy_hg$ID, 
-                                 sexo = df_tidy_hg$sexo, 
-                                 tipouser = df_tidy_hg$TIPOUSER, 
-                                 profissao.na.area.de = df_tidy_hg$profissao.na.area.de, 
-                                formacao.em = df_tidy_hg$formacao.em,
-                                scores.total))
+#scores.total <- as.data.frame(pca1$x)
+#my.scores.total <- as.data.frame(cbind(ID = df_tidy_hg$ID, 
+#                                 sexo = df_tidy_hg$sexo, 
+#                                 tipouser = df_tidy_hg$TIPOUSER, 
+#                                 profissao.na.area.de = df_tidy_hg$profissao.na.area.de, 
+#                                formacao.em = df_tidy_hg$formacao.em,
+#                                scores.total))
 # troca de TIPOUSER vazio por "indefinido"
-my.scores.total <-
-        my.scores.total %>%
-        mutate(tipouser = ifelse(tipouser == "", "indefinido", as.character(tipouser)),
-               sexo = ifelse(sexo == "f", "feminino","masculino"))
+#my.scores.total <-
+#        my.scores.total %>%
+#        mutate(tipouser = ifelse(tipouser == "", "indefinido", as.character(tipouser)),
+#               sexo = ifelse(sexo == "f", "feminino","masculino"))
 
-```
-
-```{r, echo=FALSE, warning=FALSE}
-# DAQUI PARA BAIXO SÓ PRECISA PARA TRATAR DE CLASSIFICAÇÃO EM CAMPOS PROFISSIONAIS
+# DAQUI PARA BAIXO  TRATA DE CLASSIFICAÇÃO EM CAMPOS PROFISSIONAIS
 #-----------------------------------------------------------------------------------
 # renomeando colunas
-df_forms <-
-    df_forms %>%
-    rename(formacao.em = DE)
+#df_forms <-
+#    df_forms %>%
+#    rename(formacao.em = DE)
 
 # substituindo a coluna de formação antiga para a convertida na tabela principal
-df_change <- left_join(my.scores.total, df_forms, by=c("formacao.em")) 
-df_change <-
-    df_change %>%
-    select(-formacao.em) %>%
-    rename(formacao.em = PARA)
+#df_change <- left_join(my.scores.total, df_forms, by=c("formacao.em")) 
+#df_change <-
+#    df_change %>%
+#    select(-formacao.em) %>%
+#    rename(formacao.em = PARA)
 
 # renomeando colunas
-df_profs <-
-    df_profs %>%
-    rename(profissao.na.area.de = DE)
+#df_profs <-
+#    df_profs %>%
+#    rename(profissao.na.area.de = DE)
 
 # substituindo a coluna de profissão antiga para a convertida na tabela principal
-df_change <- left_join(df_change, df_profs, by=c("profissao.na.area.de")) 
-df_change <-
-    df_change %>%
-    select(-profissao.na.area.de) %>%
-    rename(profissao.na.area.de = PARA)
+#df_change <- left_join(df_change, df_profs, by=c("profissao.na.area.de")) 
+#df_change <-
+#    df_change %>%
+#    select(-profissao.na.area.de) %>%
+#    rename(profissao.na.area.de = PARA)
 
 # eliminar formação e profissão marcadas como a "eliminar"
-df_change <-
-    df_change %>%
-    filter(formacao.em != "eliminar" & profissao.na.area.de != "eliminar")
-```
+#df_change <-
+#    df_change %>%
+#    filter(formacao.em != "eliminar" & profissao.na.area.de != "eliminar")
 
+# OBTENDO OS CAMPOS PROFISSIONAIS ASSOCIADOS A INFORMAÇÃO DE OCUPAÇÃO PASSADA PELO USUÁRIO
+###########################################################################################
 
-```{r, echo=FALSE, warning=FALSE}
-# FORMACAO x CLASSE
-# OBTENDO OS CAMPOS PROFISSIONAIS ASSOCIADOS A INFORMAÇÃO PASSADA PELO USUÁRIO
-# criando novo dataframe para tratar mais de uma formacao por classe de carreira
+# criando novo dataframe para tratar mais de um campo profisisonal por ocupação
+# OBS: repetir  o loop somente para os usuários selecionados (39) para
+# obter os Campos informados!!! Concatenar depois com o df.PC.usu onde já
+# coloquei as ocupações previstas (corr > .6 = 1, cc. 0)
 #----------------------------------------------------------------------------------
-df_form <- data.frame()
+#df_ocup <- data.frame()
 
-for (j in 1:ncol(df_campos)) {
+#for (j in 1:ncol(df_campos)) {
     # percorre todas as linhas da coluna corrente de df_campos
-    for (i in 1:length(df_change$formacao.em)) {
+#    for (i in 1:length(df_change$profissao.na.area.de)) {
         # somente pega o string com match exato (ex. administração)
-        i_aux <- sum(!is.na(str_match(df_campos[,j],
-                                      paste0("^", as.character(df_change$formacao.em[i]), "$"))))
+#        i_aux <- sum(!is.na(str_match(df_campos[,j],
+#                                      paste0("^", as.character(df_change$profissao.na.area.de[i]), #"$"))))
         # para cada profissão encontrada em uma determinada classe, marca a posição correspondente
         # com 1, na célula do dataframe correspondente. Caso contrario, coloca NA
-        if(i_aux) {
-            df_form[i,j] = i_aux
-        } else {
-            df_form[i,j] = NA
-        }
-    }
-}
+#        if(i_aux) {
+#            df_ocup[i,j] = i_aux
+#        } else {
+#            df_ocup[i,j] = NA
+#        }
+#    }
+#}
  # colocando os nomes das classes no dataframe gerado
-names(df_form) <- colnames(df_campos)
+#names(df_ocup) <- colnames(df_campos)
 
 # concatenando a coluna de formações ao dataframe gerado
-my.prev.form <- cbind(df_change, df_form)
+#my.info.ocup <- cbind(df_change, df_ocup)
 
 # duplicar colunas que aparecem com mais de uma classe
 # transformando colunas em valores por linha, eliminando NAs, de forma a poder ter os scores de
 # cada profissão duplicado para cada classe onde a profissão se encontra
 # Desta forma, a análise não perde a contribuição do score de cada profissão para cada classe
-formMelt <- melt(my.prev.form,id=c("ID","formacao.em",
-                                   "PC1","PC2","PC3","PC4","PC5","PC6","PC7"),
-                 measure.vars=colnames(df_campos), na.rm = TRUE)
+#ocupMelt <- melt(my.info.ocup,id=c("ID","profissao.na.area.de",
+#                                   "PC1","PC2","PC3","PC4","PC5","PC6","PC7"),
+#                 measure.vars=colnames(df_campos), na.rm = TRUE)
 # mudando o nome da variavel de classe
-colnames(formMelt)[10] <- "class.form"
+#colnames(ocupMelt)[10] <- "class.ocup"
 # eliminando coluna desnecessária
-my.prev.form <-
-    formMelt %>%
-    select (-value)
+#ocupMelt <-
+#    ocupMelt %>%
+#    select (-value)
 
-```
+#require("Hmisc", quietly = TRUE, warn.conflicts = FALSE)
+#my.PC.Campo <-
+#    ocupMelt %>%
+#    group_by(class.ocup) %>%
+#    summarise(PC1.medio = mean(PC1),
+#              PC2.medio = mean(PC2),
+#              PC3.medio = mean(PC3),
+#              PC4.medio = mean(PC4),
+#              PC5.medio = mean(PC5),
+#              PC6.medio = mean(PC6),
+#              PC7.medio = mean(PC7),
+#              PC1.sd = sd(PC1),
+#              PC2.sd = sd(PC2),
+#              PC3.sd = sd(PC3),
+#              PC4.sd = sd(PC4),
+#              PC5.sd = sd(PC5),
+#              PC6.sd = sd(PC6),
+#              PC7.sd = sd(PC7)
+#              )
 
-```{r,echo=FALSE}
-require("Hmisc", quietly = TRUE, warn.conflicts = FALSE)
-my.PC.Campo <-
-    my.prev.form %>%
-    group_by(class.form) %>%
-    summarise(PC1.medio = mean(PC1),
-              PC2.medio = mean(PC2),
-              PC3.medio = mean(PC3),
-              PC4.medio = mean(PC4),
-              PC5.medio = mean(PC5),
-              PC6.medio = mean(PC6),
-              PC7.medio = mean(PC7),
-              PC1.sd = sd(PC1),
-              PC2.sd = sd(PC2),
-              PC3.sd = sd(PC3),
-              PC4.sd = sd(PC4),
-              PC5.sd = sd(PC5),
-              PC6.sd = sd(PC6),
-              PC7.sd = sd(PC7)
-              )
-```
-
-```{r,echo=FALSE}
 # inserindo numero sequencial para representar os campos
-my.PC.Campo <-
-    my.PC.Campo %>%
-    mutate(ID.campo = seq(nrow((my.PC.Campo))))
-# para as medias transpostas    #AQUI
-my.PC.Campo.t <- t(my.PC.Campo)
-colnames(my.PC.Campo.t) <- my.PC.Campo.t[1,]
+#my.PC.Campo <-
+#    my.PC.Campo %>%
+#    mutate(ID.campo = seq(nrow((my.PC.Campo))))
+## para as medias transpostas    #AQUI
+#my.PC.Campo.t <- t(my.PC.Campo)
+#colnames(my.PC.Campo.t) <- my.PC.Campo.t[1,]
 
-my.PC.Campo.t <- my.PC.Campo.t[-16,] # elimina linhas indesejadas
-my.PC.Campo.t <- my.PC.Campo.t[-1,] # elimina linhas indesejadas
-my.PC.Campo.t <- as.data.frame(my.PC.Campo.t)
-my.PC.Campo.t <-
-    my.PC.Campo.t %>%
-    mutate(PC.stat = rownames(my.PC.Campo.t))
-my.PC.Campo.t <-
-    my.PC.Campo.t %>%
-    mutate(CFM = as.numeric(as.vector(CFM)),
-           CFQ = as.numeric(as.vector(CFQ)),
-           CCF = as.numeric(as.vector(CCF)),
-           COA = as.numeric(as.vector(COA)),
-           CJS = as.numeric(as.vector(CJS)),
-           CCP = as.numeric(as.vector(CCP)),
-           CSL = as.numeric(as.vector(CSL)),
-           CMA = as.numeric(as.vector(CMA)),
-           CCE = as.numeric(as.vector(CCE)),
-           CBS = as.numeric(as.vector(CBS)))
+#my.PC.Campo.t <- my.PC.Campo.t[-16,] # elimina linhas indesejadas
+#my.PC.Campo.t <- my.PC.Campo.t[-1,] # elimina linhas indesejadas
+#my.PC.Campo.t <- as.data.frame(my.PC.Campo.t)
+#my.PC.Campo.t <-
+#    my.PC.Campo.t %>%
+#    mutate(PC.stat = rownames(my.PC.Campo.t))
+#my.PC.Campo.t <-
+#    my.PC.Campo.t %>%
+#    mutate(CFM = as.numeric(as.vector(CFM)),
+#           CFQ = as.numeric(as.vector(CFQ)),
+#           CCF = as.numeric(as.vector(CCF)),
+#           COA = as.numeric(as.vector(COA)),
+#           CJS = as.numeric(as.vector(CJS)),
+#           CCP = as.numeric(as.vector(CCP)),
+#           CSL = as.numeric(as.vector(CSL)),
+#           CMA = as.numeric(as.vector(CMA)),
+#           CCE = as.numeric(as.vector(CCE)),
+#           CBS = as.numeric(as.vector(CBS)))
 # inserindo numero sequencial para representar os campos
-my.PC.Campo.t <-
-    my.PC.Campo.t %>%
-    mutate(ID.PC = seq(nrow((my.PC.Campo.t))))
+#my.PC.Campo.t <-
+#    my.PC.Campo.t %>%
+#    mutate(ID.PC = seq(nrow((my.PC.Campo.t))))
+
+# salvando a baseline como planilha para não precisar rodar a baseline demorada todas as vezes
+# depois cria funcao que salva a baseline
+#write.xlsx(my.PC.Campo.t, "./data/BaselineAssinaturaCamposProfisisonais.xlsx")
+
+# a prtir de agora, somente ler a baseline neste documento
+my.PC.Campo.t <- read.xlsx2("./data/BaselineAssinaturaCamposProfisisonais.xlsx", 
+                    sheetIndex = 1, colIndex = c(2:12), header = TRUE)
+# mudando fatores para numerico (atenção: está jogando N na coluna que identifica os PCs. Concertar depois!!)
+unfactorize<-c(1:dim(my.PC.Campo.t)[2])
+my.PC.Campo.t[,unfactorize]<-lapply(unfactorize, function(x) as.numeric(as.character(my.PC.Campo.t[,x])))
+
 #knitr::kable(my.PC.Campo.t[1:7,1:11])
 ```
 
 ```{r,echo=FALSE}
+
+# PLOTANDO ASSINATURAS DE BASELINE PARA CAMPOS PROFISISONAIS x PCs
+###################################################################
+
 # considerando apenas as médias para a assinatura
 require("Rmisc", quietly = TRUE, warn.conflicts = FALSE)
 require("gridExtra", quietly = TRUE, warn.conflicts = FALSE)
@@ -373,7 +440,11 @@ A partir desta baseline, foram obtidas as correlações entre os campos profissi
 Foram selecionadas para cada usuário somente as correlações marcantes, conforme a amostra abaixo:
 
 ```{r,echo=FALSE}
-require("corrplot", quietly = TRUE, warn.conflicts = FALSE)
+#require("corrplot", quietly = TRUE, warn.conflicts = FALSE)
+
+# OBTENDO OCUPACOES PREVISTAS E INFORMADAS PARA USUARIOS SEELCIONADOS
+######################################################################
+
 # transpondo o data.frame de scores usuários
 my.scores.usu.t <- t(my.scores.usu)
 colnames(my.scores.usu.t) <- my.scores.usu.t[2,] # coloca nome do usuario como nome da coluna
@@ -383,9 +454,15 @@ unfactorize<-c(1:dim(my.scores.usu.t)[2])
 my.scores.usu.t[,unfactorize]<-lapply(unfactorize, function(x) as.numeric(as.character(my.scores.usu.t[,x])))
 # correlacionando usuários com cada campo
 # primeiro concatenando a tabela de assinaturas dos usuários com a baseline de campos profissionais
-my.PC.usu <- cbind(my.PC.Campo.t[1:7,1:10],my.scores.usu.t) # unindo em mesmo data frame scores de usuario e scores medios de baseline
+
+# dataframe com assinaturas dos usuários e assinaturas e baselines de campos previstos
+#######################################################################################
+my.PC.usu <- cbind(my.PC.Campo.t[1:7,1:10],my.scores.usu.t)
+
 # correlacionando usuários com baseline
 # obs: criar uma coluna nova para cada coor.usu1, corr.usu2, etc.
+
+# SALVANDO EM DATA FRAME AS CORRELACOES
 
 #  fazer loop para cada campo
 #   salvar correlação em dataframe, na linha do usuário, coluna de cada campo (39linhas x 11 colunas)
@@ -403,7 +480,11 @@ for (i in 11:nr.usu) { # loop para cada usuário
         #print(my.cor[2])
     }
 }
+
+# data frame com correlacoes de cada usuario (rows) com os campos profissionais de ocupacao
+##########################################################################################
 my.df_cor <- as.data.frame(my.v_cor)
+
 # colocando colunas com os nomes dos respondentes na matriz
 my.df_cor$nomerespondente <- my.scores.usu$nomerespondente
 # obs: testar manualmente para alguns aleatorios para ver se fez correto acima
@@ -413,19 +494,191 @@ colnames(my.df_cor)[11] <- "nomerespondente"
 
 # tomar as correlações positivas, acima de N % de correlação
 # para considerar correlacionado. c.c. não correlacionado
-my.corr_lim <- 0.6
+# criando as colunas de TRUE e FALSE acima do limite de correlação
+my.corr_lim <- 0.3 # acurácia de hit de ocupação = 37%
+#my.corr_lim <- 0.15 # acurácia de hit de ocupação = 47.5%
+#my.corr_lim <- 0.05 # acurácia de hit de ocupação = 55%
 my.df_cor <-
     my.df_cor %>%
-    mutate(CFM.prev = as.numeric(as.vector(CFM)),
-           CFQ.prev = as.numeric(as.vector(CFQ)),
-           CCF.prev = as.numeric(as.vector(CCF)),
-           COA.prev = as.numeric(as.vector(COA)),
-           CJS.prev = as.numeric(as.vector(CJS)),
-           CCP.prev = as.numeric(as.vector(CCP)),
-           CSL.prev = as.numeric(as.vector(CSL)),
-           CMA.prev = as.numeric(as.vector(CMA)),
-           CCE.prev = as.numeric(as.vector(CCE)),
-           CBS.prev = as.numeric(as.vector(CBS)))
+    mutate(CFM.prev = ifelse(CFM > my.corr_lim, TRUE,FALSE),
+           CFQ.prev = ifelse(CFQ > my.corr_lim, TRUE,FALSE),
+           CCF.prev = ifelse(CCF > my.corr_lim, TRUE,FALSE),
+           COA.prev = ifelse(COA > my.corr_lim, TRUE,FALSE),
+           CJS.prev = ifelse(CJS > my.corr_lim, TRUE,FALSE),
+           CCP.prev = ifelse(CCP > my.corr_lim, TRUE,FALSE),
+           CSL.prev = ifelse(CSL > my.corr_lim, TRUE,FALSE),
+           CMA.prev = ifelse(CMA > my.corr_lim, TRUE,FALSE),
+           CCE.prev = ifelse(CCE > my.corr_lim, TRUE,FALSE),
+           CBS.prev = ifelse(CBS > my.corr_lim, TRUE,FALSE))
+
+
+# OBTENDO AS OCUPAÇÕES INFORMADAS PARA OS DADOS DE ENERGIA SUSTENTAVEL
+########################################################################
+
+df_ocup.usu <- data.frame()
+
+for (j in 1:ncol(df_campos)) {
+    # percorre todas as linhas da coluna corrente de df_campos
+    for (i in 1:length(df_change_usu$profissao.na.area.de)) {
+        # somente pega o string com match exato (ex. administração)
+        i_aux <- sum(!is.na(str_match(df_campos[,j],
+                                      paste0("^", as.character(df_change_usu$profissao.na.area.de[i]), "$"))))
+        # para cada profissão encontrada em uma determinada classe, marca a posição correspondente
+        # com 1, na célula do dataframe correspondente. Caso contrario, coloca NA
+        if(i_aux) {
+            df_ocup.usu[i,j] = TRUE
+        } else {
+            df_ocup.usu[i,j] = FALSE
+        }
+    }
+}
+# colocando os nomes das classes no dataframe gerado
+names(df_ocup.usu) <- colnames(df_campos)
+
+# OBTENDO AS OCUPAÇÕES INFORMADAS PARA OS DADOS DE ENERGIA SUSTENTAVEL
+########################################################################
+
+df_form.usu <- data.frame()
+
+for (j in 1:ncol(df_campos)) {
+    # percorre todas as linhas da coluna corrente de df_campos
+    for (i in 1:length(df_change_usu$formacao.em)) {
+        # somente pega o string com match exato (ex. administração)
+        i_aux <- sum(!is.na(str_match(df_campos[,j],
+                                      paste0("^", as.character(df_change_usu$formacao.em[i]), "$"))))
+        # para cada profissão encontrada em uma determinada classe, marca a posição correspondente
+        # com 1, na célula do dataframe correspondente. Caso contrario, coloca NA
+        if(i_aux) {
+            df_form.usu[i,j] = TRUE
+        } else {
+            df_form.usu[i,j] = FALSE
+        }
+    }
+}
+# colocando os nomes das classes no dataframe gerado
+names(df_form.usu) <- colnames(df_campos)
+
+# mudando nomes das colunas de correlacoes
+my.df_cor <-
+    my.df_cor %>%
+    rename(CFM.corr = CFM,
+           CFQ.corr = CFQ,
+           CCF.corr = CCF,
+           COA.corr = COA,
+           CJS.corr = CJS,
+           CCP.corr = CCP,
+           CSL.corr = CSL,
+           CMA.corr = CMA,
+           CCE.corr = CCE,
+           CBS.corr = CBS)
+# concatenando a coluna de ocupacoes ao dataframe gerado
+my.df_cor <- cbind(my.df_cor, df_ocup.usu)
+# mudando nomes das colunas de ocupacoes informadas
+my.df_cor <-
+    my.df_cor %>%
+    rename(CFM.ocup.info = CFM,
+           CFQ.ocup.info = CFQ,
+           CCF.ocup.info = CCF,
+           COA.ocup.info = COA,
+           CJS.ocup.info = CJS,
+           CCP.ocup.info = CCP,
+           CSL.ocup.info = CSL,
+           CMA.ocup.info = CMA,
+           CCE.ocup.info = CCE,
+           CBS.ocup.info = CBS)
+
+# concatenando a coluna de ocupacoes ao dataframe gerado
+my.df_cor <- cbind(my.df_cor, df_form.usu)
+# mudando nomes das colunas informadas
+my.df_cor <-
+    my.df_cor %>%
+    rename(CFM.form.info = CFM,
+           CFQ.form.info = CFQ,
+           CCF.form.info = CCF,
+           COA.form.info = COA,
+           CJS.form.info = CJS,
+           CCP.form.info = CCP,
+           CSL.form.info = CSL,
+           CMA.form.info = CMA,
+           CCE.form.info = CCE,
+           CBS.form.info = CBS)
+# criando coluna de HITs de ocupação e HITs de formacao
+# se ao menos uma das colunas de ocupação, *.prev estiver ligada e
+# a correspondente *.info, então considera um HIT
+my.df_cor <-
+    my.df_cor %>%
+    mutate(hit.ocup = ifelse ((CFM.prev & CFM.ocup.info) |
+                                  (CFQ.prev & CFQ.ocup.info) |
+                                  (CCF.prev & CCF.ocup.info) |
+                                  (COA.prev & COA.ocup.info) |
+                                  (CJS.prev & CJS.ocup.info) |
+                                  (CCP.prev & CCP.ocup.info) |
+                                  (CSL.prev & CSL.ocup.info) |
+                                  (CMA.prev & CMA.ocup.info) |
+                                  (CCE.prev & CCE.ocup.info) |
+                                  (CBS.prev & CBS.ocup.info), TRUE, FALSE),
+            hit.form = ifelse ((CFM.prev & CFM.form.info) |
+                                  (CFQ.prev & CFQ.form.info) |
+                                  (CCF.prev & CCF.form.info) |
+                                  (COA.prev & COA.form.info) |
+                                  (CJS.prev & CJS.form.info) |
+                                  (CCP.prev & CCP.form.info) |
+                                  (CSL.prev & CSL.form.info) |
+                                  (CMA.prev & CMA.form.info) |
+                                  (CCE.prev & CCE.form.info) |
+                                  (CBS.prev & CBS.form.info), TRUE, FALSE)
+                                  )
+
+# acurácia de hit de ocupação (muito baixa!)
+table(my.df_cor$hit.ocup)
+prop.table(table(my.df_cor$hit.ocup))
+# acurácia de hit de formacao (muito baixa!)
+table(my.df_cor$hit.form)
+prop.table(table(my.df_cor$hit.form))
+
+# falta: marcar o inverso de hit de formacao para previsao dfe mudanca
+# marcar mudanca realizada para caso de info.prof bater com info.form = 1
+
+# OBS: repetir analise acima para todos os dadso para ver se melhora a acuracia
+# Depois, repetir somente para 3 PCs
+# depois tentar identificar o PC com mais significancia para cada campo manualmente e classificar 
+# assim (olhando no plot da assinatura e pegando para cada campo somente o valor mais significativo (elaborar))
+
+
+
+# A PARTIR DAQUI
+
+# duplicar colunas que aparecem com mais de uma classe
+# transformando colunas em valores por linha, eliminando NAs, de forma a poder ter os scores de
+# cada profissão duplicado para cada classe onde a profissão se encontra
+# Desta forma, a análise não perde a contribuição do score de cada profissão para cada classe
+#ocupMelt <- melt(my.info.ocup,id=c("ID","profissao.na.area.de",
+#                                   "PC1","PC2","PC3","PC4","PC5","PC6","PC7"),
+#                 measure.vars=colnames(df_campos), na.rm = TRUE)
+# mudando o nome da variavel de classe
+#colnames(ocupMelt)[10] <- "class.ocup"
+# eliminando coluna desnecessária
+#my.info.ocup <-
+#    ocupMelt %>%
+#    select (-value)
+
+# IMPORTANTE ACIMA GARANTIR QUE TODAS AS OCUPACOES TEM CAMPO!!! 
+# Quem não tiver, tirar a linha.
+# Alguns consertar. Ex. transformar contabilidade em cincias contabeis na planilha forms-de-para.xlsx
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
