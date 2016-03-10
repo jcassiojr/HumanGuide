@@ -130,9 +130,15 @@ require("psych", quietly = TRUE, warn.conflicts = FALSE)
 #summary(df_change[,4:11])
 #HG.cor <- cor(df_change[,4:11])
 #my.cor <- cor(scores.total, method = "spearman")
-HG.o1 <- suppressWarnings(omega(my.cor, nfactors = 8, n.iter = 100, fm = "ml", poly = F, digits = 3, flip = TRUE,
-            n.obs = 116603, rotate = "oblimin", plot=FALSE))
+HG.o1 <- suppressWarnings(omega(df_tidy_hg[,7:14], nfactors = 8, n.iter = 1, fm = "ml", poly = F, 
+                                digits = 3, flip = TRUE,n.obs = 116603, 
+                                rotate = "oblimin", plot=TRUE))
 
+
+#library(MBESS)
+#my.omega <-ci.reliability(data=my.cor, type="omega", conf.level=0.95, interval.type="bca", B=10)
+#sprintf ("Coeficiente Ômega: %f, Nível de confiança de 95%%: [%.3f, %.3f]",my.omega$est, my.omega$ci.lower,my.omega$ci.upper)
+#ability <- sim.hierarchical()
 # HG.o2 <- suppressWarnings(omega(my.cor, fm = "fa"))
 #HG.o2 <-omega(my.cor)
 # tentar acima com viramax

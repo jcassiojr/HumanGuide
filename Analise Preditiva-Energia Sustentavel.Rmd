@@ -193,7 +193,7 @@ my.scores.usu <- as.data.frame(cbind(ID =  df_change_usu$ID,
 my.scores.usu <-
     my.scores.usu %>%
     select (-PC8)
-
+# write.xlsx2(my.scores.usu, "./data/ScoresEnergiaSustentavel.xlsx")
 knitr::kable(my.scores.usu[c(2,6:12)])
 ```
 

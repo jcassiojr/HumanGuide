@@ -53,5 +53,9 @@ ci.reliability(subscale1, interval.type="bca", B=10000)
 my.omega <-ci.reliability(data=subscale1, type="omega", conf.level=0.95, interval.type="bca", B=1000)
 sprintf ("Coeficiente Ômega: %f, Nível de confiança de 95%%: [%.3f, %.3f]",my.omega$est, my.omega$ci.lower,my.omega$ci.upper)
 
-
+# outro exemplo Omega
+library(psych)
+library(MASS)
+library(GPArotation)
+set.seed(20130403)
 
