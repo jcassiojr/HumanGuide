@@ -1,0 +1,35 @@
+---
+title: "Análise Comparativa com Componentes Antigos - DRAFT"
+author: "Cassio"
+date: "March 10, 2016"
+output: 
+   html_document
+---
+
+<center>![agileBIGDATA](./logoAgileBD.png)</center>
+
+Este documento apresenta os plots comparativos, para respondentes selecionados, entre os componentes obtidos na análise de componentes principais anterior (3 componentes principais) e os componentes obtidos com a nova análise (7 componentes principais).
+
+```{r,echo=FALSE}
+require("doMC", quietly = TRUE, warn.conflicts = FALSE)
+require("xlsx", quietly = TRUE, warn.conflicts = FALSE)
+require("plyr", quietly = TRUE, warn.conflicts = FALSE)
+require("dplyr", quietly = TRUE, warn.conflicts = FALSE)
+
+source("./R/f_compara_HG.R") 
+
+# ler aqui todos os nomes e fazer loop?
+
+l_plot <- f_compara_HG("alexandre akira fugimoto")
+# colocar aqui l_plot[[1]] e l_plos[[2]] em grid lado a lado
+# repetir para cada respondente
+par(mfrow=c(2,2))
+l_plot$pl_ant
+l_plot$pl_nov
+pushViewport(viewport(layout = grid.layout(1, 2)))
+print(l_plot[[2]], vp = viewport(layout.pos.row = 1, layout.pos.col = 1, width=0.4, height=0.4))
+print(l_plot[[1]], vp = viewport(layout.pos.row = 1, layout.pos.col = 2, width=0.4, height=0.4))
+
+#multiplot(l_plot$pl_ant,l_plot$pl_nov, cols=2)
+```
+

@@ -1,7 +1,12 @@
-# testes comparativos Energia Sustentavel
-# ideia: funcao que recebe o nome do respondente e faz a selecao dele abaixo para retornar os plots
+#' testes comparativos Energia Sustentavel
+#' ideia: funcao que recebe o nome do respondente e faz a selecao dele abaixo para retornar os plots
+#' MELHORIA: finalizada esta análise, criar funcao somente para arquivo novo
+#' input: 
+#'   nome do respondente
+
 require("doMC")
 require("ggplot2")
+require("xlsx")
 require("splitstackshape")
 require("gridExtra")
 require("dplyr")
@@ -172,16 +177,27 @@ f_compara_HG <- function(in.nome) {
                                            ifelse(perc <= lims.classif[2] & perc > lims.classif[3] ,"fraco",
                                                   "inexpressivo"
                                            ))))
+    # ordenando fatores para fixar ordem da legenda
     my.classif$intensidade <- factor(my.classif$intensidade, 
                                      levels = c("marcante","moderado","fraco","inexpressivo"))
+    # ordenando fatores para fixar ordem do eixo x (atributos do PC)
+    my.classif$atributo <- factor(my.classif$atributo, 
+                                     levels = c("OPENNESS","CONSCIOUSNESS",
+                                                "AGREEABLENESS","DETERMINATION",
+                                                "LONG TERM VISION","COMMITMENT",
+                                                "IDEALISM","REALISM",
+                                                "EXTROVERSION","SOBRIETY",
+                                                "MANAGEMENT","RECEPTIVITY",
+                                                "PERSISTENCE","ADJUSTMENT"
+                                                ))
+    
 
-    
     #plotar
-    
-    plot.classif.nov <- ggplot(my.classif, aes(x=componente, y=perc)) +
+    plot.classif.nov <- ggplot(my.classif, aes(x=atributo, y=perc)) +
                         geom_bar(aes (fill= factor(intensidade)), stat="identity") +
                         scale_fill_manual(values=c("skyblue", "lightgreen", "yellow", "red1")) +
-                        ggtitle(paste("Classificação de Respondente (", in.nome,")"))
+                        ggtitle(paste("Classificação de Respondente (", in.nome,")")) +
+                        theme(axis.text.x = element_text(angle = 45, hjust = 1))
     #(plot.pessoa)
     # cria tabela para acompanhar o plot
     #tbl.pessoa <- tableGrob(my.classif[,c(1,4,6,7)], rows=NULL)
@@ -189,5 +205,6 @@ f_compara_HG <- function(in.nome) {
     # grid.arrange(plot.pessoa, tbl.pessoa, nrow=2, as.table=TRUE, heights=c(1,1))
 
     # retorna plot de scores atuais do nome selecionado
-    return(plot.classif.ant, plot.classif.nov)
+    out.l_plots <- list(pl_ant = plot.classif.ant, pl_nov = plot.classif.nov)
+    return(out.l_plots)
 }
