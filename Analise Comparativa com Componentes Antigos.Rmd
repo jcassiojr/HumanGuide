@@ -15,20 +15,59 @@ require("doMC", quietly = TRUE, warn.conflicts = FALSE)
 require("xlsx", quietly = TRUE, warn.conflicts = FALSE)
 require("plyr", quietly = TRUE, warn.conflicts = FALSE)
 require("dplyr", quietly = TRUE, warn.conflicts = FALSE)
+require("gridExtra", quietly = TRUE, warn.conflicts = FALSE)
 
 source("./R/f_compara_HG.R") 
+source("./R/f_acentos.R") 
+####################################
+# TRATA CLASSIFICACAO ANTERIOR
+####################################
+options(stringsAsFactors=FALSE)
+df_usu.ant <- read.csv2("./data/Classificacao respondentes_macrogrupos HG-V2.csv", encoding = "UTF-8", 
+                         nrows = 40, sep = '\t', header = TRUE)
+# for some reason dont,t split by "\t", so I did as bellow
+#df_usu.ant <- as.data.frame(sapply(df_usu.ant, FUN = function(x) as.character(gsub("\t", ";", x))))
 
-# ler aqui todos os nomes e fazer loop?
+my.names <- names(df_usu.ant)
+df_usu.ant <- cSplit(df_usu.ant, my.names, "\t")
+names(df_usu.ant) <- c("UserID","CPF","FullName","GroupCode","GroupName","Gender","Age","CP1","CP2","CP3")
+my.scores.ant <- f_acentos(df_usu.ant)
 
-l_plot <- f_compara_HG("alexandre akira fugimoto")
+# para testes abaixo, pegar somente 5 primeiro nomes
+my.nro_resp <- 10
+my.scores.ant <- head(my.scores.ant,my.nro_resp)
+
+# aqui fazer loop para chamada abaixo para cada respondente antigo
+l_listplots <- list()
+for (i in 1:dim(my.scores.ant)[1]) {
+  nome <- as.character(my.scores.ant$FullName[i])
+  l_listplots[[i]] <- f_compara_HG(nome)
+}
+
+#pushViewport(viewport(layout = grid.layout(my.nro_resp, 1))) # depois mudar para todos os plots
+
+for (rw in 1:my.nro_resp) {
+    #print(l_listplots[[rw]]$pl_ant, vp = viewport(layout.pos.row = rw, layout.pos.col = 1))
+    #print(l_listplots[[rw]]$pl_nov, vp = viewport(layout.pos.row = rw, layout.pos.col = 1))
+    print(l_listplots[[rw]]$pl_nov)
+}
+
+# TESTAR ABAIXO
+#require(cowplot)
+#plot1 <- qplot(1)
+#plot2 <- qplot(1)
+#plot_grid(plot1, plot2, align='h', labels=c('A', 'B'))
+
+#l_plot <- f_compara_HG("alexandre akira fugimoto")
 # colocar aqui l_plot[[1]] e l_plos[[2]] em grid lado a lado
 # repetir para cada respondente
-par(mfrow=c(2,2))
-l_plot$pl_ant
-l_plot$pl_nov
-pushViewport(viewport(layout = grid.layout(1, 2)))
-print(l_plot[[2]], vp = viewport(layout.pos.row = 1, layout.pos.col = 1, width=0.4, height=0.4))
-print(l_plot[[1]], vp = viewport(layout.pos.row = 1, layout.pos.col = 2, width=0.4, height=0.4))
+#par(mfrow=c(1,2))
+#l_plot$pl_ant 
+#l_plot$pl_nov
+#grid.arrange(l_plot$pl_ant, l_plot$pl_ant, heights=1:2, widths=1:2)
+#pushViewport(viewport(layout = grid.layout(1, 2)))
+#print(l_plot$pl_ant, vp = viewport(layout.pos.row = 1, layout.pos.col = 1, width=0.4, height=0.4))
+#print(l_plot$pl_nov, vp = viewport(layout.pos.row = 1, layout.pos.col = 2, width=0.4, height=0.4))
 
 #multiplot(l_plot$pl_ant,l_plot$pl_nov, cols=2)
 ```

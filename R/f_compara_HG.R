@@ -28,21 +28,6 @@ f_compara_HG <- function(in.nome) {
     # limites considerados para percentual de intensidade
     lims.classif <- c(.3, .15, .05) # classificação cass
     
-    ####################################
-    # TRATA CLASSIFICACAO ANTERIOR
-    ####################################
-    
-    options(stringsAsFactors=FALSE)
-    df_usu.ant <- read.csv2("./data/Classificacao respondentes_macrogrupos HG-V2.csv", encoding = "UTF-8", 
-                         nrows = 40, sep = '\t', header = TRUE)
-    # for some reason dont,t split by "\t", so I did as bellow
-    #df_usu.ant <- as.data.frame(sapply(df_usu.ant, FUN = function(x) as.character(gsub("\t", ";", x))))
-
-    my.names <- names(df_usu.ant)
-    df_usu.ant <- cSplit(df_usu.ant, my.names, "\t")
-    names(df_usu.ant) <- c("UserID","CPF","FullName","GroupCode","GroupName","Gender","Age","CP1","CP2","CP3")
-    my.scores.ant <- f_acentos(df_usu.ant)
-
     # OBTENDO SCORES DE UMA PESSOA POR input nome
     ###############################################
     #my.score.limites$scores.resp <- scores.alex
@@ -58,8 +43,9 @@ f_compara_HG <- function(in.nome) {
     # plot
     plot.classif.ant <- ggplot(my.PCs.ant, aes(x=componente, y=valor)) +
         geom_bar(stat="identity", fill="#FF9999", colour="black") +
-        ggtitle(paste("Classificação de Respondente (", in.nome,")")) 
+        ggtitle(paste("(", in.nome,")")) 
         # coord_polar()
+
     
     ####################################
     # TRATA CLASSIFICACAO NOVA
@@ -196,7 +182,7 @@ f_compara_HG <- function(in.nome) {
     plot.classif.nov <- ggplot(my.classif, aes(x=atributo, y=perc)) +
                         geom_bar(aes (fill= factor(intensidade)), stat="identity") +
                         scale_fill_manual(values=c("skyblue", "lightgreen", "yellow", "red1")) +
-                        ggtitle(paste("Classificação de Respondente (", in.nome,")")) +
+                        ggtitle(paste("(", in.nome,")")) +
                         theme(axis.text.x = element_text(angle = 45, hjust = 1))
     #(plot.pessoa)
     # cria tabela para acompanhar o plot

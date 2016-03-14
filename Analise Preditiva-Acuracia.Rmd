@@ -1,33 +1,37 @@
 ---
-title: "Análise Descritiva - Preditiva / Energia Sustentável - DRAFT"
+title: "Análise Preditiva / Acurácia - DRAFT"
 author: "Cassio"
-date: "March 3, 2016"
+date: "March 14, 2016"
 output: 
    html_document
 ---
 
 <center>![agileBIGDATA](./logoAgileBD.png)</center>
 
-Este documento descreve a análise preditiva, realizada com o objetivo de avaliar a acurácia do modelo baseado em assinaturas de campos profissionais a partir dos resultados do teste **Human Guide**.
-Foram usados para fins de avaliação dos resultados do modelo os dados obtidos dos perfis no projeto realizado junto à empresa Energia Sustentável do Brasil tomado como baseline para a previsãode um respondente.
+Este documento descreve a análise preditiva, realizada com o objetivo de avaliar a acurácia do modelo baseado nos campos profissionais a partir dos resultados do teste **Human Guide**.
+Como a análise baseada nas assinaturas de baseline dos campos profisisonais versus profissão e depois versus formação não apresentarma boa acurácia (em torno de 45% para ambos), será tentada a análise abaixo, em duas etapas:
++ primeiro considerando nova abordagem ao invés da assinatura dos campos profissionais
++ depois considerando ao atributo atua.na.area, ao invés de somente profissão e formação
 
-#### Estratégia da validação ####
 
-A estratégia adotada para a validação seguiu os seguintes passos:
+#### Nova Abordagem de Campos Profisisonais ####
 
-1. Foi calculada a assinatura de cada usuário que respondeu ao teste **Human Guide**
-2. Foi obtida a assinatura de baseline da cada campo profissional segundo a classificação de Levenfus, a partir dos dados da amostra original usada para calibrar o modelo
-3. A partir desta baseline, foram obtidos os campos profissionais previstos para cada usuário
-4. Esta previsão foi comparada com a *ocupação* informada pelo usuário, sendo obtida uma acurácia da previsão realizada em relação à ocupação.
-5. Esta mesma previsão foi comparada com a *formação* informada pelo usuário, sendo obtida uma acurácia da previsão realizada em relação à formação.
-6. Foi criada uma matriz de confusão (explicada abaixo) para avaliar a acurácia do modelo em prever a possibilidade de mudança de ocupação do usuário pelo fato da sua ocupação não estar alinhada ocm o seu perfil.
+Ao invés de considerar a assinatura dos campos profisisonais em relação a todos os sete componentes, será considerado para cada campo profisisonal somente o(s) componentes mais relevantes (considerado marcantes em nossa avaliação).
+
+Na análise anterior de acurácia, classificamos cada respondente em campos profissionais considerando a maior correlação entre as assinaturas dele e da baseline (considerando os sete componentes).
+Agora a abordagem será campo a campo, ou seja, analisamos os valores dos componentes do respondente e para cada campo profisisonal. Consideramos com parte do campo profissional somente se o(s) componentes(s) do respondente é marcante em relação ao mesmo componente onde é marcante para o(s) campo(s).
 
 ### 1. Assinatura dos usuários ###
 
 Abaixo se encontra a tabela com as assinaturas calculadas para os usuários da amostra.
 
 ```{r,echo=FALSE}
-require("xlsx")
+
+require("doMC", quietly = TRUE, warn.conflicts = FALSE)
+require("xlsx", quietly = TRUE, warn.conflicts = FALSE)
+require("plyr", quietly = TRUE, warn.conflicts = FALSE)
+require("dplyr", quietly = TRUE, warn.conflicts = FALSE)
+
 source("./R/f_acentos.R") 
 ```
 
@@ -59,16 +63,11 @@ df_forms <-
 ```
 
 ```{r,echo=FALSE}
-require("doMC", quietly = TRUE, warn.conflicts = FALSE)
-require("xlsx", quietly = TRUE, warn.conflicts = FALSE)
-require("plyr", quietly = TRUE, warn.conflicts = FALSE)
-require("dplyr", quietly = TRUE, warn.conflicts = FALSE)
-
 registerDoMC(5) # parallel processing
 
 # obtém e prepara dados do Human Guide para Energia Sutentável do Brasil
 ##################################################################
-df_usu <- read.xlsx2("./data/PP_09029666000490_20160302.xlsx", sheetIndex = 1, header = TRUE)
+df_usu <- read.xlsx2("./data/PP_09029666000490_20160302-macrogrupos-novo.xlsx", sheetIndex = 1, header = TRUE)
 
 # TROCA CODIGO DA FORMACAO E OCUPACAO POR DESCRICAO
 ####################################################
@@ -367,13 +366,24 @@ require("reshape2", quietly = TRUE, warn.conflicts = FALSE)
 
 # a prtir de agora, somente ler a baseline neste documento
 my.PC.Campo.t <- read.xlsx2("./data/BaselineAssinaturaCamposProfisisonais.xlsx", 
-                    sheetIndex = 1, colIndex = c(2:12), header = TRUE)
+                    sheetIndex = 1, colIndex = c(1:11), header = TRUE)
+my.PC.Campo.t <-
+    my.PC.Campo.t %>%
+    rename(ID.PC = X.)
 # mudando fatores para numerico (atenção: está jogando N na coluna que identifica os PCs. Concertar depois!!)
 unfactorize<-c(1:dim(my.PC.Campo.t)[2])
 my.PC.Campo.t[,unfactorize]<-lapply(unfactorize, function(x) as.numeric(as.character(my.PC.Campo.t[,x])))
 
 #knitr::kable(my.PC.Campo.t[1:7,1:11])
 ```
+
+```{r,echo=FALSE}
+# criando tabela de TRUE/FALSE para Campo profisisonal x PC
+my.pcxcpo <-
+    my.PC.Campo.t %>%
+    mutate(CFM.t_f)
+```
+
 
 ```{r,echo=FALSE}
 
