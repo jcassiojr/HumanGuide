@@ -11,16 +11,17 @@ output:
 Este documento descreve a análise exploratória, realizada com o objetivo de avaliar a correlação de Pearson entre a areá de atuação principal informada pelo respondente e os campos profissionais a partir dos resultados do teste **Human Guide**.
 
 
-### Correlação entre Área de Atuação e Campo Profisisonal ###
+### Correlação entre Área de Atuação e Campo Profissional ###
 
 O respondente tem a opção de informar três opções de atuação. Foi considerado nesta correlação apenas a resposta dada no campo 1 dos dados, uma vez que este mostrou-se mais completo.
 
 ```{r,echo=FALSE}
-
+#require("rJava", quietly = TRUE, warn.conflicts = FALSE)
 require("doMC", quietly = TRUE, warn.conflicts = FALSE)
 require("xlsx", quietly = TRUE, warn.conflicts = FALSE)
 require("plyr", quietly = TRUE, warn.conflicts = FALSE)
 require("dplyr", quietly = TRUE, warn.conflicts = FALSE)
+
 
 source("./R/f_acentos.R") 
 source("./R/f_le_raw_HG.R") # usar esta função para ler os dados novos. 
@@ -277,7 +278,7 @@ knitr::kable(df_atua.mean.t, digits = 2)
 
 ### Correlações entre Áreas de Atuação e Campos Profissionais ###
 
-Abaixo as correlações de **Pearson** entre as assinaturas de Área de Atuação versus Campo Profisisonal, baseadas nos scores médios de cada componente, obtidos a partir dos dados da amostra original usada para calibrar o modelo
+Abaixo as correlações de **Spearman** entre as assinaturas de Área de Atuação versus Campo Profisisonal, baseadas nos scores médios de cada componente, obtidos a partir dos dados da amostra original usada para calibrar o modelo
 
 ```{r, echo=FALSE, warning=FALSE}
 # CORRELACAO DE ASSINATURAS atua.na.area.1 x campo profissional
@@ -319,8 +320,8 @@ Legenda de cores:
 
 ```{r, echo=FALSE, warning=FALSE}
 # PRAPARANDO HEATMAP PARA CORRELAÇÃO
-require("gplots", quietly = TRUE, warn.conflicts = FALSE)
-require("RColorBrewer", quietly = TRUE, warn.conflicts = FALSE)
+#require("gplots", quietly = TRUE, warn.conflicts = FALSE)
+#require("RColorBrewer", quietly = TRUE, warn.conflicts = FALSE)
 #if (!require("gplots")) {
 #   install.packages("gplots", dependencies = TRUE)
 #   library(gplots)
@@ -345,25 +346,28 @@ col_breaks = c(seq(-1,-0.7,length=100),  # for red
 #  res = 300,            # 300 pixels per inch
 #  pointsize = 8)        # smaller font size
 
-heatmap.2(my.cor.atua,
-  cellnote = my.cor.atua,  # same data set for cell labels
+#heatmap.2(my.cor.atua,
+#  cellnote = my.cor.atua,  # same data set for cell labels
   #notecex = .4,  # same data set for cell labels
   #label.digits=getOption("digits"),
-  main = "Correlação Código Atuação x Campo Profissional", # heat map title
-  notecol="black",      # change font color of cell labels to black
-  density.info="none",  # turns off density plot inside color legend
-  trace="none",         # turns off trace lines inside the heat map
-  margins =c(12,9),     # widens margins around plot
-  col=my_palette,       # use on color palette defined earlier
-  breaks=col_breaks,    # enable color transition at specified limits
-  dendrogram="row",     # only draw a row dendrogram
-  Colv="NA")            # turn off column clustering
+  #main = "Correlação Código Atuação x Campo Profissional", # heat map title
+#  notecol="black",      # change font color of cell labels to black
+#  density.info="none",  # turns off density plot inside color legend
+#  trace="none",         # turns off trace lines inside the heat map
+#  margins =c(12,9),     # widens margins around plot
+#  col=my_palette,       # use on color palette defined earlier
+#  breaks=col_breaks,    # enable color transition at specified limits
+#  dendrogram="row",     # only draw a row dendrogram
+#  Colv="NA")            # turn off column clustering
 
 #dev.off()               # close the PNG device
+
+#library(plotly)
+#plot_ly(z = my.cor.atua, type = "heatmap")
 
 #knitr::kable(my.PC.Campo.t[1:7,1:11])
 ```
 
-
+<center>![agileBIGDATA](./heatmaps_in_r.png)</center>
 
 
