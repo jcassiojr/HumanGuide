@@ -232,7 +232,7 @@ my.scores.total <- as.data.frame(cbind(ID = df_tidy_hg$ID,
 #=============================================================
 
 my.PC.Campo.t <- read.xlsx2("./data/BaselineAssinaturaCamposProfisisonais-V2.xlsx", 
-                    sheetIndex = 1, colIndex = c(1:11), header = TRUE)
+                    sheetIndex = 1, colIndex = c(1:12), header = TRUE)
 my.PC.Campo.t <-
     my.PC.Campo.t %>%
     select(-X.)
@@ -316,31 +316,26 @@ Legenda de cores:
 + Aumento de Intensidade de Vermelho - correlações mais fortemente **negativas** 
 + Aumento de Intensidade de Verde - correlações mais fortemente **positivas** 
 
-### Heatmap das correlações entre Áreas de Atuação e Campos Profissionais ###
+#### Heatmap das correlações entre Áreas de Atuação e Campos Profissionais ####
 
 ```{r, echo=FALSE, warning=FALSE}
 # PRAPARANDO HEATMAP PARA CORRELAÇÃO
+
+# DESCOMENTAR DAQUI ATË FINAL PARA GERAR NOVO PNG 
+# RAZAO: dá erro ao gerar Rmd com heatmap2, apesar de gerar png ok
 #require("gplots", quietly = TRUE, warn.conflicts = FALSE)
 #require("RColorBrewer", quietly = TRUE, warn.conflicts = FALSE)
-#if (!require("gplots")) {
-#   install.packages("gplots", dependencies = TRUE)
-#   library(gplots)
-#   }
-#if (!require("RColorBrewer")) {
-#   install.packages("RColorBrewer", dependencies = TRUE)
-#   library(RColorBrewer)
-#   }
 
 # creates a own color palette from red to green
-my_palette <- colorRampPalette(c("red", "yellow", "green"))(n = 299)
+#my_palette <- colorRampPalette(c("red", "yellow", "green"))(n = 299)
 
 # (optional) defines the color breaks manually for a "skewed" color transition
-col_breaks = c(seq(-1,-0.7,length=100),  # for red
-  seq(-0.7,0.7,length=100),              # for yellow
-  seq(0.7,1,length=100))              # for green
+#col_breaks = c(seq(-1,-0.7,length=100),  # for red
+#  seq(-0.7,0.7,length=100),              # for yellow
+#  seq(0.7,1,length=100))              # for green
 
 # creates a 5 x 5 inch image
-#png("./heatmaps_in_r.png",    # create PNG for the heat map        
+#png("./heatmaps_in_r-V2.png",    # create PNG for the heat map
 #  width = 5*300,        # 5 x 300 pixels
 #  height = 5*300,
 #  res = 300,            # 300 pixels per inch
@@ -348,9 +343,7 @@ col_breaks = c(seq(-1,-0.7,length=100),  # for red
 
 #heatmap.2(my.cor.atua,
 #  cellnote = my.cor.atua,  # same data set for cell labels
-  #notecex = .4,  # same data set for cell labels
-  #label.digits=getOption("digits"),
-  #main = "Correlação Código Atuação x Campo Profissional", # heat map title
+#  label.digits=getOption("digits"),
 #  notecol="black",      # change font color of cell labels to black
 #  density.info="none",  # turns off density plot inside color legend
 #  trace="none",         # turns off trace lines inside the heat map
@@ -362,12 +355,13 @@ col_breaks = c(seq(-1,-0.7,length=100),  # for red
 
 #dev.off()               # close the PNG device
 
+#### DESCOMENTAR DAQUI PARA CIMA PARA GERA NOVO PNG ################
 #library(plotly)
 #plot_ly(z = my.cor.atua, type = "heatmap")
 
 #knitr::kable(my.PC.Campo.t[1:7,1:11])
 ```
 
-<center>![agileBIGDATA](./heatmaps_in_r.png)</center>
+<center>![agileBIGDATA](./heatmaps_in_r-V2.png)</center>
 
 
