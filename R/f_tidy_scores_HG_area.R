@@ -1,4 +1,4 @@
-#' prepara dataset de scores a partir dos dados originais HG
+#' prepara dataset de scores a partir dos dados originais HG para area de atuacao 1
 #' param: i_df -> dataframe com dados do teste HG e coluna de turnover
 #' return: dataframe com scores calculados
 #require(dplyr)
@@ -16,7 +16,7 @@ f_tidy_scores_HG_area <- function(df_in) {
         df_in %>%
         mutate(p48 = as.numeric(as.vector(p48)),
                hy98 = as.numeric(as.vector(hy98))) %>%
-        select(ID, TIPOUSER, sexo, idade, cep, cidade, nomerespondente, formacao.em, profissao.na.area.de,atua.na.area.1,
+        select(nomerespondente, atua.em.1,
                s11, h21, h31, hy41, e51, m61, m71, p81, e91,
                e12, e22, e32, s42, s52, s62, k72, h82, m92,
                h13, k23, hy33, e43, hy53, e63, s73, e83, p93,
@@ -27,10 +27,10 @@ f_tidy_scores_HG_area <- function(df_in) {
                m18, hy28, m38, p48, m58, h68, d78, d88, hy98)
     
     # colocando NA como indefinido em formação e ocupação
-    df_in <-
-        df_in %>%
-        mutate(profissao.na.area.de = ifelse(is.na(profissao.na.area.de), "INDEFINIDO", as.character(profissao.na.area.de)),
-               formacao.em = ifelse(is.na(formacao.em), "INDEFINIDO", as.character(formacao.em)))
+    #df_in <-
+    #    df_in %>%
+    #    mutate(profissao.na.area.de = ifelse(is.na(profissao.na.area.de), "INDEFINIDO", as.character(profissao.na.area.de)),
+    #           formacao.em = ifelse(is.na(formacao.em), "INDEFINIDO", as.character(formacao.em)))
     
     # agora eliminando linhas com NAs
     df_in <- na.omit(df_in) # listwise deletion of missing
@@ -48,8 +48,8 @@ f_tidy_scores_HG_area <- function(df_in) {
                contacts = m18 + m25 + m38 + m46 + m58 + m61 + m71 + m85 + m92) %>%
         #select(ID, turnover, sexo, escolaridade, formação, ramoativ, cargo, cidade, power, quality,
         # examinar p48 e hy98 para ver porque teve que transformar em numerico
-        select(ID, TIPOUSER, sexo, nomerespondente, formacao.em, profissao.na.area.de, atua.na.area.1, sensibility, power, quality,
-               exposure, structure, imagination, stability, contacts, idade, cep, cidade) 
+        select(nomerespondente, atua.em.1, sensibility, power, quality,
+               exposure, structure, imagination, stability, contacts) 
         #mutate(sexo = ifelse(sexo == 1, "m", "f"))
  
     return(df_out)

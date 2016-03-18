@@ -200,13 +200,13 @@ require("ggplot2", quietly = TRUE, warn.conflicts = FALSE)
 #  layout(yaxis = list(title = "Miles Per Gallon"))
 #p
 
-#m = list(
-#  l = 100, # quanto maior, maior a distância do eixo da esquerda
-#  r = 100, # quanto maior, maior a distância do eixo da esquerda
-#  b = 100, # quanto maior, maior a distância do eixo da parte de baixo
-#  t = 100, # quanto maior, maior a distância do eixo da parte de baixo
-#  pad = 4
-#)
+mg = list(
+  l = 100, # quanto maior, maior a distância do eixo da esquerda
+  r = 100, # quanto maior, maior a distância do eixo da esquerda
+  b = 100, # quanto maior, maior a distância do eixo da parte de baixo
+  t = 100, # quanto maior, maior a distância do eixo da parte de baixo
+  pad = 4
+)
 #plot_ly(x = seq(0, 8), y = seq(0, 8)) %>%
 #  layout(autosize = F, width = 500, height = 500, margin = m)
 
@@ -220,7 +220,7 @@ pc1 <- my.scores.total %>% group_by(sexo) %>%
          autosize = F,
          width = 500,
          height = 500,
-         margin = m,
+         margin = mg,
          yaxis = list(title = "Sexo"),
          xaxis = list(title = "PC1 score",
                       range = c(-0.4, 0.4)))
