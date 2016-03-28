@@ -8,17 +8,15 @@ output:
 
 <center>![agileBIGDATA](./logoAgileBD.png)</center>
 
-Este documento mostra os plots de assinatura de um respondente individual de acordo com seu resultado do teste **Human Guide**.
+Este documento mostra os plots baseados na assinatura de um respondente individual de acordo com seu resultado do teste **Human Guide**.
 
-### Plots de Assinatura por componente e por campo profissional ###
-
-```{r,echo=FALSE}
+```{r, echo=FALSE, warning=FALSE}
 source("./R/f_assinatura_individual_HG.R") 
 
 registerDoMC(5) # parallel processing
 ```
 
-```{r,echo=FALSE}
+```{r, echo=FALSE, warning=FALSE}
 in.arquivo <- "pp_humanguide_20160307-1349.xlsx"
 in.nome <- "beatriz welter"
 my.list <- f_assinatura_individual_HG(in.arquivo, in.nome)
@@ -26,15 +24,29 @@ my.list <- f_assinatura_individual_HG(in.arquivo, in.nome)
 #knitr::kable(head(df_campos))
 ```
 
-#### Plot de Assinatura do Respondente ####
+### Plot de Assinatura do Respondente ###
 
 ```{r, echo=FALSE, warning=FALSE}
 (my.list$pl_assinatura)
 ```
 
-#### Plot de Classificação por Campo Profissional do Respondente ####
+### Plot de Classificação por Campo Profissional do Respondente ###
 
 ```{r, echo=FALSE, warning=FALSE}
 (my.list$pl_campo)
 ```
 
+Importante ressaltar que as correlações nos plots acima podem ser positivas ou negativas. Valores marcantes positivos indicam forte correlação com o campo profissional, enquanto valores marcantes negativos indicam forte ausência de correlação com o campo profissional em questão.
+
+### Legenda das Siglas dos Campos Profissionais (Levenfus) ###
+
++ CFM - Campo Físico/Matemático
++ CFQ - campo Físico/Químico
++ CCF - Campo Cálculo/Finanças
++ COA - Campo Organizacional/Administrativo
++ CJS - Campo Jurídico/Social
++ CCP - Campo Comunicação/Persuasão
++ CSL - Campo Simbólico/Linguístico
++ CMA - Campo Manual/Artístico
++ CCE - Campo Comportamental/Educacional
++ CBS - Campo Biológico/Saúde

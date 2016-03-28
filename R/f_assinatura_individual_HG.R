@@ -7,12 +7,10 @@
 #' lista com:
 #' plot de assinatura do respondente em relação aos componentes
 #' plot de classificação do respondente em relação a campos profissionais
-
-require("doMC")
-require("ggplot2")
-require("xlsx")
-#require("splitstackshape")
-require("dplyr")
+require("doMC", quietly = TRUE, warn.conflicts = FALSE)
+require("ggplot2", quietly = TRUE, warn.conflicts = FALSE)
+require("xlsx", quietly = TRUE, warn.conflicts = FALSE)
+require("dplyr", quietly = TRUE, warn.conflicts = FALSE)
 
 source("./R/f_acentos.R") 
 
@@ -164,6 +162,8 @@ f_assinatura_individual_HG <- function(in.arquivo, in.nome) {
                         geom_bar(aes (fill= factor(intensidade)), stat="identity") +
                         scale_fill_manual(values=c("skyblue", "lightgreen", "yellow", "red1")) +
                         ggtitle(paste("(", in.nome,")")) +
+                        xlab("componente Human Guide") +
+                        ylab("intensidade") +
                         theme(axis.text.x = element_text(angle = 45, hjust = 1))
     
     # OBTENDO SCORES DE UMA PESSOA PARA OS CAMPOS PROFISSIONAIS
@@ -226,7 +226,9 @@ f_assinatura_individual_HG <- function(in.arquivo, in.nome) {
     plot.campo.resp <- ggplot(my.df_campos, aes(x=campo.prof, y=corr, fill= intensidade)) +
         geom_bar(aes (fill= factor(intensidade)), stat="identity") +
         scale_fill_manual(values=c("skyblue", "lightgreen", "yellow", "red1")) +
-        ggtitle(paste("Correlações com Campos Profisisonais (", in.nome,")"))
+        xlab("campo profissional") +
+        ylab("intensidade") +
+        ggtitle(paste("Correlações com Campos Profissionais (", in.nome,")"))
 
     # retorna lista com plots de assinatura e campo profisisional
     out.l_plots <- list(pl_campo = plot.campo.resp, pl_assinatura = plot.assinatura.resp)
