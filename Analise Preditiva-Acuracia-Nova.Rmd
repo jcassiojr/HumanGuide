@@ -1,0 +1,1155 @@
+---
+title: "Análise Preditiva / Acurácia - DRAFT"
+author: "Cassio"
+date: "March 14, 2016"
+output: 
+   html_document
+---
+
+<center>![agileBIGDATA](./logoAgileBD.png)</center>
+
+Este documento descreve a análise preditiva, realizada com o objetivo de avaliar a acurácia do modelo baseado nos campos profissionais a partir dos resultados do teste **Human Guide**.
+Como a análise baseada nas assinaturas de baseline dos campos profisisonais versus profissão, depois versus formação e atua.na.area.1 não apresentaram boa acurácia (em torno de 45% para os primeiros, 33% para o último), será tentada a análise abaixo:
++ primeiro considerando nova abordagem ao invés da assinatura dos campos profissionais
+
+
+#### Nova Abordagem de Campos Profisisonais ####
+
+Ao invés de considerar a assinatura dos campos profisisonais em relação a todos os sete componentes, será considerado para cada campo profisisonal somente o(s) componentes mais relevantes (considerado marcantes em nossa avaliação).
+
+Na análise anterior de acurácia, classificamos cada respondente em campos profissionais considerando a maior correlação entre as assinaturas dele e da baseline (considerando os sete componentes).
+Agora a abordagem será campo a campo, ou seja, analisamos os valores dos componentes do respondente e para cada campo profisisonal. Consideramos com parte do campo profissional somente se o(s) componentes(s) do respondente é marcante em relação ao mesmo componente onde é marcante para o(s) campo(s).
+
+### 1. Assinatura dos usuários ###
+
+Abaixo se encontra a tabela com as assinaturas calculadas para os usuários da amostra.
+
+```{r,echo=FALSE}
+
+require("doMC", quietly = TRUE, warn.conflicts = FALSE)
+require("xlsx", quietly = TRUE, warn.conflicts = FALSE)
+require("plyr", quietly = TRUE, warn.conflicts = FALSE)
+require("dplyr", quietly = TRUE, warn.conflicts = FALSE)
+
+source("./R/f_acentos.R") 
+```
+
+```{r,echo=FALSE}
+# obtém tabela DE-PARA para profissões, para alinhar com a classificação de Campos Profissionais
+
+df_profs <- read.xlsx2("./data/profs.de.para-V1.xlsx", sheetIndex = 1, header = TRUE)
+df_profs <- f_acentos(df_profs)
+
+# renomeando colunas
+df_profs <-
+    df_profs %>%
+    rename(profissao.na.area.de = DE)
+
+#knitr::kable(df_profs)
+```
+
+```{r,echo=FALSE}
+# obtém tabela DE-PARA para formações, para alinhar com a classificação de Campos Profissionais
+df_forms <- read.xlsx2("./data/forms.de.para-V1.xlsx", sheetIndex = 1, header = TRUE)
+df_forms <- f_acentos(df_forms)
+
+# renomeando colunas
+df_forms <-
+    df_forms %>%
+    rename(formacao.em = DE)
+
+#knitr::kable(df_forms)
+```
+
+```{r,echo=FALSE}
+registerDoMC(5) # parallel processing
+
+# obtém e prepara dados do Human Guide para Energia Sutentável do Brasil
+##################################################################
+df_usu <- read.xlsx2("./data/PP_09029666000490_20160302-macrogrupos-novo.xlsx", sheetIndex = 1, header = TRUE)
+
+# TROCA CODIGO DA FORMACAO E OCUPACAO POR DESCRICAO
+####################################################
+# codigo das profisoes/formacoes
+df_cdprof <- read.xlsx2("./data/ref_profissao.xlsx", sheetIndex = 1, header = FALSE)
+names(df_cdprof) <- c("cod", "descr.prof")
+df_cdform <- read.xlsx2("./data/ref_formacao.xlsx", sheetIndex = 1, header = FALSE)
+names(df_cdform) <- c("cod", "descr.form")
+# troca codigo por descricao em formacao e ramo ativ
+df_cdprof <-
+    df_cdprof %>%
+    mutate (cod = as.numeric(as.character(cod)))
+df_cdform <-
+    df_cdform %>%
+    mutate (cod = as.numeric(as.character(cod)))
+df_usu <-
+    df_usu %>%
+    mutate (formacao = as.numeric(as.character(formacao)),
+            profissao = as.numeric(as.character(profissao)))
+
+# trocando códigos por descricao para formacao e profissao
+df_usu <- inner_join(df_usu, df_cdprof, by = c("profissao" = "cod") )
+df_usu <- inner_join(df_usu, df_cdform, by = c("formacao" = "cod") )
+df_usu <-
+    df_usu %>%
+    rename(profissao.na.area.de = descr.prof,
+           formacao.em = descr.form) %>%
+    select(-profissao, -formacao) 
+# trocando "--" por NA
+df_usu[ df_usu == "--" ] = NA
+# changing factor to numeric
+unfactorize<-c(10:81)
+df_usu[,unfactorize]<-lapply(unfactorize, function(x) as.numeric(as.character(df_usu[,x])))
+    
+source("./R/f_tidy_scores_HG_geral.R") # usar esta função para ler os dados novos. 
+
+# calculando os scores para usuários
+####################################
+df_tidy_usu_hg <- f_tidy_scores_HG_geral(df_usu) # calcula os fatores de acordo com a pontuação
+
+df_tidy_usu_hg <- f_acentos(df_tidy_usu_hg) # tirando acentos
+
+unfactorize<-c(12:19) # changing factor to numeric
+df_tidy_usu_hg[,unfactorize]<-lapply(unfactorize, function(x) as.numeric(as.character(df_tidy_usu_hg[,x])))
+
+```
+
+
+
+
+#### 2. Assinaturas de baseline dos Campos Profissionais ####
+
+Abaixo as assinaturas de baseline da cada campo profissional segundo a classificação de Levenfus, a partir dos dados da amostra original usada para calibrar o modelo
+
+```{r,echo=FALSE}
+# carrega tabela de ocupaccoes classificadas em campos profissionsis segundo Levenfus
+######################################################################################
+
+df_campos <- read.xlsx2("./data/Classificacao das carreiras-V2.xlsx", sheetIndex = 1, header = TRUE)
+# preparando os dados para as pesquisas a frente
+df_campos <- f_acentos(df_campos)
+# ATENCAO: depois melhorar funcao acima para tirar brancos no inicio e fim tb!!!!
+#knitr::kable(head(df_campos))
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# APLICA DE-PARA DE PROFISSAO E OCUPACAO PARA DADOS DE USUARIOS A PREVER
+#-----------------------------------------------------------------------------------
+
+
+# substituindo a coluna de formação antiga para a convertida na tabela principal
+df_change_usu <- left_join(df_tidy_usu_hg, df_forms, by=c("formacao.em")) 
+df_change_usu <-
+    df_change_usu %>%
+    select(-formacao.em) %>%
+    rename(formacao.em = PARA)
+
+
+# substituindo a coluna de profissão antiga para a convertida na tabela principal
+df_change_usu <- left_join(df_change_usu, df_profs, by=c("profissao.na.area.de")) 
+df_change_usu <-
+    df_change_usu %>%
+    select(-profissao.na.area.de) %>%
+    rename(profissao.na.area.de = PARA)
+
+# eliminar formação e profissão marcadas como a "eliminar"
+df_change_usu <-
+    df_change_usu %>%
+    filter(formacao.em != "eliminar" & profissao.na.area.de != "eliminar")
+```
+
+
+```{r,echo=FALSE}
+# obtendo os scores previstos de acordo com a análise de componentes principais
+###############################################################################
+
+pca1 = prcomp(df_change_usu[,10:17], scale. = TRUE, center = TRUE)
+# scores obtidos
+scores.usu <- as.data.frame(pca1$x)
+my.scores.usu <- as.data.frame(cbind(ID =  df_change_usu$ID,
+                                 nomerespondente = df_change_usu$nomerespondente,
+                                 sexo = df_change_usu$sexo, 
+                                 profissao.na.area.de = df_change_usu$profissao.na.area.de, 
+                                formacao.em = df_change_usu$formacao.em,
+                                scores.usu))
+# eliminando PC8
+my.scores.usu <-
+    my.scores.usu %>%
+    select (-PC8)
+# write.xlsx2(my.scores.usu, "./data/ScoresEnergiaSustentavel.xlsx")
+knitr::kable(my.scores.usu[c(2,6:12)])
+```
+
+
+```{r, echo=FALSE, warning=FALSE}
+require("stringr", quietly = TRUE, warn.conflicts = FALSE)
+require("reshape2", quietly = TRUE, warn.conflicts = FALSE)
+
+# OBTEM ASSINATURAS DE BASELINE PARA CAMPO PROFISSIONAIS
+#########################################################
+
+#source("./R/f_le_raw_HG.R") # usar esta função para ler os dados novos. 
+#source("./R/f_tidy_scores_HG.R") # alterada em 07/12/2015 para trazer nome do respondente tb
+#df_raw_hg <- f_le_raw_HG() # lê toda a amostra de dados HG
+
+#df_tidy_hg <- f_tidy_scores_HG(df_raw_hg) # calcula os fatores de acordo com a puntuação
+
+# chama funcao que tira acentos e força minúsculos
+#df_tidy_hg <- f_acentos(df_tidy_hg)
+
+# para testes usar somente 1000 ocorrências na amostra
+#tam.amostra = 1000
+#df_tidy_hg <- 
+#    df_tidy_hg %>%
+#    sample_n(tam.amostra)
+# restaura fatores como numericos
+#df_tidy_hg <-
+#    df_tidy_hg %>%
+#    mutate(sensibility = as.numeric(as.vector(sensibility)),
+#           power = as.numeric(as.vector(power)),
+#           quality = as.numeric(as.vector(quality)),
+#           exposure = as.numeric(as.vector(exposure)),
+#           structure = as.numeric(as.vector(structure)),
+#           imagination = as.numeric(as.vector(imagination)),
+#           stability = as.numeric(as.vector(stability)),
+#           contacts = as.numeric(as.vector(contacts)))
+
+# OBTENÇÃO DOS SCORES A PARTIR DE TODA A AMOSTRA
+#-----------------------------------------------------------------------------------
+# obtendo os scores previstos de acordo com a análise de componentes principais
+#pca1 = prcomp(df_tidy_hg[,7:14], scale. = TRUE, center = TRUE)
+# scores obtidos
+#scores.total <- as.data.frame(pca1$x)
+#my.scores.total <- as.data.frame(cbind(ID = df_tidy_hg$ID, 
+#                                 sexo = df_tidy_hg$sexo, 
+#                                 tipouser = df_tidy_hg$TIPOUSER, 
+#                                 profissao.na.area.de = df_tidy_hg$profissao.na.area.de, 
+#                                formacao.em = df_tidy_hg$formacao.em,
+#                                scores.total))
+# troca de TIPOUSER vazio por "indefinido"
+#my.scores.total <-
+#        my.scores.total %>%
+#        mutate(tipouser = ifelse(tipouser == "", "indefinido", as.character(tipouser)),
+#               sexo = ifelse(sexo == "f", "feminino","masculino"))
+
+# DAQUI PARA BAIXO  TRATA DE CLASSIFICAÇÃO EM CAMPOS PROFISSIONAIS
+#-----------------------------------------------------------------------------------
+# renomeando colunas
+#df_forms <-
+#    df_forms %>%
+#    rename(formacao.em = DE)
+
+# substituindo a coluna de formação antiga para a convertida na tabela principal
+#df_change <- left_join(my.scores.total, df_forms, by=c("formacao.em")) 
+#df_change <-
+#    df_change %>%
+#    select(-formacao.em) %>%
+#    rename(formacao.em = PARA)
+
+# renomeando colunas
+#df_profs <-
+#    df_profs %>%
+#    rename(profissao.na.area.de = DE)
+
+# substituindo a coluna de profissão antiga para a convertida na tabela principal
+#df_change <- left_join(df_change, df_profs, by=c("profissao.na.area.de")) 
+#df_change <-
+#    df_change %>%
+#    select(-profissao.na.area.de) %>%
+#    rename(profissao.na.area.de = PARA)
+
+# eliminar formação e profissão marcadas como a "eliminar"
+#df_change <-
+#    df_change %>%
+#    filter(formacao.em != "eliminar" & profissao.na.area.de != "eliminar")
+
+# OBTENDO OS CAMPOS PROFISSIONAIS ASSOCIADOS A INFORMAÇÃO DE OCUPAÇÃO PASSADA PELO USUÁRIO
+###########################################################################################
+
+# criando novo dataframe para tratar mais de um campo profisisonal por ocupação
+# OBS: repetir  o loop somente para os usuários selecionados (39) para
+# obter os Campos informados!!! Concatenar depois com o df.PC.usu onde já
+# coloquei as ocupações previstas (corr > .6 = 1, cc. 0)
+#----------------------------------------------------------------------------------
+#df_ocup <- data.frame()
+
+#for (j in 1:ncol(df_campos)) {
+    # percorre todas as linhas da coluna corrente de df_campos
+#    for (i in 1:length(df_change$profissao.na.area.de)) {
+        # somente pega o string com match exato (ex. administração)
+#        i_aux <- sum(!is.na(str_match(df_campos[,j],
+#                                      paste0("^", as.character(df_change$profissao.na.area.de[i]), #"$"))))
+        # para cada profissão encontrada em uma determinada classe, marca a posição correspondente
+        # com 1, na célula do dataframe correspondente. Caso contrario, coloca NA
+#        if(i_aux) {
+#            df_ocup[i,j] = i_aux
+#        } else {
+#            df_ocup[i,j] = NA
+#        }
+#    }
+#}
+ # colocando os nomes das classes no dataframe gerado
+#names(df_ocup) <- colnames(df_campos)
+
+# concatenando a coluna de formações ao dataframe gerado
+#my.info.ocup <- cbind(df_change, df_ocup)
+
+# duplicar colunas que aparecem com mais de uma classe
+# transformando colunas em valores por linha, eliminando NAs, de forma a poder ter os scores de
+# cada profissão duplicado para cada classe onde a profissão se encontra
+# Desta forma, a análise não perde a contribuição do score de cada profissão para cada classe
+#ocupMelt <- melt(my.info.ocup,id=c("ID","profissao.na.area.de",
+#                                   "PC1","PC2","PC3","PC4","PC5","PC6","PC7"),
+#                 measure.vars=colnames(df_campos), na.rm = TRUE)
+# mudando o nome da variavel de classe
+#colnames(ocupMelt)[10] <- "class.ocup"
+# eliminando coluna desnecessária
+#ocupMelt <-
+#    ocupMelt %>%
+#    select (-value)
+
+#require("Hmisc", quietly = TRUE, warn.conflicts = FALSE)
+#my.PC.Campo <-
+#    ocupMelt %>%
+#    group_by(class.ocup) %>%
+#    summarise(PC1.medio = mean(PC1),
+#              PC2.medio = mean(PC2),
+#              PC3.medio = mean(PC3),
+#              PC4.medio = mean(PC4),
+#              PC5.medio = mean(PC5),
+#              PC6.medio = mean(PC6),
+#              PC7.medio = mean(PC7),
+#              PC1.sd = sd(PC1),
+#              PC2.sd = sd(PC2),
+#              PC3.sd = sd(PC3),
+#              PC4.sd = sd(PC4),
+#              PC5.sd = sd(PC5),
+#              PC6.sd = sd(PC6),
+#              PC7.sd = sd(PC7)
+#              )
+
+# inserindo numero sequencial para representar os campos
+#my.PC.Campo <-
+#    my.PC.Campo %>%
+#    mutate(ID.campo = seq(nrow((my.PC.Campo))))
+## para as medias transpostas    #AQUI
+#my.PC.Campo.t <- t(my.PC.Campo)
+#colnames(my.PC.Campo.t) <- my.PC.Campo.t[1,]
+
+#my.PC.Campo.t <- my.PC.Campo.t[-16,] # elimina linhas indesejadas
+#my.PC.Campo.t <- my.PC.Campo.t[-1,] # elimina linhas indesejadas
+#my.PC.Campo.t <- as.data.frame(my.PC.Campo.t)
+#my.PC.Campo.t <-
+#    my.PC.Campo.t %>%
+#    mutate(PC.stat = rownames(my.PC.Campo.t))
+#my.PC.Campo.t <-
+#    my.PC.Campo.t %>%
+#    mutate(CFM = as.numeric(as.vector(CFM)),
+#           CFQ = as.numeric(as.vector(CFQ)),
+#           CCF = as.numeric(as.vector(CCF)),
+#           COA = as.numeric(as.vector(COA)),
+#           CJS = as.numeric(as.vector(CJS)),
+#           CCP = as.numeric(as.vector(CCP)),
+#           CSL = as.numeric(as.vector(CSL)),
+#           CMA = as.numeric(as.vector(CMA)),
+#           CCE = as.numeric(as.vector(CCE)),
+#           CBS = as.numeric(as.vector(CBS)))
+# inserindo numero sequencial para representar os campos
+#my.PC.Campo.t <-
+#    my.PC.Campo.t %>%
+#    mutate(ID.PC = seq(nrow((my.PC.Campo.t))))
+
+# salvando a baseline como planilha para não precisar rodar a baseline demorada todas as vezes
+# depois cria funcao que salva a baseline
+#write.xlsx(my.PC.Campo.t, "./data/BaselineAssinaturaCamposProfisisonais.xlsx")
+
+# a prtir de agora, somente ler a baseline neste documento
+my.PC.Campo.t <- read.xlsx2("./data/BaselineAssinaturaCamposProfisisonais.xlsx", 
+                    sheetIndex = 1, colIndex = c(1:11), header = TRUE)
+my.PC.Campo.t <-
+    my.PC.Campo.t %>%
+    rename(ID.PC = X.)
+# mudando fatores para numerico (atenção: está jogando N na coluna que identifica os PCs. Concertar depois!!)
+unfactorize<-c(1:dim(my.PC.Campo.t)[2])
+my.PC.Campo.t[,unfactorize]<-lapply(unfactorize, function(x) as.numeric(as.character(my.PC.Campo.t[,x])))
+
+
+
+#knitr::kable(my.PC.Campo.t[1:7,1:11])
+```
+
+```{r,echo=FALSE}
+# criando tabela de TRUE/FALSE para Campo profisisonal x PC
+my.pcxcpo <-
+    my.PC.Campo.t %>%
+    mutate(CFM.t_f)
+```
+
+
+```{r,echo=FALSE}
+
+# PLOTANDO ASSINATURAS DE BASELINE PARA CAMPOS PROFISISONAIS x PCs
+###################################################################
+
+# considerando apenas as médias para a assinatura
+require("Rmisc", quietly = TRUE, warn.conflicts = FALSE)
+require("gridExtra", quietly = TRUE, warn.conflicts = FALSE)
+require("ggplot2", quietly = TRUE, warn.conflicts = FALSE)
+cpo1 <- ggplot(my.PC.Campo.t[1:7,], aes(x=ID.PC, y=CFM, ymin = -0.3, ymax = 0.3)) +
+    geom_line() +
+    ggtitle("CFM x PC médio")
+cpo2 <- ggplot(my.PC.Campo.t[1:7,], aes(x=ID.PC, y=CFQ, ymin = -0.3, ymax = 0.3)) +
+    geom_line() +
+    ggtitle("CFQ x PC médio")
+cpo3 <- ggplot(my.PC.Campo.t[1:7,], aes(x=ID.PC, y=CCF, ymin = -0.3, ymax = 0.3)) +
+    geom_line() +
+    ggtitle("CCF x PC médio")
+cpo4 <- ggplot(my.PC.Campo.t[1:7,], aes(x=ID.PC, y=COA, ymin = -0.3, ymax = 0.3)) +
+    geom_line() +
+    ggtitle("COA x PC médio")
+cpo5 <- ggplot(my.PC.Campo.t[1:7,], aes(x=ID.PC, y=CJS, ymin = -0.3, ymax = 0.3)) +
+    geom_line() +
+    ggtitle("CJS x PC médio")
+cpo6 <- ggplot(my.PC.Campo.t[1:7,], aes(x=ID.PC, y=CCP, ymin = -0.3, ymax = 0.3)) +
+    geom_line() +
+    ggtitle("CCP x PC médio")
+cpo7 <- ggplot(my.PC.Campo.t[1:7,], aes(x=ID.PC, y=CSL, ymin = -0.3, ymax = 0.3)) +
+    geom_line() +
+    ggtitle("CSL x PC médio")
+cpo8 <- ggplot(my.PC.Campo.t[1:7,], aes(x=ID.PC, y=CMA, ymin = -0.3, ymax = 0.3)) +
+    geom_line() +
+    ggtitle("CMA x PC médio")
+cpo9 <- ggplot(my.PC.Campo.t[1:7,], aes(x=ID.PC, y=CCE, ymin = -0.3, ymax = 0.3)) +
+    geom_line() +
+    ggtitle("CCE x PC médio")
+cpo10 <- ggplot(my.PC.Campo.t[1:7,], aes(x=ID.PC, y=CBS, ymin = -0.3, ymax = 0.3)) +
+    geom_line() +
+    ggtitle("CBS x PC médio")
+#grid.arrange(cpo1, cpo2,cpo3, cpo4,cpo5, cpo6, cpo7, cpo8, cpo9, cpo10, nrow=3, ncol=4)
+# erro no de cima, mudando para multiplot
+multiplot(cpo1, cpo2, cpo3, cpo4, cpo5, cpo6, cpo7, cpo8, cpo9, cpo10, cols=2)
+```
+
+#### Previsão de Campos Profissionais ####
+
+A partir desta baseline, foram obtidas as correlações entre os campos profissionais previstos para cada usuário e o valor da baseline para cada campo.
+Foram selecionadas para cada usuário somente as correlações marcantes, conforme a amostra abaixo:
+
+```{r,echo=FALSE}
+#require("corrplot", quietly = TRUE, warn.conflicts = FALSE)
+
+# OBTENDO OCUPACOES PREVISTAS E INFORMADAS PARA USUARIOS SEELCIONADOS
+######################################################################
+
+# transpondo o data.frame de scores usuários
+my.scores.usu.t <- t(my.scores.usu)
+colnames(my.scores.usu.t) <- my.scores.usu.t[2,] # coloca nome do usuario como nome da coluna
+my.scores.usu.t <- as.data.frame(my.scores.usu.t[-c(1:5),]) # deixando somente colunas com scores para cada usuario
+# changing factor to numeric
+unfactorize<-c(1:dim(my.scores.usu.t)[2])
+my.scores.usu.t[,unfactorize]<-lapply(unfactorize, function(x) as.numeric(as.character(my.scores.usu.t[,x])))
+# correlacionando usuários com cada campo
+# primeiro concatenando a tabela de assinaturas dos usuários com a baseline de campos profissionais
+
+# dataframe com assinaturas dos usuários e assinaturas e baselines de campos previstos
+#######################################################################################
+my.PC.usu <- cbind(my.PC.Campo.t[1:7,1:10],my.scores.usu.t)
+
+# correlacionando usuários com baseline
+# obs: criar uma coluna nova para cada coor.usu1, corr.usu2, etc.
+
+# SALVANDO EM DATA FRAME AS CORRELACOES
+
+#  fazer loop para cada campo
+#   salvar correlação em dataframe, na linha do usuário, coluna de cada campo (39linhas x 11 colunas)
+nr.usu <- ncol(my.PC.usu)
+nr.cpo <- nrow(my.PC.Campo)
+my.v_cor <- matrix(nrow = nrow(my.scores.usu), ncol = nrow(my.PC.Campo)) # matrix para as correlações usuário x campo
+for (i in 11:nr.usu) { # loop para cada usuário
+    # percorre todas as linhas da coluna corrente de df_campos
+    for (j in 1:nr.cpo) { #  fazer loop para cada campo profissional
+        # calcula correlação para usuário x campo
+        #ini.usu <- j+10
+        my.v_cor[i-10,j] <- cor(my.PC.usu[,c(i,j)])[2]
+        # para cada profissão encontrada em uma determinada classe, marca a posição correspondente
+        # com 1, na célula do dataframe correspondente. Caso contrario, coloca NA
+        #print(my.cor[2])
+    }
+}
+
+# data frame com correlacoes de cada usuario (rows) com os campos profissionais de ocupacao
+##########################################################################################
+my.df_cor <- as.data.frame(my.v_cor)
+
+# colocando colunas com os nomes dos respondentes na matriz
+my.df_cor$nomerespondente <- my.scores.usu$nomerespondente
+# obs: testar manualmente para alguns aleatorios para ver se fez correto acima
+# mudando nomes das colunas
+names(my.df_cor) <- names(my.PC.usu[,1:10])
+colnames(my.df_cor)[11] <- "nomerespondente"
+
+# tomar as correlações positivas, acima de N % de correlação
+# para considerar correlacionado. c.c. não correlacionado
+# criando as colunas de TRUE e FALSE acima do limite de correlação
+my.corr_lim <- 0.3 # acurácia de hit de ocupação = 37%
+#my.corr_lim <- 0.15 # acurácia de hit de ocupação = 47.5%
+#my.corr_lim <- 0.05 # acurácia de hit de ocupação = 55%
+my.df_cor <-
+    my.df_cor %>%
+    mutate(CFM.prev = ifelse(CFM > my.corr_lim, TRUE,FALSE),
+           CFQ.prev = ifelse(CFQ > my.corr_lim, TRUE,FALSE),
+           CCF.prev = ifelse(CCF > my.corr_lim, TRUE,FALSE),
+           COA.prev = ifelse(COA > my.corr_lim, TRUE,FALSE),
+           CJS.prev = ifelse(CJS > my.corr_lim, TRUE,FALSE),
+           CCP.prev = ifelse(CCP > my.corr_lim, TRUE,FALSE),
+           CSL.prev = ifelse(CSL > my.corr_lim, TRUE,FALSE),
+           CMA.prev = ifelse(CMA > my.corr_lim, TRUE,FALSE),
+           CCE.prev = ifelse(CCE > my.corr_lim, TRUE,FALSE),
+           CBS.prev = ifelse(CBS > my.corr_lim, TRUE,FALSE))
+
+
+# OBTENDO AS OCUPAÇÕES INFORMADAS PARA OS DADOS DE ENERGIA SUSTENTAVEL
+########################################################################
+
+df_ocup.usu <- data.frame()
+
+for (j in 1:ncol(df_campos)) {
+    # percorre todas as linhas da coluna corrente de df_campos
+    for (i in 1:length(df_change_usu$profissao.na.area.de)) {
+        # somente pega o string com match exato (ex. administração)
+        i_aux <- sum(!is.na(str_match(df_campos[,j],
+                                      paste0("^", as.character(df_change_usu$profissao.na.area.de[i]), "$"))))
+        # para cada profissão encontrada em uma determinada classe, marca a posição correspondente
+        # com 1, na célula do dataframe correspondente. Caso contrario, coloca NA
+        if(i_aux) {
+            df_ocup.usu[i,j] = TRUE
+        } else {
+            df_ocup.usu[i,j] = FALSE
+        }
+    }
+}
+# colocando os nomes das classes no dataframe gerado
+names(df_ocup.usu) <- colnames(df_campos)
+
+# OBTENDO AS OCUPAÇÕES INFORMADAS PARA OS DADOS DE ENERGIA SUSTENTAVEL
+########################################################################
+
+df_form.usu <- data.frame()
+
+for (j in 1:ncol(df_campos)) {
+    # percorre todas as linhas da coluna corrente de df_campos
+    for (i in 1:length(df_change_usu$formacao.em)) {
+        # somente pega o string com match exato (ex. administração)
+        i_aux <- sum(!is.na(str_match(df_campos[,j],
+                                      paste0("^", as.character(df_change_usu$formacao.em[i]), "$"))))
+        # para cada profissão encontrada em uma determinada classe, marca a posição correspondente
+        # com 1, na célula do dataframe correspondente. Caso contrario, coloca NA
+        if(i_aux) {
+            df_form.usu[i,j] = TRUE
+        } else {
+            df_form.usu[i,j] = FALSE
+        }
+    }
+}
+# colocando os nomes das classes no dataframe gerado
+names(df_form.usu) <- colnames(df_campos)
+
+# mudando nomes das colunas de correlacoes
+my.df_cor <-
+    my.df_cor %>%
+    rename(CFM.corr = CFM,
+           CFQ.corr = CFQ,
+           CCF.corr = CCF,
+           COA.corr = COA,
+           CJS.corr = CJS,
+           CCP.corr = CCP,
+           CSL.corr = CSL,
+           CMA.corr = CMA,
+           CCE.corr = CCE,
+           CBS.corr = CBS)
+# concatenando a coluna de ocupacoes ao dataframe gerado
+my.df_cor <- cbind(my.df_cor, df_ocup.usu)
+# mudando nomes das colunas de ocupacoes informadas
+my.df_cor <-
+    my.df_cor %>%
+    rename(CFM.ocup.info = CFM,
+           CFQ.ocup.info = CFQ,
+           CCF.ocup.info = CCF,
+           COA.ocup.info = COA,
+           CJS.ocup.info = CJS,
+           CCP.ocup.info = CCP,
+           CSL.ocup.info = CSL,
+           CMA.ocup.info = CMA,
+           CCE.ocup.info = CCE,
+           CBS.ocup.info = CBS)
+
+# concatenando a coluna de ocupacoes ao dataframe gerado
+my.df_cor <- cbind(my.df_cor, df_form.usu)
+# mudando nomes das colunas informadas
+my.df_cor <-
+    my.df_cor %>%
+    rename(CFM.form.info = CFM,
+           CFQ.form.info = CFQ,
+           CCF.form.info = CCF,
+           COA.form.info = COA,
+           CJS.form.info = CJS,
+           CCP.form.info = CCP,
+           CSL.form.info = CSL,
+           CMA.form.info = CMA,
+           CCE.form.info = CCE,
+           CBS.form.info = CBS)
+# criando coluna de HITs de ocupação e HITs de formacao
+# se ao menos uma das colunas de ocupação, *.prev estiver ligada e
+# a correspondente *.info, então considera um HIT
+my.df_cor <-
+    my.df_cor %>%
+    mutate(hit.ocup = ifelse ((CFM.prev & CFM.ocup.info) |
+                                  (CFQ.prev & CFQ.ocup.info) |
+                                  (CCF.prev & CCF.ocup.info) |
+                                  (COA.prev & COA.ocup.info) |
+                                  (CJS.prev & CJS.ocup.info) |
+                                  (CCP.prev & CCP.ocup.info) |
+                                  (CSL.prev & CSL.ocup.info) |
+                                  (CMA.prev & CMA.ocup.info) |
+                                  (CCE.prev & CCE.ocup.info) |
+                                  (CBS.prev & CBS.ocup.info), TRUE, FALSE),
+            hit.form = ifelse ((CFM.prev & CFM.form.info) |
+                                  (CFQ.prev & CFQ.form.info) |
+                                  (CCF.prev & CCF.form.info) |
+                                  (COA.prev & COA.form.info) |
+                                  (CJS.prev & CJS.form.info) |
+                                  (CCP.prev & CCP.form.info) |
+                                  (CSL.prev & CSL.form.info) |
+                                  (CMA.prev & CMA.form.info) |
+                                  (CCE.prev & CCE.form.info) |
+                                  (CBS.prev & CBS.form.info), TRUE, FALSE)
+                                  )
+
+# acurácia de hit de ocupação (muito baixa!)
+table(my.df_cor$hit.ocup)
+prop.table(table(my.df_cor$hit.ocup))
+# acurácia de hit de formacao (muito baixa!)
+table(my.df_cor$hit.form)
+prop.table(table(my.df_cor$hit.form))
+
+# falta: marcar o inverso de hit de formacao para previsao dfe mudanca
+# marcar mudanca realizada para caso de info.prof bater com info.form = 1
+
+# OBS: repetir analise acima para todos os dadso para ver se melhora a acuracia
+# Depois, repetir somente para 3 PCs
+# depois tentar identificar o PC com mais significancia para cada campo manualmente e classificar 
+# assim (olhando no plot da assinatura e pegando para cada campo somente o valor mais significativo (elaborar))
+
+
+
+# A PARTIR DAQUI
+
+# duplicar colunas que aparecem com mais de uma classe
+# transformando colunas em valores por linha, eliminando NAs, de forma a poder ter os scores de
+# cada profissão duplicado para cada classe onde a profissão se encontra
+# Desta forma, a análise não perde a contribuição do score de cada profissão para cada classe
+#ocupMelt <- melt(my.info.ocup,id=c("ID","profissao.na.area.de",
+#                                   "PC1","PC2","PC3","PC4","PC5","PC6","PC7"),
+#                 measure.vars=colnames(df_campos), na.rm = TRUE)
+# mudando o nome da variavel de classe
+#colnames(ocupMelt)[10] <- "class.ocup"
+# eliminando coluna desnecessária
+#my.info.ocup <-
+#    ocupMelt %>%
+#    select (-value)
+
+# IMPORTANTE ACIMA GARANTIR QUE TODAS AS OCUPACOES TEM CAMPO!!! 
+# Quem não tiver, tirar a linha.
+# Alguns consertar. Ex. transformar contabilidade em cincias contabeis na planilha forms-de-para.xlsx
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# PAREI AQUI
+#my.cor <- cor(my.PC.usu[,c(7,11)])
+#corrplot.mixed(my.cor, insig = "p-value", sig.level = -1, is.corr = TRUE)
+```
+
+
+### Análise da Correlação entre os Perfis dos campos profissionais ###
+
+A análise realizada mostra como os perfis de cada campo profissional se correlacionam, indicando campos que sejam similares ou opostos mais fortemente.
+Na figura abaixo, a cor azul mostra a intensidade da correlação positiva, enquanto a cor magenta mostra a intensidade da correlação negativa entre pares de campos profissionais. Na parte inferior à esquerda aparecem os valores das correlações.
+
+```{r,echo=FALSE}
+#require("corrplot", quietly = TRUE, warn.conflicts = FALSE)
+#my.cor <- cor(my.PC.Campo.t[1:7,1:10])
+#corrplot.mixed(my.cor, insig = "p-value", sig.level = -1, is.corr = TRUE)
+```
+
+### Correlação dos Perfis dos Campos Profissionais com o Perfil de um Respondente Selecionado ###
+
+Como um exemplo de análise que pode ser feita em relação ao **perfil** de um respondente específico do teste Human Guide, pode ser colocado o score de determinado respondente no quadro de correlações acima para examinar onde o respondente se encaixa.
+
+```{r,echo=FALSE}
+#my.PC.Campo.t.nomes <- my.PC.Campo.t
+#scores.alex <- c(-2.296264822,-1.735027078,2.862688958,-2.022102719,-0.256122419,-1.251091201,-0.06664273)
+#my.PC.Campo.t.nomes$alex <- scores.alex
+#my.cor.alex <- cor(my.PC.Campo.t.nomes[1:7,c(1:10,13)])
+#corrplot.mixed(my.cor.alex, insig = "p-value", sig.level = -1, is.corr = TRUE)
+```
+
+### Correlação dos Perfis entre Respondentes Selecionados ###
+
+Também comparamos a correlação dos Perfis de respondentes conhecidos, sem levar em conta seus campos profisisonais, com a intenção de avaliar se este tipo de análise mostra similaridade ou não de perfis individuais. 
+
+```{r,echo=FALSE}
+#scores.arlindo <- c(6.215298989, -0.179402156,2.192249661,-0.629228456,1.445510203,0.721397732, -0.934846735)
+#scores.laura <- c(-0.880558127,-0.310320799,1.41442788,-3.047761097,-0.700773651,1.72406918,-0.082153033)
+#scores.beatriz <- c(1.967845169,-0.024716848,0.972965178,2.217476245,-0.164333631,-1.748897734,-0.433052634)
+#scores.eneko <- c(1.327869429,-1.82247322,2.158161567,1.257910708,2.418553145,-1.472161385,-0.535689283)
+#my.PC.Campo.t.nomes$arlindo <- scores.arlindo
+#my.PC.Campo.t.nomes$beatriz <- scores.beatriz
+#my.PC.Campo.t.nomes$laura <- scores.laura
+#my.PC.Campo.t.nomes$eneko <- scores.eneko
+
+#my.cor <- cor(my.PC.Campo.t.nomes[1:7,c(13:17)])
+#corrplot.mixed(my.cor, insig = "p-value", sig.level = -1, is.corr = TRUE)
+```
+
+#### Classificando o Respondente nos Campos Profissionais (ALGORITMO I)####
+
+Como resultado da validação do modelo de correlações acima, foi criado um algoritmo que classifica um respondente selecionado por meio de suas correlações com os campos porfissionais.
+
+```{r,echo=FALSE}
+require("gridExtra", quietly = TRUE, warn.conflicts = FALSE)
+source("./R/f_classifica_HG.R") # usar esta função para ler os dados novos. 
+#x <- my.PC.Campo.t.nomes
+# CFM
+#cfm.mean <- x$CFM[x$PC.stat == "PC1.medio"] # PC1.medio
+#cfm.sd <- x$CFM[x$PC.stat == "PC1.sd"] # PC1.sd
+#cfm.alex <- x$alex[x$PC.stat == "PC1.medio"] # score do Alex
+# intervalo de confiança para CFM
+# 95% of confidence interval. So alpha = .05
+#ci <- qnorm(.95)
+# margin of error
+#me <- ci * (cfm.sd/sqrt(nrow(my.prev.carr)))
+# lower an upper bounds
+#lower.bound <- cfm.mean - me
+#upper.bound <- cfm.mean + me
+
+
+
+# CCP
+#ccp.mean <- x$CCP[x$PC.stat == "PC1.medio"] # PC1.medio
+#ccp.sd <- x$CCP[x$PC.stat == "PC1.sd"] # PC1.sd
+#ccp.alex <- x$alex[x$PC.stat == "PC1.medio"] # score do Alex
+# intervalo de confiança para CCP
+# 95% of confidence interval. So alpha = .05
+#ci <- qnorm(.95)
+# margin of error
+#me <- ci * (ccp.sd/sqrt(nrow(my.prev.carr)))
+# lower an upper bounds
+#lower.bound <- ccp.mean - me
+#upper.bound <- ccp.mean + me
+
+# outra abordagem: intervalo de confiança de correlação
+# correlação de alex com CFM
+#corr.cfm.alex <- my.cor.alex["CFM", "alex"]
+#CIr(r=.9, n = 100, level = .95)
+#require(psychometric)
+#lcl.cfm.alex <- CIr(r=corr.cfm.alex, n = 7, level = .95)[1] # lower confidence interval
+#ucl.cfm.alex <- CIr(r=corr.cfm.alex, n = 7, level = .95)[2] # upper confidence interval
+
+# correlação de alex com CCP
+#corr.ccp.alex <- my.cor.alex["CCP", "alex"]
+#CIr(r=.9, n = 100, level = .95)
+#require(psychometric)
+#lcl.ccp.alex <- CIr(r=corr.ccp.alex, n = 7, level = .95)[1] # lower confidence interval
+#ucl.ccp.alex <- CIr(r=corr.ccp.alex, n = 7, level = .95)[2] # upper confidence interval
+
+# posso usar o IC para medir se a correlação está nas faixas Não! sempre cai na faixa
+# posso usar 
+# -1.0 to -0.5 or 1.0 to 0.5	Strong
+# -0.5 to -0.3 or 0.3 to 0.5	Moderate
+# -0.3 to -0.1 or 0.1 to 0.3	Weak
+# -0.1 to 0.1	None or very weak
+# ou
+# > 30% = marcante
+# 15%-30% = moderado
+# 5%-15% = fraco
+# 0%-5% = inexpressivo
+# obs: posso colocar no shiny permitindo entrar com as faixas
+# dataframe para cada respondente com linhas = campos, colunas = corr, classif
+# constantes
+lims.corr <- c(.3, .15, .05) # classificação HG
+#nome.resp <- "Alex"
+#lims.corr <- c(.6, .3, .1) # classificação cass
+
+# funcao que gera a tabela de classificacao do respondente
+# obs: somente valores de scores médios, sem linhas de desvio padrao para my.PC.Campo.t
+df_class.resp <- f_classifica_HG(nome.resp,scores.alex, my.PC.Campo.t[1:7,], lims.corr)
+#plotar
+df_class.resp <-
+    df_class.resp %>%
+    mutate(ID.campo = seq(nrow((df_class.resp))))
+# plot com pontos
+#qplot(df_class.resp$campo.prof,df_class.resp$corr, colour = df_class.resp$class.campo)
+# alternativa
+plot.alex <- ggplot(df_class.resp, aes(x=campo.prof, y=corr, fill= class.campo)) +
+ #   scale_colour_brewer(palette = "Greens") +
+    geom_bar(stat="identity") +
+    ggtitle(paste("Correlações com Campos Profisisonais (", nome.resp,")"))
+#(plot.alex)
+# cria tabela para acompanhar o plot
+# Set theme to allow for plotmath expressions
+#tt <- ttheme_default(colhead=list(fg_params = list(parse=TRUE)))
+tbl.alex <- tableGrob(df_class.resp[,-5], rows=NULL)
+# Plot chart and table into one object
+grid.arrange(plot.alex, tbl.alex,
+nrow=2,
+as.table=TRUE,
+heights=c(1,1))
+```
+
+#### Classificando os Respondentes em Relação aos Componentes (ALGORITMO II) ####
+
+O segundo algoritmo criado classifica o respondente de acordo com os scores máximos e mínimos obtidos dos dados históricos.
+O percentual considerado para a intensidade de cada componente no plot abaixo está baseado nestes limites. 
+
+```{r,echo=FALSE}
+# PARTIR DE my.scores.total
+# criando data.frame por PC, contendo máximo, mínimo para componentes
+my.score.limites <- data.frame(componente = c("PC1", "PC2", "PC3", "PC4", "PC5", "PC6", "PC7"),
+                               max.score = c(max(my.scores.total$PC1),
+                                             max(my.scores.total$PC2),
+                                             max(my.scores.total$PC3),
+                                             max(my.scores.total$PC4),
+                                             max(my.scores.total$PC5),
+                                             max(my.scores.total$PC6),
+                                             max(my.scores.total$PC7)),
+                               min.score = c(min(my.scores.total$PC1),
+                                             min(my.scores.total$PC2),
+                                             min(my.scores.total$PC3),
+                                             min(my.scores.total$PC4),
+                                             min(my.scores.total$PC5),
+                                             min(my.scores.total$PC6),
+                                             min(my.scores.total$PC7))              
+                                             )
+# limites considerados para percentual de intensidade
+lims.corr <- c(.3, .15, .05) # classificação cass
+```
+
+```{r,echo=FALSE}
+# considerar max score para cada componente como 100% (positivo ou negativo)
+# posicionar score do respondente Alex percentualmente em relação a estes valores
+my.score.limites$scores.pessoa <- scores.alex
+nome.resp <- "Alex"
+
+# se score é negativo, calcula o percentual em relação ao mínimo e vice-versa
+my.classif <- 
+    my.score.limites %>%
+    mutate(perc = abs(ifelse(scores.pessoa <= 0, -(scores.pessoa/min.score), (scores.pessoa/max.score))))
+# inserindo o atributo do componente (positivo ou negativo)
+    my.classif <-
+        my.classif %>%
+        mutate(atributo = ifelse(scores.pessoa >= 0 & componente == "PC1","OPENNESS/EXPLORATION",
+                         ifelse(scores.pessoa < 0 & componente == "PC1","COMPLIANCE/OBSERVÂNCIA",
+                         ifelse(scores.pessoa >= 0 & componente == "PC2","AGREEABLENESS/AMABILIDADE",
+                         ifelse(scores.pessoa < 0 & componente == "PC2","ANALÍTICO E INDEPENDENTE/FOCO EM RESULTADO",
+                         ifelse(scores.pessoa >= 0 & componente == "PC3","INVESTIGATIVO/RESEARCH ORIENTED",
+                         ifelse(scores.pessoa < 0 & componente == "PC3","COMMITMENT/ENGAJAMENTO",
+                         ifelse(scores.pessoa >= 0 & componente == "PC4","PEOPLE DEVELOPMENT ORIENTED",
+                         ifelse(scores.pessoa < 0 & componente == "PC4","TASK ORIENTED/ORIENTAÇÃO PARA A TAREFA",
+                         ifelse(scores.pessoa >= 0 & componente == "PC5","EXTROVERSÃO/AUTENTICIDADE",
+                         ifelse(scores.pessoa < 0 & componente == "PC5","SOBRIEDADE/COMPOSTURA/COMEDIMENTO",
+                         ifelse(scores.pessoa >= 0 & componente == "PC6","MANAGEMENT",
+                         ifelse(scores.pessoa < 0 & componente == "PC6","ASSISTÊNCIA/RECEPTIVIDADE ATIVA",
+                         ifelse(scores.pessoa >= 0 & componente == "PC7","AUSTERIDADE/PONDERAÇÃO",
+                         "ADAPTABILIDADE/AJUSTAMENTO"
+        ))))))))))))))
+
+# inserindo classificaçao segundo intensidade do score
+    my.classif <-
+        my.classif %>%
+        mutate(intensidade = ifelse(perc > lims.corr[1],"marcante",
+                                    ifelse(perc <= lims.corr[1] & perc > lims.corr[2] ,"moderado",
+                                           ifelse(perc <= lims.corr[2] & perc > lims.corr[3] ,"fraco",
+                                                  "inexpressivo"
+                                           ))))
+       
+#knitr::kable(my.classif[,c(1,4,6,7)])
+
+#plotar
+df_class.resp <-
+    df_class.resp %>%
+    mutate(ID.campo = seq(nrow((df_class.resp))))
+# plot com pontos
+#qplot(df_class.resp$campo.prof,df_class.resp$corr, colour = df_class.resp$class.campo)
+# alternativa
+plot.pessoa <- ggplot(my.classif, aes(x=componente, y=perc, fill= intensidade)) +
+ #   scale_colour_brewer(palette = "Greens") +
+    geom_bar(stat="identity") +
+    ggtitle(paste("Classificação de Respondente (", nome.resp,")"))
+#(plot.alex)
+# cria tabela para acompanhar o plot
+tbl.pessoa <- tableGrob(my.classif[,c(1,4,6,7)], rows=NULL)
+# Plot chart and table into one object
+grid.arrange(plot.pessoa, tbl.pessoa,
+nrow=2,
+as.table=TRUE,
+heights=c(1,1))
+```
+
+```{r,echo=FALSE}
+# considerar max score para cada componente como 100% (positivo ou negativo)
+# posicionar score do respondente Alex percentualmente em relação a estes valores
+my.score.limites$scores.pessoa <- scores.arlindo
+nome.resp <- "Arlindo"
+
+# se score é negativo, calcula o percentual em relação ao mínimo e vice-versa
+my.classif <- 
+    my.score.limites %>%
+    mutate(perc = abs(ifelse(scores.pessoa <= 0, -(scores.pessoa/min.score), (scores.pessoa/max.score))))
+# inserindo o atributo do componente (positivo ou negativo)
+    my.classif <-
+        my.classif %>%
+        mutate(atributo = ifelse(scores.pessoa >= 0 & componente == "PC1","OPENNESS/EXPLORATION",
+                         ifelse(scores.pessoa < 0 & componente == "PC1","COMPLIANCE/OBSERVÂNCIA",
+                         ifelse(scores.pessoa >= 0 & componente == "PC2","AGREEABLENESS/AMABILIDADE",
+                         ifelse(scores.pessoa < 0 & componente == "PC2","ANALÍTICO E INDEPENDENTE/FOCO EM RESULTADO",
+                         ifelse(scores.pessoa >= 0 & componente == "PC3","INVESTIGATIVO/RESEARCH ORIENTED",
+                         ifelse(scores.pessoa < 0 & componente == "PC3","COMMITMENT/ENGAJAMENTO",
+                         ifelse(scores.pessoa >= 0 & componente == "PC4","PEOPLE DEVELOPMENT ORIENTED",
+                         ifelse(scores.pessoa < 0 & componente == "PC4","TASK ORIENTED/ORIENTAÇÃO PARA A TAREFA",
+                         ifelse(scores.pessoa >= 0 & componente == "PC5","EXTROVERSÃO/AUTENTICIDADE",
+                         ifelse(scores.pessoa < 0 & componente == "PC5","SOBRIEDADE/COMPOSTURA/COMEDIMENTO",
+                         ifelse(scores.pessoa >= 0 & componente == "PC6","MANAGEMENT",
+                         ifelse(scores.pessoa < 0 & componente == "PC6","ASSISTÊNCIA/RECEPTIVIDADE ATIVA",
+                         ifelse(scores.pessoa >= 0 & componente == "PC7","AUSTERIDADE/PONDERAÇÃO",
+                         "ADAPTABILIDADE/AJUSTAMENTO"
+        ))))))))))))))
+
+# inserindo classificaçao segundo intensidade do score
+    my.classif <-
+        my.classif %>%
+        mutate(intensidade = ifelse(perc > lims.corr[1],"marcante",
+                                    ifelse(perc <= lims.corr[1] & perc > lims.corr[2] ,"moderado",
+                                           ifelse(perc <= lims.corr[2] & perc > lims.corr[3] ,"fraco",
+                                                  "inexpressivo"
+                                           ))))
+       
+#knitr::kable(my.classif[,c(1,4,6,7)])
+
+#plotar
+df_class.resp <-
+    df_class.resp %>%
+    mutate(ID.campo = seq(nrow((df_class.resp))))
+# plot com pontos
+#qplot(df_class.resp$campo.prof,df_class.resp$corr, colour = df_class.resp$class.campo)
+# alternativa
+plot.pessoa <- ggplot(my.classif, aes(x=componente, y=perc, fill= intensidade)) +
+ #   scale_colour_brewer(palette = "Greens") +
+    geom_bar(stat="identity") +
+    ggtitle(paste("Classificação de Respondente (", nome.resp,")"))
+#(plot.alex)
+# cria tabela para acompanhar o plot
+tbl.pessoa <- tableGrob(my.classif[,c(1,4,6,7)], rows=NULL)
+# Plot chart and table into one object
+grid.arrange(plot.pessoa, tbl.pessoa,
+nrow=2,
+as.table=TRUE,
+heights=c(1,1))
+```
+
+```{r,echo=FALSE}
+# considerar max score para cada componente como 100% (positivo ou negativo)
+# posicionar score do respondente Alex percentualmente em relação a estes valores
+my.score.limites$scores.pessoa <- scores.laura
+nome.resp <- "Laura"
+
+# se score é negativo, calcula o percentual em relação ao mínimo e vice-versa
+my.classif <- 
+    my.score.limites %>%
+    mutate(perc = abs(ifelse(scores.pessoa <= 0, -(scores.pessoa/min.score), (scores.pessoa/max.score))))
+# inserindo o atributo do componente (positivo ou negativo)
+    my.classif <-
+        my.classif %>%
+        mutate(atributo = ifelse(scores.pessoa >= 0 & componente == "PC1","OPENNESS/EXPLORATION",
+                         ifelse(scores.pessoa < 0 & componente == "PC1","COMPLIANCE/OBSERVÂNCIA",
+                         ifelse(scores.pessoa >= 0 & componente == "PC2","AGREEABLENESS/AMABILIDADE",
+                         ifelse(scores.pessoa < 0 & componente == "PC2","ANALÍTICO E INDEPENDENTE/FOCO EM RESULTADO",
+                         ifelse(scores.pessoa >= 0 & componente == "PC3","INVESTIGATIVO/RESEARCH ORIENTED",
+                         ifelse(scores.pessoa < 0 & componente == "PC3","COMMITMENT/ENGAJAMENTO",
+                         ifelse(scores.pessoa >= 0 & componente == "PC4","PEOPLE DEVELOPMENT ORIENTED",
+                         ifelse(scores.pessoa < 0 & componente == "PC4","TASK ORIENTED/ORIENTAÇÃO PARA A TAREFA",
+                         ifelse(scores.pessoa >= 0 & componente == "PC5","EXTROVERSÃO/AUTENTICIDADE",
+                         ifelse(scores.pessoa < 0 & componente == "PC5","SOBRIEDADE/COMPOSTURA/COMEDIMENTO",
+                         ifelse(scores.pessoa >= 0 & componente == "PC6","MANAGEMENT",
+                         ifelse(scores.pessoa < 0 & componente == "PC6","ASSISTÊNCIA/RECEPTIVIDADE ATIVA",
+                         ifelse(scores.pessoa >= 0 & componente == "PC7","AUSTERIDADE/PONDERAÇÃO",
+                         "ADAPTABILIDADE/AJUSTAMENTO"
+        ))))))))))))))
+
+# inserindo classificaçao segundo intensidade do score
+    my.classif <-
+        my.classif %>%
+        mutate(intensidade = ifelse(perc > lims.corr[1],"marcante",
+                                    ifelse(perc <= lims.corr[1] & perc > lims.corr[2] ,"moderado",
+                                           ifelse(perc <= lims.corr[2] & perc > lims.corr[3] ,"fraco",
+                                                  "inexpressivo"
+                                           ))))
+       
+#knitr::kable(my.classif[,c(1,4,6,7)])
+
+#plotar
+df_class.resp <-
+    df_class.resp %>%
+    mutate(ID.campo = seq(nrow((df_class.resp))))
+# plot com pontos
+#qplot(df_class.resp$campo.prof,df_class.resp$corr, colour = df_class.resp$class.campo)
+# alternativa
+plot.pessoa <- ggplot(my.classif, aes(x=componente, y=perc, fill= intensidade)) +
+ #   scale_colour_brewer(palette = "Greens") +
+    geom_bar(stat="identity") +
+    ggtitle(paste("Classificação de Respondente (", nome.resp,")"))
+#(plot.alex)
+# cria tabela para acompanhar o plot
+tbl.pessoa <- tableGrob(my.classif[,c(1,4,6,7)], rows=NULL)
+# Plot chart and table into one object
+grid.arrange(plot.pessoa, tbl.pessoa,
+nrow=2,
+as.table=TRUE,
+heights=c(1,1))
+```
+
+```{r,echo=FALSE}
+# considerar max score para cada componente como 100% (positivo ou negativo)
+# posicionar score do respondente Alex percentualmente em relação a estes valores
+my.score.limites$scores.pessoa <- scores.beatriz
+nome.resp <- "Beatriz"
+
+# se score é negativo, calcula o percentual em relação ao mínimo e vice-versa
+my.classif <- 
+    my.score.limites %>%
+    mutate(perc = abs(ifelse(scores.pessoa <= 0, -(scores.pessoa/min.score), (scores.pessoa/max.score))))
+# inserindo o atributo do componente (positivo ou negativo)
+    my.classif <-
+        my.classif %>%
+        mutate(atributo = ifelse(scores.pessoa >= 0 & componente == "PC1","OPENNESS/EXPLORATION",
+                         ifelse(scores.pessoa < 0 & componente == "PC1","COMPLIANCE/OBSERVÂNCIA",
+                         ifelse(scores.pessoa >= 0 & componente == "PC2","AGREEABLENESS/AMABILIDADE",
+                         ifelse(scores.pessoa < 0 & componente == "PC2","ANALÍTICO E INDEPENDENTE/FOCO EM RESULTADO",
+                         ifelse(scores.pessoa >= 0 & componente == "PC3","INVESTIGATIVO/RESEARCH ORIENTED",
+                         ifelse(scores.pessoa < 0 & componente == "PC3","COMMITMENT/ENGAJAMENTO",
+                         ifelse(scores.pessoa >= 0 & componente == "PC4","PEOPLE DEVELOPMENT ORIENTED",
+                         ifelse(scores.pessoa < 0 & componente == "PC4","TASK ORIENTED/ORIENTAÇÃO PARA A TAREFA",
+                         ifelse(scores.pessoa >= 0 & componente == "PC5","EXTROVERSÃO/AUTENTICIDADE",
+                         ifelse(scores.pessoa < 0 & componente == "PC5","SOBRIEDADE/COMPOSTURA/COMEDIMENTO",
+                         ifelse(scores.pessoa >= 0 & componente == "PC6","MANAGEMENT",
+                         ifelse(scores.pessoa < 0 & componente == "PC6","ASSISTÊNCIA/RECEPTIVIDADE ATIVA",
+                         ifelse(scores.pessoa >= 0 & componente == "PC7","AUSTERIDADE/PONDERAÇÃO",
+                         "ADAPTABILIDADE/AJUSTAMENTO"
+        ))))))))))))))
+
+# inserindo classificaçao segundo intensidade do score
+    my.classif <-
+        my.classif %>%
+        mutate(intensidade = ifelse(perc > lims.corr[1],"marcante",
+                                    ifelse(perc <= lims.corr[1] & perc > lims.corr[2] ,"moderado",
+                                           ifelse(perc <= lims.corr[2] & perc > lims.corr[3] ,"fraco",
+                                                  "inexpressivo"
+                                           ))))
+       
+#knitr::kable(my.classif[,c(1,4,6,7)])
+
+#plotar
+df_class.resp <-
+    df_class.resp %>%
+    mutate(ID.campo = seq(nrow((df_class.resp))))
+# plot com pontos
+#qplot(df_class.resp$campo.prof,df_class.resp$corr, colour = df_class.resp$class.campo)
+# alternativa
+plot.pessoa <- ggplot(my.classif, aes(x=componente, y=perc, fill= intensidade)) +
+ #   scale_colour_brewer(palette = "Greens") +
+    geom_bar(stat="identity") +
+    ggtitle(paste("Classificação de Respondente (", nome.resp,")"))
+#(plot.alex)
+# cria tabela para acompanhar o plot
+tbl.pessoa <- tableGrob(my.classif[,c(1,4,6,7)], rows=NULL)
+# Plot chart and table into one object
+grid.arrange(plot.pessoa, tbl.pessoa,
+nrow=2,
+as.table=TRUE,
+heights=c(1,1))
+```
+
+```{r,echo=FALSE}
+# considerar max score para cada componente como 100% (positivo ou negativo)
+# posicionar score do respondente Alex percentualmente em relação a estes valores
+my.score.limites$scores.pessoa <- scores.eneko
+nome.resp <- "Eneko"
+
+# se score é negativo, calcula o percentual em relação ao mínimo e vice-versa
+my.classif <- 
+    my.score.limites %>%
+    mutate(perc = abs(ifelse(scores.pessoa <= 0, -(scores.pessoa/min.score), (scores.pessoa/max.score))))
+# inserindo o atributo do componente (positivo ou negativo)
+    my.classif <-
+        my.classif %>%
+        mutate(atributo = ifelse(scores.pessoa >= 0 & componente == "PC1","OPENNESS/EXPLORATION",
+                         ifelse(scores.pessoa < 0 & componente == "PC1","COMPLIANCE/OBSERVÂNCIA",
+                         ifelse(scores.pessoa >= 0 & componente == "PC2","AGREEABLENESS/AMABILIDADE",
+                         ifelse(scores.pessoa < 0 & componente == "PC2","ANALÍTICO E INDEPENDENTE/FOCO EM RESULTADO",
+                         ifelse(scores.pessoa >= 0 & componente == "PC3","INVESTIGATIVO/RESEARCH ORIENTED",
+                         ifelse(scores.pessoa < 0 & componente == "PC3","COMMITMENT/ENGAJAMENTO",
+                         ifelse(scores.pessoa >= 0 & componente == "PC4","PEOPLE DEVELOPMENT ORIENTED",
+                         ifelse(scores.pessoa < 0 & componente == "PC4","TASK ORIENTED/ORIENTAÇÃO PARA A TAREFA",
+                         ifelse(scores.pessoa >= 0 & componente == "PC5","EXTROVERSÃO/AUTENTICIDADE",
+                         ifelse(scores.pessoa < 0 & componente == "PC5","SOBRIEDADE/COMPOSTURA/COMEDIMENTO",
+                         ifelse(scores.pessoa >= 0 & componente == "PC6","MANAGEMENT",
+                         ifelse(scores.pessoa < 0 & componente == "PC6","ASSISTÊNCIA/RECEPTIVIDADE ATIVA",
+                         ifelse(scores.pessoa >= 0 & componente == "PC7","AUSTERIDADE/PONDERAÇÃO",
+                         "ADAPTABILIDADE/AJUSTAMENTO"
+        ))))))))))))))
+
+# inserindo classificaçao segundo intensidade do score
+    my.classif <-
+        my.classif %>%
+        mutate(intensidade = ifelse(perc > lims.corr[1],"marcante",
+                                    ifelse(perc <= lims.corr[1] & perc > lims.corr[2] ,"moderado",
+                                           ifelse(perc <= lims.corr[2] & perc > lims.corr[3] ,"fraco",
+                                                  "inexpressivo"
+                                           ))))
+       
+#knitr::kable(my.classif[,c(1,4,6,7)])
+
+#plotar
+df_class.resp <-
+    df_class.resp %>%
+    mutate(ID.campo = seq(nrow((df_class.resp))))
+# plot com pontos
+#qplot(df_class.resp$campo.prof,df_class.resp$corr, colour = df_class.resp$class.campo)
+# alternativa
+plot.pessoa <- ggplot(my.classif, aes(x=componente, y=perc, fill= intensidade)) +
+ #   scale_colour_brewer(palette = "Greens") +
+    geom_bar(stat="identity") +
+    ggtitle(paste("Classificação de Respondente (", nome.resp,")"))
+#(plot.alex)
+# cria tabela para acompanhar o plot
+tbl.pessoa <- tableGrob(my.classif[,c(1,4,6,7)], rows=NULL)
+# Plot chart and table into one object
+grid.arrange(plot.pessoa, tbl.pessoa,
+nrow=2,
+as.table=TRUE,
+heights=c(1,1))
+```
+

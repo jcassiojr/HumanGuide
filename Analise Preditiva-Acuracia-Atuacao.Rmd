@@ -26,6 +26,7 @@ require("dplyr", quietly = TRUE, warn.conflicts = FALSE)
 
 source("./R/f_acentos.R") 
 source("./R/f_le_raw_HG.R") 
+source("./R/f_tidy_scores_HG_area.R") 
 ```
 
 #### 2. Assinaturas de baseline das Atuações ####
@@ -33,7 +34,7 @@ source("./R/f_le_raw_HG.R")
 Abaixo as assinaturas de baseline da cada atuação, a partir dos dados da amostra original usada para calibrar o modelo
 
 ```{r, echo=FALSE, warning=FALSE}
-registerDoMC(5) # parallel processing
+registerDoMC(8) # parallel processing
 # OBTEM ASSINATURAS DE BASELINE PARA CAMPO PROFISSIONAIS
 #########################################################
 
@@ -135,7 +136,7 @@ df_usu <- read.xlsx2("./data/PP_09029666000490_20160302-macrogrupos-novo.xlsx", 
 unfactorize<-c(7,12:83)
 df_usu[,unfactorize]<-lapply(unfactorize, function(x) as.numeric(as.character(df_usu[,x])))
     
-source("./R/f_tidy_scores_HG_area.R") # usar esta função para ler os dados novos. 
+#source("./R/f_tidy_scores_HG_area.R") # usar esta função para ler os dados novos. 
 
 # calculando os scores para usuários
 ####################################

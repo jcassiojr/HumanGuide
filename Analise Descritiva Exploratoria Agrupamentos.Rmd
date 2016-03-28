@@ -214,7 +214,8 @@ mg = list(
 pc1 <- my.scores.total %>% group_by(sexo) %>%
   summarise(mn = mean(PC1), sd = 1.96 * sd(PC1)) %>%
   arrange(desc(mn)) %>%
-  plot_ly(y = sexo, x = mn, error_x = list(value = sd),
+  #plot_ly(y = sexo, x = mn, error_x = list(value = sd),
+    plot_ly(y = sexo, x = mn, error_x = list(array = sd), # IMPORTANTE: usando array o plot tem barra de erro correta!!! Usando parametro value não!!!!!@
           mode = "markers", name = "Agrupado por Sexo") %>%
   layout(
          autosize = F,
@@ -229,7 +230,7 @@ pc1
 pc2 <- my.scores.total %>% group_by(sexo) %>%
   summarise(mn = mean(PC2), sd = 1.96 * sd(PC2)) %>%
   arrange(desc(mn)) %>%
-  plot_ly(y = sexo, x = mn, error_x = list(value = sd),
+  plot_ly(y = sexo, x = mn, error_x = list(array = sd),
           mode = "markers", name = "Agrupado por Sexo") %>%
   layout(autosize = F,
          width = 500,
@@ -252,7 +253,7 @@ pc2
 pc3 <- my.scores.total %>% group_by(sexo) %>%
   summarise(mn = mean(PC3), sd = 1.96 * sd(PC3)) %>%
   arrange(desc(mn)) %>%
-  plot_ly(y = sexo, x = mn, error_x = list(value = sd),
+  plot_ly(y = sexo, x = mn, error_x = list(array = sd),
           mode = "markers", name = "Agrupado por Sexo") %>%
   layout(yaxis = list(title = "Sexo"),
          xaxis = list(title = "PC3 score",
@@ -262,7 +263,7 @@ pc3
 pc4 <- my.scores.total %>% group_by(sexo) %>%
   summarise(mn = mean(PC4), sd = 1.96 * sd(PC4)) %>%
   arrange(desc(mn)) %>%
-  plot_ly(y = sexo, x = mn, error_x = list(value = sd),
+  plot_ly(y = sexo, x = mn, error_x = list(array = sd),
           mode = "markers", name = "Agrupado por Sexo") %>%
   layout(yaxis = list(title = "Sexo"),
          xaxis = list(title = "PC4 score",
@@ -272,7 +273,7 @@ pc4
 pc5 <- my.scores.total %>% group_by(sexo) %>%
   summarise(mn = mean(PC5), sd = 1.96 * sd(PC5)) %>%
   arrange(desc(mn)) %>%
-  plot_ly(y = sexo, x = mn, error_x = list(value = sd),
+  plot_ly(y = sexo, x = mn, error_x = list(array = sd),
           mode = "markers", name = "Agrupado por Sexo") %>%
   layout(yaxis = list(title = "Sexo"),
          xaxis = list(title = "PC5 score",
@@ -282,7 +283,7 @@ pc5
 pc6 <- my.scores.total %>% group_by(sexo) %>%
   summarise(mn = mean(PC6), sd = 1.96 * sd(PC6)) %>%
   arrange(desc(mn)) %>%
-  plot_ly(y = sexo, x = mn, error_x = list(value = sd),
+  plot_ly(y = sexo, x = mn, error_x = list(array = sd),
           mode = "markers", name = "Agrupado por Sexo") %>%
   layout(yaxis = list(title = "Sexo"),
          xaxis = list(title = "PC6 score",
@@ -292,7 +293,7 @@ pc6
 pc7 <- my.scores.total %>% group_by(sexo) %>%
   summarise(mn = mean(PC7), sd = 1.96 * sd(PC7)) %>%
   arrange(desc(mn)) %>%
-  plot_ly(y = sexo, x = mn, error_x = list(value = sd),
+  plot_ly(y = sexo, x = mn, error_x = list(array = sd),
           mode = "markers", name = "Agrupado por Sexo") %>%
   layout(yaxis = list(title = "Sexo"),
          xaxis = list(title = "PC7 score",
@@ -316,7 +317,7 @@ Posteriormente, podem ser descartadas como pontos fora da curva.
 pc1 <- my.scores.total %>% group_by(idade) %>%
   summarise(mn = mean(PC1), sd = 1.96 * sd(PC1)) %>%
   arrange(desc(mn)) %>%
-  plot_ly(y = idade, x = mn, error_x = list(value = sd),
+  plot_ly(y = idade, x = mn, error_x = list(array = sd),
           mode = "markers", name = "Agrupado por Idade") %>%
   layout(autosize = F,
          width = 500,
@@ -330,7 +331,7 @@ pc1
 pc2 <- my.scores.total %>% group_by(idade) %>%
   summarise(mn = mean(PC2), sd = 1.96 * sd(PC2)) %>%
   arrange(desc(mn)) %>%
-  plot_ly(y = idade, x = mn, error_x = list(value = sd),
+  plot_ly(y = idade, x = mn, error_x = list(array = sd),
           mode = "markers", name = "Agrupado por Idade") %>%
   layout(yaxis = list(title = "idade"),
          xaxis = list(title = "PC2 score",
@@ -340,7 +341,7 @@ pc2
 pc3 <- my.scores.total %>% group_by(idade) %>%
   summarise(mn = mean(PC3), sd = 1.96 * sd(PC3)) %>%
   arrange(desc(mn)) %>%
-  plot_ly(y = idade, x = mn, error_x = list(value = sd),
+  plot_ly(y = idade, x = mn, error_x = list(array = sd),
           mode = "markers", name = "Agrupado por Idade") %>%
   layout(yaxis = list(title = "idade"),
          xaxis = list(title = "PC3 score",
@@ -350,7 +351,7 @@ pc3
 pc4 <- my.scores.total %>% group_by(idade) %>%
   summarise(mn = mean(PC4), sd = 1.96 * sd(PC4)) %>%
   arrange(desc(mn)) %>%
-  plot_ly(y = idade, x = mn, error_x = list(value = sd),
+  plot_ly(y = idade, x = mn, error_x = list(array = sd),
           mode = "markers", name = "Agrupado por Idade") %>%
   layout(yaxis = list(title = "idade"),
          xaxis = list(title = "PC4 score",
@@ -360,7 +361,7 @@ pc4
 pc5 <- my.scores.total %>% group_by(idade) %>%
   summarise(mn = mean(PC5), sd = 1.96 * sd(PC5)) %>%
   arrange(desc(mn)) %>%
-  plot_ly(y = idade, x = mn, error_x = list(value = sd),
+  plot_ly(y = idade, x = mn, error_x = list(array = sd),
           mode = "markers", name = "Agrupado por Idade") %>%
   layout(yaxis = list(title = "idade"),
          xaxis = list(title = "PC5 score",
@@ -370,7 +371,7 @@ pc5
 pc6 <- my.scores.total %>% group_by(idade) %>%
   summarise(mn = mean(PC6), sd = 1.96 * sd(PC6)) %>%
   arrange(desc(mn)) %>%
-  plot_ly(y = idade, x = mn, error_x = list(value = sd),
+  plot_ly(y = idade, x = mn, error_x = list(array = sd),
           mode = "markers", name = "Agrupado por Idade") %>%
   layout(yaxis = list(title = "idade"),
          xaxis = list(title = "PC6 score",
@@ -380,7 +381,7 @@ pc6
 pc7 <- my.scores.total %>% group_by(idade) %>%
   summarise(mn = mean(PC7), sd = 1.96 * sd(PC7)) %>%
   arrange(desc(mn)) %>%
-  plot_ly(y = idade, x = mn, error_x = list(value = sd),
+  plot_ly(y = idade, x = mn, error_x = list(array = sd),
           mode = "markers", name = "Agrupado por Idade") %>%
   layout(yaxis = list(title = "idade"),
          xaxis = list(title = "PC7 score",
@@ -406,7 +407,7 @@ Cabe uma análise tentando identificar o que agrupa estas cidades (Por exemplo, 
 pc1 <- my.scores.total %>% group_by(cidade) %>%
   summarise(mn = mean(PC1), sd = 1.96 * sd(PC1)) %>%
   arrange(desc(mn)) %>%
-  plot_ly(x = mn, y = cidade, error_x = list(value = sd),
+  plot_ly(x = mn, y = cidade, error_x = list(array = sd),
           mode = "markers", 
           name = "Agrupado por Cidade") %>%
     layout(yaxis = list(title = "cidade"),
@@ -417,7 +418,7 @@ pc1
 pc2 <- my.scores.total %>% group_by(cidade) %>%
   summarise(mn = mean(PC2), sd = 1.96 * sd(PC2)) %>%
   arrange(desc(mn)) %>%
-  plot_ly(x = mn, y = cidade, error_x = list(value = sd),
+  plot_ly(x = mn, y = cidade, error_x = list(array = sd),
           mode = "markers", 
           name = "Agrupado por Cidade") %>%
     layout(yaxis = list(title = "cidade"),
@@ -428,7 +429,7 @@ pc2
 pc3 <- my.scores.total %>% group_by(cidade) %>%
   summarise(mn = mean(PC3), sd = 1.96 * sd(PC3)) %>%
   arrange(desc(mn)) %>%
-  plot_ly(x = mn, y = cidade, error_x = list(value = sd),
+  plot_ly(x = mn, y = cidade, error_x = list(array = sd),
           mode = "markers", 
           name = "Agrupado por Cidade") %>%
     layout(yaxis = list(title = "cidade"),
@@ -439,7 +440,7 @@ pc3
 pc4 <- my.scores.total %>% group_by(cidade) %>%
   summarise(mn = mean(PC4), sd = 1.96 * sd(PC4)) %>%
   arrange(desc(mn)) %>%
-  plot_ly(x = mn, y = cidade, error_x = list(value = sd),
+  plot_ly(x = mn, y = cidade, error_x = list(array = sd),
           mode = "markers", 
           name = "Agrupado por Cidade") %>%
     layout(yaxis = list(title = "cidade"),
@@ -450,7 +451,7 @@ pc4
 pc5 <- my.scores.total %>% group_by(cidade) %>%
   summarise(mn = mean(PC5), sd = 1.96 * sd(PC5)) %>%
   arrange(desc(mn)) %>%
-  plot_ly(x = mn, y = cidade, error_x = list(value = sd),
+  plot_ly(x = mn, y = cidade, error_x = list(array = sd),
           mode = "markers", 
           name = "Agrupado por Cidade") %>%
     layout(yaxis = list(title = "cidade"),
@@ -461,7 +462,7 @@ pc5
 pc6 <- my.scores.total %>% group_by(cidade) %>%
   summarise(mn = mean(PC6), sd = 1.96 * sd(PC6)) %>%
   arrange(desc(mn)) %>%
-  plot_ly(x = mn, y = cidade, error_x = list(value = sd),
+  plot_ly(x = mn, y = cidade, error_x = list(array = sd),
           mode = "markers", 
           name = "Agrupado por Cidade") %>%
     layout(yaxis = list(title = "cidade"),
@@ -472,7 +473,7 @@ pc6
 pc7 <- my.scores.total %>% group_by(cidade) %>%
   summarise(mn = mean(PC7), sd = 1.96 * sd(PC7)) %>%
   arrange(desc(mn)) %>%
-  plot_ly(x = mn, y = cidade, error_x = list(value = sd),
+  plot_ly(x = mn, y = cidade, error_x = list(array = sd),
           mode = "markers", 
           name = "Agrupado por Cidade") %>%
     layout(yaxis = list(title = "cidade"),
@@ -508,7 +509,7 @@ Esta mesma análise pode ser feita ocm granularidade maior, agrupando por subreg
 pc1 <- my.scores.total %>% group_by(CEP.regiao) %>%
   summarise(mn = mean(PC1), sd = 1.96 * sd(PC1)) %>%
   arrange(desc(mn)) %>%
-  plot_ly(x = mn, y = CEP.regiao, error_x = list(value = sd),
+  plot_ly(x = mn, y = CEP.regiao, error_x = list(array = sd),
           mode = "markers", 
           name = "Agrupado por Região do CEP") %>%
     layout(yaxis = list(title = "Região do CEP"),
@@ -519,7 +520,7 @@ pc1
 pc2 <- my.scores.total %>% group_by(CEP.regiao) %>%
   summarise(mn = mean(PC2), sd = 1.96 * sd(PC2)) %>%
   arrange(desc(mn)) %>%
-  plot_ly(x = mn, y = CEP.regiao, error_x = list(value = sd),
+  plot_ly(x = mn, y = CEP.regiao, error_x = list(array = sd),
           mode = "markers", 
           name = "Agrupado por Região do CEP") %>%
     layout(yaxis = list(title = "Região do CEP"),
@@ -530,7 +531,7 @@ pc2
 pc3 <- my.scores.total %>% group_by(CEP.regiao) %>%
   summarise(mn = mean(PC3), sd = 1.96 * sd(PC3)) %>%
   arrange(desc(mn)) %>%
-  plot_ly(x = mn, y = CEP.regiao, error_x = list(value = sd),
+  plot_ly(x = mn, y = CEP.regiao, error_x = list(array = sd),
           mode = "markers", 
           name = "Agrupado por Região do CEP") %>%
     layout(yaxis = list(title = "Região do CEP"),
@@ -541,7 +542,7 @@ pc3
 pc4 <- my.scores.total %>% group_by(CEP.regiao) %>%
   summarise(mn = mean(PC4), sd = 1.96 * sd(PC4)) %>%
   arrange(desc(mn)) %>%
-  plot_ly(x = mn, y = CEP.regiao, error_x = list(value = sd),
+  plot_ly(x = mn, y = CEP.regiao, error_x = list(array = sd),
           mode = "markers", 
           name = "Agrupado por Região do CEP") %>%
     layout(yaxis = list(title = "Região do CEP"),
@@ -552,7 +553,7 @@ pc4
 pc5 <- my.scores.total %>% group_by(CEP.regiao) %>%
   summarise(mn = mean(PC5), sd = 1.96 * sd(PC5)) %>%
   arrange(desc(mn)) %>%
-  plot_ly(x = mn, y = CEP.regiao, error_x = list(value = sd),
+  plot_ly(x = mn, y = CEP.regiao, error_x = list(array = sd),
           mode = "markers", 
           name = "Agrupado por Região do CEP") %>%
     layout(yaxis = list(title = "Região do CEP"),
@@ -563,7 +564,7 @@ pc5
 pc6 <- my.scores.total %>% group_by(CEP.regiao) %>%
   summarise(mn = mean(PC6), sd = 1.96 * sd(PC6)) %>%
   arrange(desc(mn)) %>%
-  plot_ly(x = mn, y = CEP.regiao, error_x = list(value = sd),
+  plot_ly(x = mn, y = CEP.regiao, error_x = list(array = sd),
           mode = "markers", 
           name = "Agrupado por Região do CEP") %>%
     layout(yaxis = list(title = "Região do CEP"),
@@ -574,7 +575,7 @@ pc6
 pc7 <- my.scores.total %>% group_by(CEP.regiao) %>%
   summarise(mn = mean(PC7), sd = 1.96 * sd(PC7)) %>%
   arrange(desc(mn)) %>%
-  plot_ly(x = mn, y = CEP.regiao, error_x = list(value = sd),
+  plot_ly(x = mn, y = CEP.regiao, error_x = list(array = sd),
           mode = "markers", 
           name = "Agrupado por Região do CEP") %>%
     layout(yaxis = list(title = "Região do CEP"),
@@ -590,7 +591,7 @@ pc7
 pc1 <- my.scores.total %>% group_by(tipouser) %>%
   summarise(mn = mean(PC1), sd = 1.96 * sd(PC1)) %>%
   arrange(desc(tipouser)) %>%
-  plot_ly(x = mn, y = tipouser, error_x = list(value = sd),
+  plot_ly(x = mn, y = tipouser, error_x = list(array = sd),
           mode = "markers", 
           name = "Agrupado por Tipo de Usuário") %>%
     layout(yaxis = list(title = "Tipo de Usuário"),
@@ -602,7 +603,7 @@ pc1
 pc2 <- my.scores.total %>% group_by(tipouser) %>%
   summarise(mn = mean(PC2), sd = 1.96 * sd(PC2)) %>%
   arrange(desc(tipouser)) %>%
-  plot_ly(x = mn, y = tipouser, error_x = list(value = sd),
+  plot_ly(x = mn, y = tipouser, error_x = list(array = sd),
           mode = "markers", 
           name = "Agrupado por Tipo de Usuário") %>%
     layout(yaxis = list(title = "Tipo de Usuário"),
@@ -613,7 +614,7 @@ pc2
 pc3 <- my.scores.total %>% group_by(tipouser) %>%
   summarise(mn = mean(PC3), sd = 1.96 * sd(PC3)) %>%
   arrange(desc(tipouser)) %>%
-  plot_ly(x = mn, y = tipouser, error_x = list(value = sd),
+  plot_ly(x = mn, y = tipouser, error_x = list(array = sd),
           mode = "markers", 
           name = "Agrupado por Tipo de Usuário") %>%
     layout(yaxis = list(title = "Tipo de Usuário"),
@@ -624,7 +625,7 @@ pc3
 pc4 <- my.scores.total %>% group_by(tipouser) %>%
   summarise(mn = mean(PC4), sd = 1.96 * sd(PC4)) %>%
   arrange(desc(tipouser)) %>%
-  plot_ly(x = mn, y = tipouser, error_x = list(value = sd),
+  plot_ly(x = mn, y = tipouser, error_x = list(array = sd),
           mode = "markers", 
           name = "Agrupado por Tipo de Usuário") %>%
     layout(yaxis = list(title = "Tipo de Usuário"),
@@ -635,7 +636,7 @@ pc4
 pc5 <- my.scores.total %>% group_by(tipouser) %>%
   summarise(mn = mean(PC5), sd = 1.96 * sd(PC5)) %>%
   arrange(desc(tipouser)) %>%
-  plot_ly(x = mn, y = tipouser, error_x = list(value = sd),
+  plot_ly(x = mn, y = tipouser, error_x = list(array = sd),
           mode = "markers", 
           name = "Agrupado por Tipo de Usuário") %>%
     layout(yaxis = list(title = "Tipo de Usuário"),
@@ -646,7 +647,7 @@ pc5
 pc6 <- my.scores.total %>% group_by(tipouser) %>%
   summarise(mn = mean(PC6), sd = 1.96 * sd(PC6)) %>%
   arrange(desc(tipouser)) %>%
-  plot_ly(x = mn, y = tipouser, error_x = list(value = sd),
+  plot_ly(x = mn, y = tipouser, error_x = list(array = sd),
           mode = "markers", 
           name = "Agrupado por Tipo de Usuário") %>%
     layout(yaxis = list(title = "Tipo de Usuário"),
@@ -657,7 +658,7 @@ pc6
 pc7 <- my.scores.total %>% group_by(tipouser) %>%
   summarise(mn = mean(PC7), sd = 1.96 * sd(PC7)) %>%
   arrange(desc(tipouser)) %>%
-  plot_ly(x = mn, y = tipouser, error_x = list(value = sd),
+  plot_ly(x = mn, y = tipouser, error_x = list(array = sd),
           mode = "markers", 
           name = "Agrupado por Tipo de Usuário") %>%
     layout(yaxis = list(title = "Tipo de Usuário"),

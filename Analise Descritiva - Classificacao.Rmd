@@ -26,7 +26,7 @@ require("plyr", quietly = TRUE, warn.conflicts = FALSE)
 require("dplyr", quietly = TRUE, warn.conflicts = FALSE)
 source("./R/f_acentos.R") 
 
-registerDoMC(5) # parallel processing
+registerDoMC(8) # parallel processing
 
 ```
 
