@@ -1,0 +1,40 @@
+---
+title: "Classificação de Respondente"
+author: "Cassio"
+date: "March 28, 2016"
+output: 
+   html_document
+---
+
+<center>![agileBIGDATA](./logoAgileBD.png)</center>
+
+Este documento mostra os plots de assinatura de um respondente individual de acordo com seu resultado do teste **Human Guide**.
+
+### Plots de Assinatura por componente e por campo profissional ###
+
+```{r,echo=FALSE}
+source("./R/f_assinatura_individual_HG.R") 
+
+registerDoMC(5) # parallel processing
+```
+
+```{r,echo=FALSE}
+in.arquivo <- "pp_humanguide_20160307-1349.xlsx"
+in.nome <- "beatriz welter"
+my.list <- f_assinatura_individual_HG(in.arquivo, in.nome)
+# ATENCAO: depois melhorar funcao acima para tirar brancos no inicio e fim tb!!!!
+#knitr::kable(head(df_campos))
+```
+
+#### Plot de Assinatura do Respondente ####
+
+```{r, echo=FALSE, warning=FALSE}
+(my.list$pl_assinatura)
+```
+
+#### Plot de Classificação por Campo Profissional do Respondente ####
+
+```{r, echo=FALSE, warning=FALSE}
+(my.list$pl_campo)
+```
+
