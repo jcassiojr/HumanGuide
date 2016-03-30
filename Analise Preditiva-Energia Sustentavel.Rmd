@@ -27,7 +27,10 @@ A estratégia adotada para a validação seguiu os seguintes passos:
 Abaixo se encontra a tabela com as assinaturas calculadas para os usuários da amostra.
 
 ```{r,echo=FALSE}
-require("xlsx")
+require("doMC", quietly = TRUE, warn.conflicts = FALSE)
+require("xlsx", quietly = TRUE, warn.conflicts = FALSE)
+require("plyr", quietly = TRUE, warn.conflicts = FALSE)
+require("dplyr", quietly = TRUE, warn.conflicts = FALSE)
 source("./R/f_acentos.R") 
 ```
 
@@ -59,16 +62,12 @@ df_forms <-
 ```
 
 ```{r,echo=FALSE}
-require("doMC", quietly = TRUE, warn.conflicts = FALSE)
-require("xlsx", quietly = TRUE, warn.conflicts = FALSE)
-require("plyr", quietly = TRUE, warn.conflicts = FALSE)
-require("dplyr", quietly = TRUE, warn.conflicts = FALSE)
 
-registerDoMC(5) # parallel processing
+registerDoMC(8) # parallel processing
 
 # obtém e prepara dados do Human Guide para Energia Sutentável do Brasil
 ##################################################################
-df_usu <- read.xlsx2("./data/PP_09029666000490_20160302.xlsx", sheetIndex = 1, header = TRUE)
+df_usu <- read.xlsx2("./data/PP_09029666000490_20160302-macrogrupos-novo.xlsx", sheetIndex = 1, header = TRUE)
 
 # TROCA CODIGO DA FORMACAO E OCUPACAO POR DESCRICAO
 ####################################################

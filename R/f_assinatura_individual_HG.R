@@ -20,7 +20,7 @@ f_assinatura_individual_HG <- function(in.arquivo, in.nome) {
     #in.nome <- "beatriz welter"
     # ATENCAO +++++++++++++++++++++++++++++++++++++++++++++++++++++
     
-    registerDoMC(5) # parallel processing
+    registerDoMC(8) # parallel processing
     
     # OBTENDO SCORES MAXIMOS E MINIMOS
     ##################################
