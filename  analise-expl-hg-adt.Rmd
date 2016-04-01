@@ -1,0 +1,1794 @@
+---
+title: "Análise Exploratória - Human Guide x ADT"
+author: "Cassio"
+date: "March 29, 2016"
+output: 
+   html_document
+---
+
+<center>![agileBIGDATA](./logoAgileBD.png)</center>
+
+### Objetivo ###
+
+Este documento tem por objetivo implementar análise exploratória correlacionando resultados de teste ADT com os componentes gerados no teste **Human Guide**.
+São usados dados obtidos de respondentes da empresa Energia Sustentável do Brasil.
+
+### Estratégia ###
+
+#### Análise de Cluster dos Componentes Human Guide x itens do teste ADT
+
+```{r, echo=FALSE, warning=FALSE}
+require("doMC", quietly = TRUE, warn.conflicts = FALSE)
+require("xlsx", quietly = TRUE, warn.conflicts = FALSE)
+require("dplyr", quietly = TRUE, warn.conflicts = FALSE)
+require("corrplot", quietly = TRUE, warn.conflicts = FALSE)
+require("gridExtra", quietly = TRUE, warn.conflicts = FALSE)
+require("ggvis", quietly = TRUE, warn.conflicts = FALSE)
+require("ggplot2", quietly = TRUE, warn.conflicts = FALSE)
+
+registerDoMC(8) # parallel processing
+
+# ou, lendo de arquivo já gravado pela funcao f_limites_score()
+my.df_hg <- read.xlsx ("./data/HG_ADT_LJI2.xlsx", sheetIndex = 1)
+my.df_adt <- read.xlsx ("./data/HG_ADT_LJI2.xlsx", sheetIndex = 2)
+my.df_lji2 <- read.xlsx ("./data/HG_ADT_LJI2.xlsx", sheetIndex = 3)
+my.df_hg <- na.omit(my.df_hg)
+my.df_adt <- na.omit(my.df_adt)
+my.df_lji2 <- na.omit(my.df_lji2)
+my.df_lji2 <-
+    my.df_lji2 %>%
+    rename(ID = X.UserId)
+```
+
+```{r, echo=FALSE, warning=FALSE}
+my.df_hg <-
+        my.df_hg %>%
+        select(ID, sexo, idade, cargo,
+           s11, h21, h31, hy41, e51, m61, m71, p81, e91,
+           e12, e22, e32, s42, s52, s62, k72, h82, m92,
+           h13, k23, hy33, e43, hy53, e63, s73, e83, p93,
+           k14, d24, k34, k44, k54, hy64, p74, s84, d94,
+           p15, m25, s35, h45, d55, k65, hy75, m85, k95,
+           hy16, p26, p36, m46, h56, p66, h76, k86, s96,
+           d17, s27, d37, d47, p57, d67, e77, hy87, h97,
+           m18, hy28, m38, p48, m58, h68, d78, d88, hy98)
+
+    # seleciona apenas as colunas necessárias
+    my.df_hg <-
+        my.df_hg %>%
+        mutate(sensibility = h13 + h21 + h31 + h45 + h56 + h68 + h76 + h82 + h97,
+           power = s11 + s27 + s35 + s42 + s52 + s62 + s73 + s84 + s96,
+           quality = e12 + e22 + e32 + e43 + e51 + e63 + e77 + e83 + e91,
+           exposure = hy16 + hy28 + hy33 + hy41 + hy53 + hy64 + hy75 + hy87 + hy98,
+           structure = k14 + k23 + k34 + k44 + k54 + k65 + k72 + k86 + k95,
+           imagination = p15 + p26 + p36 + p48 + p57 + p66 + p74 + p81 + p93,
+           stability = d17 + d24 + d37 + d47 + d55 + d67 + d78 + d88 + d94,
+           contacts = m18 + m25 + m38 + m46 + m58 + m61 + m71 + m85 + m92) %>%
+        select(ID, sexo, idade, cargo, sensibility, power, quality,
+           exposure, structure, imagination, stability, contacts) 
+
+    
+# juntando em um único dataframe
+my.df_tests <- inner_join(my.df_hg, my.df_adt, by = "ID")
+my.df_tests <- inner_join(my.df_tests, my.df_lji2, by = "ID")
+
+# calculo dos novos fatores para os respondentes do arquivo lido
+# obtendo os scores de acordo com a análise de componentes principais
+###############################################################################
+
+pca1 = prcomp(my.df_hg[,5:12], scale. = TRUE, center = TRUE)
+# scores obtidos
+scores.hg<- as.data.frame(pca1$x)
+my.scores.hg <- as.data.frame(cbind(ID =  my.df_hg$ID,
+                                sexo = my.df_hg$sexo, 
+                                idade = my.df_hg$idade, 
+                                cargo = my.df_hg$cargo,
+                                scores.hg))
+    # eliminando PC8
+    my.scores.hg <-
+        my.scores.hg %>%
+        select (-PC8)
+
+my.df_tests <- inner_join(my.df_tests, my.scores.hg[,c(1,5:11)], by = "ID")
+
+# R SQUARED
+#my.lm <- lm(G ~ PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7, my.df_tests)
+#summary(my.lm)
+
+# CORRELACOES 
+# correlacionando score ADT com os 14 componentes, separando positivo de negativo e fazendo correlação
+# para mesmo respondente
+# separação pelos 14 fatores para correlacionar abaixo
+```
+
+## Análise por Componente Human Guide ##
+
+Abaixo são mostradas as seguintes análises para correlacionar os componentes do Human Guide com os itens do teste ADT:
+
++ os plots de correlação do score de cada componante versus os itens do teste ADT.
++ O valor de R Squared para cada componente, o qual indica o quão bem os itens do teste ADT explicam o score obtido para o componente OPENNESS.
++ O plot de análise de cluster (agrupamento) entre o componente Human Guide e o item ADT que mostrou maior correlação com o mesmo. 
+
+### OPENNESS ###
+ 
+```{r, echo=FALSE, warning=FALSE}
+
+# OPENNESS
+my.df_open <-
+    my.df_tests %>%
+    select(ID, PC1) %>%
+    filter(PC1 >= 0) %>%
+    rename(OPENNESS = PC1) 
+# linkando com ID de ADT
+df_op_adt <- inner_join(my.df_open, my.df_tests[,c("ID","A", "B", "C", "D", "E", "F", "G",
+                                                      "H", "I", "J", "K", "L", "M", "N", "O", "P")], by = "ID")
+# testar eliminando itens ADT com correlação entre si maior que 50%
+# piorou o Rsquare??!!
+my.cor <- cor(df_op_adt[,-1])
+#png(height=1200, width=1500, pointsize=15, file="overlap.png")
+par(cex=.6)
+corrplot.mixed(my.cor, insig = "p-value", sig.level = -1, is.corr = TRUE)
+
+```
+
+```{r, echo=FALSE, warning=FALSE}
+
+# R SQUARED
+my.lm <- lm(OPENNESS ~ A + B + C + D + E + F + G + H + I + J + K + L + M + N + P, df_op_adt)
+#summary(my.lm)
+#my.lm <- lm(OPENNESS ~ C, df_op_adt)
+#summary(my.lm)
+sprintf ("R Squared OPENNESS: %f",summary(my.lm)$r.squared)
+
+#sprintf ("p-value: %f",summary(my.lm)$pvalue)
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# clusters
+my.km.a <- kmeans(df_op_adt[,c("OPENNESS", "A")], 3)
+df_op_adt$cluster=factor(my.km.a$cluster)
+#centers=as.data.frame(my.km.a$centers)
+df_op_adt %>% ggvis(~OPENNESS, ~A, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+# Display the default options
+#str(default_options())
+
+#pl_a <- ggplot(data=df_op_adt, aes(x=OPENNESS, y=A, color=cluster )) + 
+# geom_point() + 
+# geom_point(data=centers, aes(x=OPENNESS, y=A, color='Center')) +
+# geom_point(data=centers, aes(x=OPENNESS,y=A, color='Center'), size=5, alpha=.3)
+#(pl_a)
+
+
+my.km.b <- kmeans(df_op_adt[,c("OPENNESS", "B")], 3)
+df_op_adt$cluster=factor(my.km.b$cluster)
+df_op_adt %>% ggvis(~OPENNESS, ~B, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+#centers=as.data.frame(my.km.b$centers)
+#pl_b <- ggplot(data=df_op_adt, aes(x=OPENNESS, y=B, color=cluster )) + 
+## geom_point() + 
+# geom_point(data=centers, aes(x=OPENNESS,y=B, color='Center')) +
+# geom_point(data=centers, aes(x=OPENNESS,y=B, color='Center'), size=5, alpha=.3)
+#(pl_b)
+my.km.c <- kmeans(df_op_adt[,c("OPENNESS", "C")], 3)
+df_op_adt$cluster=factor(my.km.c$cluster)
+df_op_adt %>% ggvis(~OPENNESS, ~C, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+#centers=as.data.frame(my.km.c$centers)
+#pl_c <- ggplot(data=df_op_adt, aes(x=OPENNESS, y=C, color=cluster )) + 
+# geom_point() + 
+# geom_point(data=centers, aes(x=OPENNESS,y=C, color='Center')) +
+# geom_point(data=centers, aes(x=OPENNESS,y=C, color='Center'), size=5, alpha=.3)
+#(pl_c)
+my.km.d <- kmeans(df_op_adt[,c("OPENNESS", "D")], 3)
+df_op_adt$cluster=factor(my.km.d$cluster)
+df_op_adt %>% ggvis(~OPENNESS, ~D, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+#centers=as.data.frame(my.km.d$centers)
+#pl_d <- ggplot(data=df_op_adt, aes(x=OPENNESS, y=D, color=cluster )) + 
+# geom_point() + 
+# geom_point(data=centers, aes(x=OPENNESS,y=D, color='Center')) +
+# geom_point(data=centers, aes(x=OPENNESS,y=D, color='Center'), size=5, alpha=.3)
+#(pl_d)
+my.km.e <- kmeans(df_op_adt[,c("OPENNESS", "E")], 3)
+df_op_adt$cluster=factor(my.km.e$cluster)
+df_op_adt %>% ggvis(~OPENNESS, ~E, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+##centers=as.data.frame(my.km.e$centers)
+#pl_e <- ggplot(data=df_op_adt, aes(x=OPENNESS, y=E, color=cluster )) + 
+# geom_point() + 
+# geom_point(data=centers, aes(x=OPENNESS,y=E, color='Center')) +
+# geom_point(data=centers, aes(x=OPENNESS,y=E, color='Center'), size=5, alpha=.3)
+#(pl_e)
+my.km.f <- kmeans(df_op_adt[,c("OPENNESS", "F")], 3)
+df_op_adt$cluster=factor(my.km.f$cluster)
+df_op_adt %>% ggvis(~OPENNESS, ~F, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+#centers=as.data.frame(my.km.f$centers)
+#pl_f <- ggplot(data=df_op_adt, aes(x=OPENNESS, y=F, color=cluster )) + 
+# geom_point() + 
+# geom_point(data=centers, aes(x=OPENNESS,y=F, color='Center')) +
+# geom_point(data=centers, aes(x=OPENNESS,y=F, color='Center'), size=5, alpha=.3)
+#(pl_f)
+my.km.g <- kmeans(df_op_adt[,c("OPENNESS", "G")], 3)
+df_op_adt$cluster=factor(my.km.g$cluster)
+df_op_adt %>% ggvis(~OPENNESS, ~G, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+#centers=as.data.frame(my.km.g$centers)
+#pl_g <- ggplot(data=df_op_adt, aes(x=OPENNESS, y=G, color=cluster )) + 
+# geom_point() + 
+# geom_point(data=centers, aes(x=OPENNESS,y=G, color='Center')) +
+# geom_point(data=centers, aes(x=OPENNESS,y=G, color='Center'), size=5, alpha=.3)
+#(pl_g)
+my.km.h <- kmeans(df_op_adt[,c("OPENNESS", "H")], 3)
+df_op_adt$cluster=factor(my.km.h$cluster)
+df_op_adt %>% ggvis(~OPENNESS, ~H, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+#centers=as.data.frame(my.km.h$centers)
+#pl_h <- ggplot(data=df_op_adt, aes(x=OPENNESS, y=H, color=cluster )) + 
+# geom_point() + 
+## geom_point(data=centers, aes(x=OPENNESS,y=H, color='Center')) +
+# geom_point(data=centers, aes(x=OPENNESS,y=H, color='Center'), size=5, alpha=.3)
+#(pl_h)
+my.km.i <- kmeans(df_op_adt[,c("OPENNESS", "I")], 3)
+df_op_adt$cluster=factor(my.km.i$cluster)
+df_op_adt %>% ggvis(~OPENNESS, ~I, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+#centers=as.data.frame(my.km.i$centers)
+#pl_i <- ggplot(data=df_op_adt, aes(x=OPENNESS, y=I, color=cluster )) + 
+# geom_point() + 
+# geom_point(data=centers, aes(x=OPENNESS,y=I, color='Center')) +
+# geom_point(data=centers, aes(x=OPENNESS,y=I, color='Center'), size=5, alpha=.3)
+#(pl_i)
+my.km.j <- kmeans(df_op_adt[,c("OPENNESS", "J")], 3)
+df_op_adt$cluster=factor(my.km.j$cluster)
+df_op_adt %>% ggvis(~OPENNESS, ~J, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+#centers=as.data.frame(my.km.j$centers)
+#pl_j <- ggplot(data=df_op_adt, aes(x=OPENNESS, y=J, color=cluster )) + 
+# geom_point() + 
+# geom_point(data=centers, aes(x=OPENNESS,y=J, color='Center')) +
+# geom_point(data=centers, aes(x=OPENNESS,y=J, color='Center'), size=5, alpha=.3)
+#(pl_j)
+my.km.k <- kmeans(df_op_adt[,c("OPENNESS", "K")], 3)
+df_op_adt$cluster=factor(my.km.k$cluster)
+df_op_adt %>% ggvis(~OPENNESS, ~K, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+#centers=as.data.frame(my.km.k$centers)
+#pl_k <- ggplot(data=df_op_adt, aes(x=OPENNESS, y=K, color=cluster )) + 
+# geom_point() + 
+# geom_point(data=centers, aes(x=OPENNESS,y=K, color='Center')) +
+# geom_point(data=centers, aes(x=OPENNESS,y=K, color='Center'), size=5, alpha=.3)
+#(pl_k)
+my.km.l <- kmeans(df_op_adt[,c("OPENNESS", "L")], 3)
+df_op_adt$cluster=factor(my.km.l$cluster)
+df_op_adt %>% ggvis(~OPENNESS, ~L, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+##centers=as.data.frame(my.km.l$centers)
+#pl_l <- ggplot(data=df_op_adt, aes(x=OPENNESS, y=L, color=cluster )) + 
+# geom_point() + 
+# geom_point(data=centers, aes(x=OPENNESS,y=L, color='Center')) +
+# geom_point(data=centers, aes(x=OPENNESS,y=L, color='Center'), size=5, alpha=.3)
+#(pl_l)
+my.km.m <- kmeans(df_op_adt[,c("OPENNESS", "M")], 3)
+df_op_adt$cluster=factor(my.km.m$cluster)
+df_op_adt %>% ggvis(~OPENNESS, ~M, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+#centers=as.data.frame(my.km.m$centers)
+#pl_m <- ggplot(data=df_op_adt, aes(x=OPENNESS, y=M, color=cluster )) + 
+# geom_point() + 
+# geom_point(data=centers, aes(x=OPENNESS,y=M, color='Center')) +
+# geom_point(data=centers, aes(x=OPENNESS,y=M, color='Center'), size=5, alpha=.3)
+#(pl_m)
+my.km.n <- kmeans(df_op_adt[,c("OPENNESS", "N")], 3)
+df_op_adt$cluster=factor(my.km.n$cluster)
+df_op_adt %>% ggvis(~OPENNESS, ~N, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+#centers=as.data.frame(my.km.n$centers)
+#pl_n <- ggplot(data=df_op_adt, aes(x=OPENNESS, y=N, color=cluster )) + 
+# geom_point() + 
+# geom_point(data=centers, aes(x=OPENNESS,y=N, color='Center')) +
+# geom_point(data=centers, aes(x=OPENNESS,y=N, color='Center'), size=5, alpha=.3)
+#(pl_n)
+my.km.o <- kmeans(df_op_adt[,c("OPENNESS", "O")], 3)
+df_op_adt$cluster=factor(my.km.o$cluster)
+df_op_adt %>% ggvis(~OPENNESS, ~O, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+#centers=as.data.frame(my.km.o$centers)
+#pl_o <- ggplot(data=df_op_adt, aes(x=OPENNESS, y=O, color=cluster )) + 
+# geom_point() + 
+# geom_point(data=centers, aes(x=OPENNESS,y=O, color='Center')) +
+# geom_point(data=centers, aes(x=OPENNESS,y=O, color='Center'), size=5, alpha=.3)
+#(pl_o)
+my.km.p <- kmeans(df_op_adt[,c("OPENNESS", "P")], 3)
+df_op_adt$cluster=factor(my.km.p$cluster)
+df_op_adt %>% ggvis(~OPENNESS, ~P, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+#centers=as.data.frame(my.km.p$centers)
+#pl_p <- ggplot(data=df_op_adt, aes(x=OPENNESS, y=P, color=cluster )) + 
+# geom_point() + 
+# geom_point(data=centers, aes(x=OPENNESS,y=P, color='Center')) +
+# geom_point(data=centers, aes(x=OPENNESS,y=P, color='Center'), size=5, alpha=.3)
+#(pl_p)
+
+#df_op_adt %>% ggvis(~OPENNESS, ~A, fill = ~cluster) %>% layer_points()
+
+#library(mclust)
+#fit <- Mclust(df_op_adt[,c("OPENNESS", "A")])
+#plot(fit) # plot results 
+#summary(fit) # display the best model
+
+#pushViewport(viewport(layout = grid.layout(16, 1)))
+
+#print(pl_a, vp = viewport(layout.pos.row = 1, layout.pos.col = 1, width=0.4, height=0.4))
+#print(pl_a, vp = viewport(layout.pos.row = 1, layout.pos.col = 1))
+#print(pl_b, vp = viewport(layout.pos.row = 2, layout.pos.col = 1))
+#print(pl_c, vp = viewport(layout.pos.row = 3, layout.pos.col = 1))
+#print(pl_d, vp = viewport(layout.pos.row = 4, layout.pos.col = 1))
+#print(pl_e, vp = viewport(layout.pos.row = 5, layout.pos.col = 1))
+#print(pl_f, vp = viewport(layout.pos.row = 6, layout.pos.col = 1))
+#print(pl_g, vp = viewport(layout.pos.row = 7, layout.pos.col = 1))
+#print(pl_h, vp = viewport(layout.pos.row = 8, layout.pos.col = 1))
+#print(pl_i, vp = viewport(layout.pos.row = 9, layout.pos.col = 1))
+#print(pl_j, vp = viewport(layout.pos.row = 10, layout.pos.col = 1))
+#print(pl_k, vp = viewport(layout.pos.row = 11, layout.pos.col = 1))
+#print(pl_l, vp = viewport(layout.pos.row = 12, layout.pos.col = 1))
+##print(pl_m, vp = viewport(layout.pos.row = 13, layout.pos.col = 1))
+#print(pl_n, vp = viewport(layout.pos.row = 14, layout.pos.col = 1))
+#print(pl_o, vp = viewport(layout.pos.row = 15, layout.pos.col = 1))
+#print(pl_p, vp = viewport(layout.pos.row = 16, layout.pos.col = 1))
+rm(df_op_adt)
+
+
+```
+
+### CONSCIOUSNESS ###
+
+```{r, echo=FALSE, warning=FALSE}
+# CONSCIOUSNESS
+my.df_consc <-
+    my.df_tests %>%
+    select(ID, PC1) %>%
+    filter(PC1 < 0) %>%
+    mutate(PC1 = abs(PC1)) %>%
+    rename(CONSCIOUSNESS = PC1) 
+# linkando com ID de ADT
+df_co_adt <- inner_join(my.df_consc, my.df_tests[,c("ID","A", "B", "C", "D", "E", "F", "G",
+                                                       "H", "I", "J", "K", "L", "M", "N", "O", "P")], by = "ID")
+# plot de correlacoes
+my.cor <- cor(df_co_adt[,-1])
+par(cex=.6)
+corrplot.mixed(my.cor, insig = "p-value", sig.level = -1, is.corr = TRUE)
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# R SQUARED
+my.lm <- lm(CONSCIOUSNESS ~ A + B + C + D + E + F + G + H + I + J + K + L + M + N + P, df_co_adt)
+sprintf ("R Squared: %f",summary(my.lm)$r.squared)
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# clusters
+my.km.a <- kmeans(df_co_adt[,c("CONSCIOUSNESS", "A")], 3)
+df_co_adt$cluster=factor(my.km.a$cluster)
+#centers=as.data.frame(my.km.a$centers)
+df_co_adt %>% ggvis(~CONSCIOUSNESS, ~A, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.b <- kmeans(df_co_adt[,c("CONSCIOUSNESS", "B")], 3)
+df_co_adt$cluster=factor(my.km.b$cluster)
+df_co_adt %>% ggvis(~CONSCIOUSNESS, ~B, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.c <- kmeans(df_co_adt[,c("CONSCIOUSNESS", "C")], 3)
+df_co_adt$cluster=factor(my.km.c$cluster)
+df_co_adt %>% ggvis(~CONSCIOUSNESS, ~C, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.d <- kmeans(df_co_adt[,c("CONSCIOUSNESS", "D")], 3)
+df_co_adt$cluster=factor(my.km.d$cluster)
+df_co_adt %>% ggvis(~CONSCIOUSNESS, ~D, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.e <- kmeans(df_co_adt[,c("CONSCIOUSNESS", "E")], 3)
+df_co_adt$cluster=factor(my.km.e$cluster)
+df_co_adt %>% ggvis(~CONSCIOUSNESS, ~E, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.f <- kmeans(df_co_adt[,c("CONSCIOUSNESS", "F")], 3)
+df_co_adt$cluster=factor(my.km.f$cluster)
+df_co_adt %>% ggvis(~CONSCIOUSNESS, ~F, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.g <- kmeans(df_co_adt[,c("CONSCIOUSNESS", "G")], 3)
+df_co_adt$cluster=factor(my.km.g$cluster)
+df_co_adt %>% ggvis(~CONSCIOUSNESS, ~G, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.h <- kmeans(df_co_adt[,c("CONSCIOUSNESS", "H")], 3)
+df_co_adt$cluster=factor(my.km.h$cluster)
+df_co_adt %>% ggvis(~CONSCIOUSNESS, ~H, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.i <- kmeans(df_co_adt[,c("CONSCIOUSNESS", "I")], 3)
+df_co_adt$cluster=factor(my.km.i$cluster)
+df_co_adt %>% ggvis(~CONSCIOUSNESS, ~I, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.j <- kmeans(df_co_adt[,c("CONSCIOUSNESS", "J")], 3)
+df_co_adt$cluster=factor(my.km.j$cluster)
+df_co_adt %>% ggvis(~CONSCIOUSNESS, ~J, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.k <- kmeans(df_co_adt[,c("CONSCIOUSNESS", "K")], 3)
+df_co_adt$cluster=factor(my.km.k$cluster)
+df_co_adt %>% ggvis(~CONSCIOUSNESS, ~K, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.l <- kmeans(df_co_adt[,c("CONSCIOUSNESS", "L")], 3)
+df_co_adt$cluster=factor(my.km.l$cluster)
+df_co_adt %>% ggvis(~CONSCIOUSNESS, ~L, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.m <- kmeans(df_co_adt[,c("CONSCIOUSNESS", "M")], 3)
+df_co_adt$cluster=factor(my.km.m$cluster)
+df_co_adt %>% ggvis(~CONSCIOUSNESS, ~M, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.n <- kmeans(df_co_adt[,c("CONSCIOUSNESS", "N")], 3)
+df_co_adt$cluster=factor(my.km.n$cluster)
+df_co_adt %>% ggvis(~CONSCIOUSNESS, ~N, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.o <- kmeans(df_co_adt[,c("CONSCIOUSNESS", "O")], 3)
+df_co_adt$cluster=factor(my.km.o$cluster)
+df_co_adt %>% ggvis(~CONSCIOUSNESS, ~O, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_co_adt[,c("CONSCIOUSNESS", "P")], 3)
+df_co_adt$cluster=factor(my.km.p$cluster)
+df_co_adt %>% ggvis(~CONSCIOUSNESS, ~P, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+rm(df_co_adt)
+```
+
+### AGREEABLENESS ###
+
+```{r, echo=FALSE, warning=FALSE}
+# AGREEABLENESS
+my.df_agreeab <-
+    my.df_tests %>%
+    select(ID, PC2) %>%
+    filter(PC2 >= 0) %>%
+    rename(AGREEABLENESS = PC2) 
+
+# linkando com ID de ADT
+df_ag_adt <- inner_join(my.df_agreeab, my.df_tests[,c("ID","A", "B", "C", "D", "E", "F", "G",
+                                                       "H", "I", "J", "K", "L", "M", "N", "O", "P")], by = "ID")
+# plot de correlacoes
+my.cor <- cor(df_ag_adt[,-1])
+par(cex=.6)
+corrplot.mixed(my.cor, insig = "p-value", sig.level = -1, is.corr = TRUE)                                         
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# R SQUARED
+my.lm <- lm(AGREEABLENESS ~ A + B + C + D + E + F + G + H + I + J + K + L + M + N + P, df_ag_adt)
+sprintf ("R Squared: %f",summary(my.lm)$r.squared)
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# clusters
+my.km.a <- kmeans(df_ag_adt[,c("AGREEABLENESS", "A")], 3)
+df_ag_adt$cluster=factor(my.km.a$cluster)
+#centers=as.data.frame(my.km.a$centers)
+df_ag_adt %>% ggvis(~AGREEABLENESS, ~A, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.b <- kmeans(df_ag_adt[,c("AGREEABLENESS", "B")], 3)
+df_ag_adt$cluster=factor(my.km.b$cluster)
+df_ag_adt %>% ggvis(~AGREEABLENESS, ~B, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.c <- kmeans(df_ag_adt[,c("AGREEABLENESS", "C")], 3)
+df_ag_adt$cluster=factor(my.km.c$cluster)
+df_ag_adt %>% ggvis(~AGREEABLENESS, ~C, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.d <- kmeans(df_ag_adt[,c("AGREEABLENESS", "D")], 3)
+df_ag_adt$cluster=factor(my.km.d$cluster)
+df_ag_adt %>% ggvis(~AGREEABLENESS, ~D, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.e <- kmeans(df_ag_adt[,c("AGREEABLENESS", "E")], 3)
+df_ag_adt$cluster=factor(my.km.e$cluster)
+df_ag_adt %>% ggvis(~AGREEABLENESS, ~E, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.f <- kmeans(df_ag_adt[,c("AGREEABLENESS", "F")], 3)
+df_ag_adt$cluster=factor(my.km.f$cluster)
+df_ag_adt %>% ggvis(~AGREEABLENESS, ~F, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.g <- kmeans(df_ag_adt[,c("AGREEABLENESS", "G")], 3)
+df_ag_adt$cluster=factor(my.km.g$cluster)
+df_ag_adt %>% ggvis(~AGREEABLENESS, ~G, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.h <- kmeans(df_ag_adt[,c("AGREEABLENESS", "H")], 3)
+df_ag_adt$cluster=factor(my.km.h$cluster)
+df_ag_adt %>% ggvis(~AGREEABLENESS, ~H, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.i <- kmeans(df_ag_adt[,c("AGREEABLENESS", "I")], 3)
+df_ag_adt$cluster=factor(my.km.i$cluster)
+df_ag_adt %>% ggvis(~AGREEABLENESS, ~I, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.j <- kmeans(df_ag_adt[,c("AGREEABLENESS", "J")], 3)
+df_ag_adt$cluster=factor(my.km.j$cluster)
+df_ag_adt %>% ggvis(~AGREEABLENESS, ~J, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.k <- kmeans(df_ag_adt[,c("AGREEABLENESS", "K")], 3)
+df_ag_adt$cluster=factor(my.km.k$cluster)
+df_ag_adt %>% ggvis(~AGREEABLENESS, ~K, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.l <- kmeans(df_ag_adt[,c("AGREEABLENESS", "L")], 3)
+df_ag_adt$cluster=factor(my.km.l$cluster)
+df_ag_adt %>% ggvis(~AGREEABLENESS, ~L, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.m <- kmeans(df_ag_adt[,c("AGREEABLENESS", "M")], 3)
+df_ag_adt$cluster=factor(my.km.m$cluster)
+df_ag_adt %>% ggvis(~AGREEABLENESS, ~M, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.n <- kmeans(df_ag_adt[,c("AGREEABLENESS", "N")], 3)
+df_ag_adt$cluster=factor(my.km.n$cluster)
+df_ag_adt %>% ggvis(~AGREEABLENESS, ~N, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.o <- kmeans(df_ag_adt[,c("AGREEABLENESS", "O")], 3)
+df_ag_adt$cluster=factor(my.km.o$cluster)
+df_ag_adt %>% ggvis(~AGREEABLENESS, ~O, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_ag_adt[,c("AGREEABLENESS", "P")], 3)
+df_ag_adt$cluster=factor(my.km.p$cluster)
+df_ag_adt %>% ggvis(~AGREEABLENESS, ~P, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+rm(df_ag_adt)
+```
+
+### DETERMINATION ###
+
+```{r, echo=FALSE, warning=FALSE}
+# DETERMINATION
+my.df_determ <-
+    my.df_tests %>%
+    select(ID, PC2) %>%
+    filter(PC2 < 0) %>%
+    mutate(PC2 = abs(PC2)) %>%
+    rename(DETERMINATION = PC2)
+
+# linkando com ID de ADT
+df_dt_adt <- inner_join(my.df_determ, my.df_tests[,c("ID","A", "B", "C", "D", "E", "F", "G",
+                                                       "H", "I", "J", "K", "L", "M", "N", "O", "P")], by = "ID")
+# plot de correlacoes
+my.cor <- cor(df_dt_adt[,-1])
+par(cex=.6)
+corrplot.mixed(my.cor, insig = "p-value", sig.level = -1, is.corr = TRUE)
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# R SQUARED
+my.lm <- lm(DETERMINATION ~ A + B + C + D + E + F + G + H + I + J + K + L + M + N + P, df_dt_adt)
+sprintf ("R Squared: %f",summary(my.lm)$r.squared)
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# clusters
+my.km.a <- kmeans(df_dt_adt[,c("DETERMINATION", "A")], 3)
+df_dt_adt$cluster=factor(my.km.a$cluster)
+#centers=as.data.frame(my.km.a$centers)
+df_dt_adt %>% ggvis(~DETERMINATION, ~A, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.b <- kmeans(df_dt_adt[,c("DETERMINATION", "B")], 3)
+df_dt_adt$cluster=factor(my.km.b$cluster)
+df_dt_adt %>% ggvis(~DETERMINATION, ~B, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.c <- kmeans(df_dt_adt[,c("DETERMINATION", "C")], 3)
+df_dt_adt$cluster=factor(my.km.c$cluster)
+df_dt_adt %>% ggvis(~DETERMINATION, ~C, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.d <- kmeans(df_dt_adt[,c("DETERMINATION", "D")], 3)
+df_dt_adt$cluster=factor(my.km.d$cluster)
+df_dt_adt %>% ggvis(~DETERMINATION, ~D, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.e <- kmeans(df_dt_adt[,c("DETERMINATION", "E")], 3)
+df_dt_adt$cluster=factor(my.km.e$cluster)
+df_dt_adt %>% ggvis(~DETERMINATION, ~E, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.f <- kmeans(df_dt_adt[,c("DETERMINATION", "F")], 3)
+df_dt_adt$cluster=factor(my.km.f$cluster)
+df_dt_adt %>% ggvis(~DETERMINATION, ~F, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.g <- kmeans(df_dt_adt[,c("DETERMINATION", "G")], 3)
+df_dt_adt$cluster=factor(my.km.g$cluster)
+df_dt_adt %>% ggvis(~DETERMINATION, ~G, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.h <- kmeans(df_dt_adt[,c("DETERMINATION", "H")], 3)
+df_dt_adt$cluster=factor(my.km.h$cluster)
+df_dt_adt %>% ggvis(~DETERMINATION, ~H, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.i <- kmeans(df_dt_adt[,c("DETERMINATION", "I")], 3)
+df_dt_adt$cluster=factor(my.km.i$cluster)
+df_dt_adt %>% ggvis(~DETERMINATION, ~I, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.j <- kmeans(df_dt_adt[,c("DETERMINATION", "J")], 3)
+df_dt_adt$cluster=factor(my.km.j$cluster)
+df_dt_adt %>% ggvis(~DETERMINATION, ~J, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.k <- kmeans(df_dt_adt[,c("DETERMINATION", "K")], 3)
+df_dt_adt$cluster=factor(my.km.k$cluster)
+df_dt_adt %>% ggvis(~DETERMINATION, ~K, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.l <- kmeans(df_dt_adt[,c("DETERMINATION", "L")], 3)
+df_dt_adt$cluster=factor(my.km.l$cluster)
+df_dt_adt %>% ggvis(~DETERMINATION, ~L, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.m <- kmeans(df_dt_adt[,c("DETERMINATION", "M")], 3)
+df_dt_adt$cluster=factor(my.km.m$cluster)
+df_dt_adt %>% ggvis(~DETERMINATION, ~M, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.n <- kmeans(df_dt_adt[,c("DETERMINATION", "N")], 3)
+df_dt_adt$cluster=factor(my.km.n$cluster)
+df_dt_adt %>% ggvis(~DETERMINATION, ~N, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.o <- kmeans(df_dt_adt[,c("DETERMINATION", "O")], 3)
+df_dt_adt$cluster=factor(my.km.o$cluster)
+df_dt_adt %>% ggvis(~DETERMINATION, ~O, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_dt_adt[,c("DETERMINATION", "P")], 3)
+df_dt_adt$cluster=factor(my.km.p$cluster)
+df_dt_adt %>% ggvis(~DETERMINATION, ~P, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+rm(df_dt_adt)
+```
+
+### LONG TERM VISION ###
+
+```{r, echo=FALSE, warning=FALSE}
+# LONG TERM VISION
+my.df_longterm <-
+    my.df_tests %>%
+    select(ID, PC3) %>%
+    filter(PC3 >= 0) %>%
+    rename(LONG.TERM.VISION = PC3) 
+
+# linkando com ID de ADT
+df_lt_adt <- inner_join(my.df_longterm, my.df_tests[,c("ID","A", "B", "C", "D", "E", "F", "G",
+                                                       "H", "I", "J", "K", "L", "M", "N", "O", "P")], by = "ID")
+# plot de correlacoes
+my.cor <- cor(df_lt_adt[,-1])
+par(cex=.6)
+corrplot.mixed(my.cor, insig = "p-value", sig.level = -1, is.corr = TRUE)
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# R SQUARED
+my.lm <- lm(LONG.TERM.VISION ~ A + B + C + D + E + F + G + H + I + J + K + L + M + N + P, df_lt_adt)
+sprintf ("R Squared: %f",summary(my.lm)$r.squared)
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# clusters
+my.km.a <- kmeans(df_lt_adt[,c("LONG.TERM.VISION", "A")], 3)
+df_lt_adt$cluster=factor(my.km.a$cluster)
+#centers=as.data.frame(my.km.a$centers)
+df_lt_adt %>% ggvis(~LONG.TERM.VISION, ~A, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.b <- kmeans(df_lt_adt[,c("LONG.TERM.VISION", "B")], 3)
+df_lt_adt$cluster=factor(my.km.b$cluster)
+df_lt_adt %>% ggvis(~LONG.TERM.VISION, ~B, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.c <- kmeans(df_lt_adt[,c("LONG.TERM.VISION", "C")], 3)
+df_lt_adt$cluster=factor(my.km.c$cluster)
+df_lt_adt %>% ggvis(~LONG.TERM.VISION, ~C, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.d <- kmeans(df_lt_adt[,c("LONG.TERM.VISION", "D")], 3)
+df_lt_adt$cluster=factor(my.km.d$cluster)
+df_lt_adt %>% ggvis(~LONG.TERM.VISION, ~D, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.e <- kmeans(df_lt_adt[,c("LONG.TERM.VISION", "E")], 3)
+df_lt_adt$cluster=factor(my.km.e$cluster)
+df_lt_adt %>% ggvis(~LONG.TERM.VISION, ~E, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.f <- kmeans(df_lt_adt[,c("LONG.TERM.VISION", "F")], 3)
+df_lt_adt$cluster=factor(my.km.f$cluster)
+df_lt_adt %>% ggvis(~LONG.TERM.VISION, ~F, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.g <- kmeans(df_lt_adt[,c("LONG.TERM.VISION", "G")], 3)
+df_lt_adt$cluster=factor(my.km.g$cluster)
+df_lt_adt %>% ggvis(~LONG.TERM.VISION, ~G, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.h <- kmeans(df_lt_adt[,c("LONG.TERM.VISION", "H")], 3)
+df_lt_adt$cluster=factor(my.km.h$cluster)
+df_lt_adt %>% ggvis(~LONG.TERM.VISION, ~H, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.i <- kmeans(df_lt_adt[,c("LONG.TERM.VISION", "I")], 3)
+df_lt_adt$cluster=factor(my.km.i$cluster)
+df_lt_adt %>% ggvis(~LONG.TERM.VISION, ~I, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.j <- kmeans(df_lt_adt[,c("LONG.TERM.VISION", "J")], 3)
+df_lt_adt$cluster=factor(my.km.j$cluster)
+df_lt_adt %>% ggvis(~LONG.TERM.VISION, ~J, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.k <- kmeans(df_lt_adt[,c("LONG.TERM.VISION", "K")], 3)
+df_lt_adt$cluster=factor(my.km.k$cluster)
+df_lt_adt %>% ggvis(~LONG.TERM.VISION, ~K, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.l <- kmeans(df_lt_adt[,c("LONG.TERM.VISION", "L")], 3)
+df_lt_adt$cluster=factor(my.km.l$cluster)
+df_lt_adt %>% ggvis(~LONG.TERM.VISION, ~L, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.m <- kmeans(df_lt_adt[,c("LONG.TERM.VISION", "M")], 3)
+df_lt_adt$cluster=factor(my.km.m$cluster)
+df_lt_adt %>% ggvis(~LONG.TERM.VISION, ~M, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.n <- kmeans(df_lt_adt[,c("LONG.TERM.VISION", "N")], 3)
+df_lt_adt$cluster=factor(my.km.n$cluster)
+df_lt_adt %>% ggvis(~LONG.TERM.VISION, ~N, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.o <- kmeans(df_lt_adt[,c("LONG.TERM.VISION", "O")], 3)
+df_lt_adt$cluster=factor(my.km.o$cluster)
+df_lt_adt %>% ggvis(~LONG.TERM.VISION, ~O, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_lt_adt[,c("LONG.TERM.VISION", "P")], 3)
+df_lt_adt$cluster=factor(my.km.p$cluster)
+df_lt_adt %>% ggvis(~LONG.TERM.VISION, ~P, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+rm(df_lt_adt)
+```
+
+### COMMITMENT ###
+
+```{r, echo=FALSE, warning=FALSE}
+# COMMITMENT
+my.df_commit <-
+    my.df_tests %>%
+    select(ID, PC3) %>%
+    filter(PC3 < 0) %>%
+    mutate(PC3 = abs(PC3)) %>%
+    rename(COMMITMENT = PC3)
+
+# linkando com ID de ADT
+df_cm_adt <- inner_join(my.df_commit, my.df_tests[,c("ID","A", "B", "C", "D", "E", "F", "G",
+                                                       "H", "I", "J", "K", "L", "M", "N", "O", "P")], by = "ID")
+# plot de correlacoes
+my.cor <- cor(df_cm_adt[,-1])
+par(cex=.6)
+corrplot.mixed(my.cor, insig = "p-value", sig.level = -1, is.corr = TRUE)
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# R SQUARED
+my.lm <- lm(COMMITMENT ~ A + B + C + D + E + F + G + H + I + J + K + L + M + N + P, df_cm_adt)
+sprintf ("R Squared: %f",summary(my.lm)$r.squared)
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# clusters
+my.km.a <- kmeans(df_cm_adt[,c("COMMITMENT", "A")], 3)
+df_cm_adt$cluster=factor(my.km.a$cluster)
+#centers=as.data.frame(my.km.a$centers)
+df_cm_adt %>% ggvis(~COMMITMENT, ~A, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.b <- kmeans(df_cm_adt[,c("COMMITMENT", "B")], 3)
+df_cm_adt$cluster=factor(my.km.b$cluster)
+df_cm_adt %>% ggvis(~COMMITMENT, ~B, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.c <- kmeans(df_cm_adt[,c("COMMITMENT", "C")], 3)
+df_cm_adt$cluster=factor(my.km.c$cluster)
+df_cm_adt %>% ggvis(~COMMITMENT, ~C, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.d <- kmeans(df_cm_adt[,c("COMMITMENT", "D")], 3)
+df_cm_adt$cluster=factor(my.km.d$cluster)
+df_cm_adt %>% ggvis(~COMMITMENT, ~D, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.e <- kmeans(df_cm_adt[,c("COMMITMENT", "E")], 3)
+df_cm_adt$cluster=factor(my.km.e$cluster)
+df_cm_adt %>% ggvis(~COMMITMENT, ~E, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.f <- kmeans(df_cm_adt[,c("COMMITMENT", "F")], 3)
+df_cm_adt$cluster=factor(my.km.f$cluster)
+df_cm_adt %>% ggvis(~COMMITMENT, ~F, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.g <- kmeans(df_cm_adt[,c("COMMITMENT", "G")], 3)
+df_cm_adt$cluster=factor(my.km.g$cluster)
+df_cm_adt %>% ggvis(~COMMITMENT, ~G, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.h <- kmeans(df_cm_adt[,c("COMMITMENT", "H")], 3)
+df_cm_adt$cluster=factor(my.km.h$cluster)
+df_cm_adt %>% ggvis(~COMMITMENT, ~H, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.i <- kmeans(df_cm_adt[,c("COMMITMENT", "I")], 3)
+df_cm_adt$cluster=factor(my.km.i$cluster)
+df_cm_adt %>% ggvis(~COMMITMENT, ~I, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.j <- kmeans(df_cm_adt[,c("COMMITMENT", "J")], 3)
+df_cm_adt$cluster=factor(my.km.j$cluster)
+df_cm_adt %>% ggvis(~COMMITMENT, ~J, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.k <- kmeans(df_cm_adt[,c("COMMITMENT", "K")], 3)
+df_cm_adt$cluster=factor(my.km.k$cluster)
+df_cm_adt %>% ggvis(~COMMITMENT, ~K, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.l <- kmeans(df_cm_adt[,c("COMMITMENT", "L")], 3)
+df_cm_adt$cluster=factor(my.km.l$cluster)
+df_cm_adt %>% ggvis(~COMMITMENT, ~L, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.m <- kmeans(df_cm_adt[,c("COMMITMENT", "M")], 3)
+df_cm_adt$cluster=factor(my.km.m$cluster)
+df_cm_adt %>% ggvis(~COMMITMENT, ~M, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.n <- kmeans(df_cm_adt[,c("COMMITMENT", "N")], 3)
+df_cm_adt$cluster=factor(my.km.n$cluster)
+df_cm_adt %>% ggvis(~COMMITMENT, ~N, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.o <- kmeans(df_cm_adt[,c("COMMITMENT", "O")], 3)
+df_cm_adt$cluster=factor(my.km.o$cluster)
+df_cm_adt %>% ggvis(~COMMITMENT, ~O, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_cm_adt[,c("COMMITMENT", "P")], 3)
+df_cm_adt$cluster=factor(my.km.p$cluster)
+df_cm_adt %>% ggvis(~COMMITMENT, ~P, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+rm(df_cm_adt)
+```
+
+### IDEALISM ###
+
+```{r, echo=FALSE, warning=FALSE}
+# IDEALISM
+my.df_ideal <-
+    my.df_tests %>%
+    select(ID, PC4) %>%
+    filter(PC4 >= 0) %>%
+    rename(IDEALISM = PC4) 
+
+# linkando com ID de ADT
+df_id_adt <- inner_join(my.df_ideal, my.df_tests[,c("ID","A", "B", "C", "D", "E", "F", "G",
+                                                       "H", "I", "J", "K", "L", "M", "N", "O", "P")], by = "ID")
+# plot de correlacoes
+my.cor <- cor(df_id_adt[,-1])
+par(cex=.6)
+corrplot.mixed(my.cor, insig = "p-value", sig.level = -1, is.corr = TRUE)
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# R SQUARED
+my.lm <- lm(IDEALISM ~ A + B + C + D + E + F + G + H + I + J + K + L + M + N + P, df_id_adt)
+sprintf ("R Squared: %f",summary(my.lm)$r.squared)
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# clusters
+my.km.a <- kmeans(df_id_adt[,c("IDEALISM", "A")], 3)
+df_id_adt$cluster=factor(my.km.a$cluster)
+#centers=as.data.frame(my.km.a$centers)
+df_id_adt %>% ggvis(~IDEALISM, ~A, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.b <- kmeans(df_id_adt[,c("IDEALISM", "B")], 3)
+df_id_adt$cluster=factor(my.km.b$cluster)
+df_id_adt %>% ggvis(~IDEALISM, ~B, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.c <- kmeans(df_id_adt[,c("IDEALISM", "C")], 3)
+df_id_adt$cluster=factor(my.km.c$cluster)
+df_id_adt %>% ggvis(~IDEALISM, ~C, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.d <- kmeans(df_id_adt[,c("IDEALISM", "D")], 3)
+df_id_adt$cluster=factor(my.km.d$cluster)
+df_id_adt %>% ggvis(~IDEALISM, ~D, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.e <- kmeans(df_id_adt[,c("IDEALISM", "E")], 3)
+df_id_adt$cluster=factor(my.km.e$cluster)
+df_id_adt %>% ggvis(~IDEALISM, ~E, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.f <- kmeans(df_id_adt[,c("IDEALISM", "F")], 3)
+df_id_adt$cluster=factor(my.km.f$cluster)
+df_id_adt %>% ggvis(~IDEALISM, ~F, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.g <- kmeans(df_id_adt[,c("IDEALISM", "G")], 3)
+df_id_adt$cluster=factor(my.km.g$cluster)
+df_id_adt %>% ggvis(~IDEALISM, ~G, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.h <- kmeans(df_id_adt[,c("IDEALISM", "H")], 3)
+df_id_adt$cluster=factor(my.km.h$cluster)
+df_id_adt %>% ggvis(~IDEALISM, ~H, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.i <- kmeans(df_id_adt[,c("IDEALISM", "I")], 3)
+df_id_adt$cluster=factor(my.km.i$cluster)
+df_id_adt %>% ggvis(~IDEALISM, ~I, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.j <- kmeans(df_id_adt[,c("IDEALISM", "J")], 3)
+df_id_adt$cluster=factor(my.km.j$cluster)
+df_id_adt %>% ggvis(~IDEALISM, ~J, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.k <- kmeans(df_id_adt[,c("IDEALISM", "K")], 3)
+df_id_adt$cluster=factor(my.km.k$cluster)
+df_id_adt %>% ggvis(~IDEALISM, ~K, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.l <- kmeans(df_id_adt[,c("IDEALISM", "L")], 3)
+df_id_adt$cluster=factor(my.km.l$cluster)
+df_id_adt %>% ggvis(~IDEALISM, ~L, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.m <- kmeans(df_id_adt[,c("IDEALISM", "M")], 3)
+df_id_adt$cluster=factor(my.km.m$cluster)
+df_id_adt %>% ggvis(~IDEALISM, ~M, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.n <- kmeans(df_id_adt[,c("IDEALISM", "N")], 3)
+df_id_adt$cluster=factor(my.km.n$cluster)
+df_id_adt %>% ggvis(~IDEALISM, ~N, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.o <- kmeans(df_id_adt[,c("IDEALISM", "O")], 3)
+df_id_adt$cluster=factor(my.km.o$cluster)
+df_id_adt %>% ggvis(~IDEALISM, ~O, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_id_adt[,c("IDEALISM", "P")], 3)
+df_id_adt$cluster=factor(my.km.p$cluster)
+df_id_adt %>% ggvis(~IDEALISM, ~P, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+rm(df_id_adt)
+```
+
+### REALISM ###
+
+```{r, echo=FALSE, warning=FALSE}
+# REALISM
+my.df_realism <-
+    my.df_tests %>%
+    select(ID, PC4) %>%
+    filter(PC4 < 0) %>%
+    mutate(PC4 = abs(PC4)) %>%
+    rename(REALISM = PC4)
+
+# linkando com ID de ADT
+df_re_adt <- inner_join(my.df_realism, my.df_tests[,c("ID","A", "B", "C", "D", "E", "F", "G",
+                                                       "H", "I", "J", "K", "L", "M", "N", "O", "P")], by = "ID")
+# plot de correlacoes
+my.cor <- cor(df_re_adt[,-1])
+par(cex=.6)
+corrplot.mixed(my.cor, insig = "p-value", sig.level = -1, is.corr = TRUE)
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# R SQUARED
+my.lm <- lm(REALISM ~ A + B + C + D + E + F + G + H + I + J + K + L + M + N + P, df_re_adt)
+sprintf ("R Squared: %f",summary(my.lm)$r.squared)
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# clusters
+my.km.a <- kmeans(df_re_adt[,c("REALISM", "A")], 3)
+df_re_adt$cluster=factor(my.km.a$cluster)
+#centers=as.data.frame(my.km.a$centers)
+df_re_adt %>% ggvis(~REALISM, ~A, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.b <- kmeans(df_re_adt[,c("REALISM", "B")], 3)
+df_re_adt$cluster=factor(my.km.b$cluster)
+df_re_adt %>% ggvis(~REALISM, ~B, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.c <- kmeans(df_re_adt[,c("REALISM", "C")], 3)
+df_re_adt$cluster=factor(my.km.c$cluster)
+df_re_adt %>% ggvis(~REALISM, ~C, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.d <- kmeans(df_re_adt[,c("REALISM", "D")], 3)
+df_re_adt$cluster=factor(my.km.d$cluster)
+df_re_adt %>% ggvis(~REALISM, ~D, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.e <- kmeans(df_re_adt[,c("REALISM", "E")], 3)
+df_re_adt$cluster=factor(my.km.e$cluster)
+df_re_adt %>% ggvis(~REALISM, ~E, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.f <- kmeans(df_re_adt[,c("REALISM", "F")], 3)
+df_re_adt$cluster=factor(my.km.f$cluster)
+df_re_adt %>% ggvis(~REALISM, ~F, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.g <- kmeans(df_re_adt[,c("REALISM", "G")], 3)
+df_re_adt$cluster=factor(my.km.g$cluster)
+df_re_adt %>% ggvis(~REALISM, ~G, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.h <- kmeans(df_re_adt[,c("REALISM", "H")], 3)
+df_re_adt$cluster=factor(my.km.h$cluster)
+df_re_adt %>% ggvis(~REALISM, ~H, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.i <- kmeans(df_re_adt[,c("REALISM", "I")], 3)
+df_re_adt$cluster=factor(my.km.i$cluster)
+df_re_adt %>% ggvis(~REALISM, ~I, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.j <- kmeans(df_re_adt[,c("REALISM", "J")], 3)
+df_re_adt$cluster=factor(my.km.j$cluster)
+df_re_adt %>% ggvis(~REALISM, ~J, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.k <- kmeans(df_re_adt[,c("REALISM", "K")], 3)
+df_re_adt$cluster=factor(my.km.k$cluster)
+df_re_adt %>% ggvis(~REALISM, ~K, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.l <- kmeans(df_re_adt[,c("REALISM", "L")], 3)
+df_re_adt$cluster=factor(my.km.l$cluster)
+df_re_adt %>% ggvis(~REALISM, ~L, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.m <- kmeans(df_re_adt[,c("REALISM", "M")], 3)
+df_re_adt$cluster=factor(my.km.m$cluster)
+df_re_adt %>% ggvis(~REALISM, ~M, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.n <- kmeans(df_re_adt[,c("REALISM", "N")], 3)
+df_re_adt$cluster=factor(my.km.n$cluster)
+df_re_adt %>% ggvis(~REALISM, ~N, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.o <- kmeans(df_re_adt[,c("REALISM", "O")], 3)
+df_re_adt$cluster=factor(my.km.o$cluster)
+df_re_adt %>% ggvis(~REALISM, ~O, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_re_adt[,c("REALISM", "P")], 3)
+df_re_adt$cluster=factor(my.km.p$cluster)
+df_re_adt %>% ggvis(~REALISM, ~P, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+rm(df_re_adt)
+```
+
+### EXTROVERSION ###
+
+```{r, echo=FALSE, warning=FALSE}
+# EXTROVERSION
+my.df_extrov <-
+    my.df_tests %>%
+    select(ID, PC5) %>%
+    filter(PC5 >= 0) %>%
+    rename(EXTROVERSION = PC5)
+
+# linkando com ID de ADT
+df_ex_adt <- inner_join(my.df_extrov, my.df_tests[,c("ID","A", "B", "C", "D", "E", "F", "G",
+                                                       "H", "I", "J", "K", "L", "M", "N", "O", "P")], by = "ID")
+# plot de correlacoes
+my.cor <- cor(df_ex_adt[,-1])
+par(cex=.6)
+corrplot.mixed(my.cor, insig = "p-value", sig.level = -1, is.corr = TRUE)
+
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# R SQUARED
+my.lm <- lm(EXTROVERSION ~ A + B + C + D + E + F + G + H + I + J + K + L + M + N + P, df_ex_adt)
+sprintf ("R Squared: %f",summary(my.lm)$r.squared)
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# clusters
+my.km.a <- kmeans(df_ex_adt[,c("EXTROVERSION", "A")], 3)
+df_ex_adt$cluster=factor(my.km.a$cluster)
+#centers=as.data.frame(my.km.a$centers)
+df_ex_adt %>% ggvis(~EXTROVERSION, ~A, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.b <- kmeans(df_ex_adt[,c("EXTROVERSION", "B")], 3)
+df_ex_adt$cluster=factor(my.km.b$cluster)
+df_ex_adt %>% ggvis(~EXTROVERSION, ~B, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.c <- kmeans(df_ex_adt[,c("EXTROVERSION", "C")], 3)
+df_ex_adt$cluster=factor(my.km.c$cluster)
+df_ex_adt %>% ggvis(~EXTROVERSION, ~C, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.d <- kmeans(df_ex_adt[,c("EXTROVERSION", "D")], 3)
+df_ex_adt$cluster=factor(my.km.d$cluster)
+df_ex_adt %>% ggvis(~EXTROVERSION, ~D, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.e <- kmeans(df_ex_adt[,c("EXTROVERSION", "E")], 3)
+df_ex_adt$cluster=factor(my.km.e$cluster)
+df_ex_adt %>% ggvis(~EXTROVERSION, ~E, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.f <- kmeans(df_ex_adt[,c("EXTROVERSION", "F")], 3)
+df_ex_adt$cluster=factor(my.km.f$cluster)
+df_ex_adt %>% ggvis(~EXTROVERSION, ~F, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.g <- kmeans(df_ex_adt[,c("EXTROVERSION", "G")], 3)
+df_ex_adt$cluster=factor(my.km.g$cluster)
+df_ex_adt %>% ggvis(~EXTROVERSION, ~G, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.h <- kmeans(df_ex_adt[,c("EXTROVERSION", "H")], 3)
+df_ex_adt$cluster=factor(my.km.h$cluster)
+df_ex_adt %>% ggvis(~EXTROVERSION, ~H, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.i <- kmeans(df_ex_adt[,c("EXTROVERSION", "I")], 3)
+df_ex_adt$cluster=factor(my.km.i$cluster)
+df_ex_adt %>% ggvis(~EXTROVERSION, ~I, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.j <- kmeans(df_ex_adt[,c("EXTROVERSION", "J")], 3)
+df_ex_adt$cluster=factor(my.km.j$cluster)
+df_ex_adt %>% ggvis(~EXTROVERSION, ~J, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.k <- kmeans(df_ex_adt[,c("EXTROVERSION", "K")], 3)
+df_ex_adt$cluster=factor(my.km.k$cluster)
+df_ex_adt %>% ggvis(~EXTROVERSION, ~K, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.l <- kmeans(df_ex_adt[,c("EXTROVERSION", "L")], 3)
+df_ex_adt$cluster=factor(my.km.l$cluster)
+df_ex_adt %>% ggvis(~EXTROVERSION, ~L, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.m <- kmeans(df_ex_adt[,c("EXTROVERSION", "M")], 3)
+df_ex_adt$cluster=factor(my.km.m$cluster)
+df_ex_adt %>% ggvis(~EXTROVERSION, ~M, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.n <- kmeans(df_ex_adt[,c("EXTROVERSION", "N")], 3)
+df_ex_adt$cluster=factor(my.km.n$cluster)
+df_ex_adt %>% ggvis(~EXTROVERSION, ~N, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.o <- kmeans(df_ex_adt[,c("EXTROVERSION", "O")], 3)
+df_ex_adt$cluster=factor(my.km.o$cluster)
+df_ex_adt %>% ggvis(~EXTROVERSION, ~O, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_ex_adt[,c("EXTROVERSION", "P")], 3)
+df_ex_adt$cluster=factor(my.km.p$cluster)
+df_ex_adt %>% ggvis(~EXTROVERSION, ~P, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+rm(df_ex_adt)
+```
+
+### SOBRIETY ###
+
+```{r, echo=FALSE, warning=FALSE}
+# SOBRIETY
+my.df_sobr <-
+    my.df_tests %>%
+    select(ID, PC5) %>%
+    filter(PC5 < 0) %>%
+    mutate(PC5 = abs(PC5)) %>%
+    rename(SOBRIETY = PC5)
+
+# linkando com ID de ADT
+df_so_adt <- inner_join(my.df_sobr, my.df_tests[,c("ID","A", "B", "C", "D", "E", "F", "G",
+                                                       "H", "I", "J", "K", "L", "M", "N", "O", "P")], by = "ID")
+# plot de correlacoes
+my.cor <- cor(df_so_adt[,-1])
+par(cex=.6)
+corrplot.mixed(my.cor, insig = "p-value", sig.level = -1, is.corr = TRUE)
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# R SQUARED
+my.lm <- lm(SOBRIETY ~ A + B + C + D + E + F + G + H + I + J + K + L + M + N + P, df_so_adt)
+sprintf ("R Squared: %f",summary(my.lm)$r.squared)
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# clusters
+my.km.a <- kmeans(df_so_adt[,c("SOBRIETY", "A")], 3)
+df_so_adt$cluster=factor(my.km.a$cluster)
+#centers=as.data.frame(my.km.a$centers)
+df_so_adt %>% ggvis(~SOBRIETY, ~A, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.b <- kmeans(df_so_adt[,c("SOBRIETY", "B")], 3)
+df_so_adt$cluster=factor(my.km.b$cluster)
+df_so_adt %>% ggvis(~SOBRIETY, ~B, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.c <- kmeans(df_so_adt[,c("SOBRIETY", "C")], 3)
+df_so_adt$cluster=factor(my.km.c$cluster)
+df_so_adt %>% ggvis(~SOBRIETY, ~C, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.d <- kmeans(df_so_adt[,c("SOBRIETY", "D")], 3)
+df_so_adt$cluster=factor(my.km.d$cluster)
+df_so_adt %>% ggvis(~SOBRIETY, ~D, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.e <- kmeans(df_so_adt[,c("SOBRIETY", "E")], 3)
+df_so_adt$cluster=factor(my.km.e$cluster)
+df_so_adt %>% ggvis(~SOBRIETY, ~E, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.f <- kmeans(df_so_adt[,c("SOBRIETY", "F")], 3)
+df_so_adt$cluster=factor(my.km.f$cluster)
+df_so_adt %>% ggvis(~SOBRIETY, ~F, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.g <- kmeans(df_so_adt[,c("SOBRIETY", "G")], 3)
+df_so_adt$cluster=factor(my.km.g$cluster)
+df_so_adt %>% ggvis(~SOBRIETY, ~G, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.h <- kmeans(df_so_adt[,c("SOBRIETY", "H")], 3)
+df_so_adt$cluster=factor(my.km.h$cluster)
+df_so_adt %>% ggvis(~SOBRIETY, ~H, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.i <- kmeans(df_so_adt[,c("SOBRIETY", "I")], 3)
+df_so_adt$cluster=factor(my.km.i$cluster)
+df_so_adt %>% ggvis(~SOBRIETY, ~I, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.j <- kmeans(df_so_adt[,c("SOBRIETY", "J")], 3)
+df_so_adt$cluster=factor(my.km.j$cluster)
+df_so_adt %>% ggvis(~SOBRIETY, ~J, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.k <- kmeans(df_so_adt[,c("SOBRIETY", "K")], 3)
+df_so_adt$cluster=factor(my.km.k$cluster)
+df_so_adt %>% ggvis(~SOBRIETY, ~K, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.l <- kmeans(df_so_adt[,c("SOBRIETY", "L")], 3)
+df_so_adt$cluster=factor(my.km.l$cluster)
+df_so_adt %>% ggvis(~SOBRIETY, ~L, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.m <- kmeans(df_so_adt[,c("SOBRIETY", "M")], 3)
+df_so_adt$cluster=factor(my.km.m$cluster)
+df_so_adt %>% ggvis(~SOBRIETY, ~M, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.n <- kmeans(df_so_adt[,c("SOBRIETY", "N")], 3)
+df_so_adt$cluster=factor(my.km.n$cluster)
+df_so_adt %>% ggvis(~SOBRIETY, ~N, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.o <- kmeans(df_so_adt[,c("SOBRIETY", "O")], 3)
+df_so_adt$cluster=factor(my.km.o$cluster)
+df_so_adt %>% ggvis(~SOBRIETY, ~O, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_so_adt[,c("SOBRIETY", "P")], 3)
+df_so_adt$cluster=factor(my.km.p$cluster)
+df_so_adt %>% ggvis(~SOBRIETY, ~P, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+rm(df_so_adt)
+```
+
+### MANAGEMENT ###
+
+```{r, echo=FALSE, warning=FALSE}
+# MANAGEMENT
+my.df_manag <-
+    my.df_tests %>%
+    select(ID, PC6) %>%
+    filter(PC6 >= 0) %>%
+    rename(MANAGEMENT = PC6) 
+
+# linkando com ID de ADT
+df_ma_adt <- inner_join(my.df_manag, my.df_tests[,c("ID","A", "B", "C", "D", "E", "F", "G",
+                                                       "H", "I", "J", "K", "L", "M", "N", "O", "P")], by = "ID")
+# plot de correlacoes
+my.cor <- cor(df_ma_adt[,-1])
+par(cex=.6)
+corrplot.mixed(my.cor, insig = "p-value", sig.level = -1, is.corr = TRUE)
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# R SQUARED
+my.lm <- lm(MANAGEMENT ~ A + B + C + D + E + F + G + H + I + J + K + L + M + N + P, df_ma_adt)
+sprintf ("R Squared: %f",summary(my.lm)$r.squared)
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# clusters
+my.km.a <- kmeans(df_ma_adt[,c("MANAGEMENT", "A")], 3)
+df_ma_adt$cluster=factor(my.km.a$cluster)
+#centers=as.data.frame(my.km.a$centers)
+df_ma_adt %>% ggvis(~MANAGEMENT, ~A, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.b <- kmeans(df_ma_adt[,c("MANAGEMENT", "B")], 3)
+df_ma_adt$cluster=factor(my.km.b$cluster)
+df_ma_adt %>% ggvis(~MANAGEMENT, ~B, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.c <- kmeans(df_ma_adt[,c("MANAGEMENT", "C")], 3)
+df_ma_adt$cluster=factor(my.km.c$cluster)
+df_ma_adt %>% ggvis(~MANAGEMENT, ~C, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.d <- kmeans(df_ma_adt[,c("MANAGEMENT", "D")], 3)
+df_ma_adt$cluster=factor(my.km.d$cluster)
+df_ma_adt %>% ggvis(~MANAGEMENT, ~D, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.e <- kmeans(df_ma_adt[,c("MANAGEMENT", "E")], 3)
+df_ma_adt$cluster=factor(my.km.e$cluster)
+df_ma_adt %>% ggvis(~MANAGEMENT, ~E, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.f <- kmeans(df_ma_adt[,c("MANAGEMENT", "F")], 3)
+df_ma_adt$cluster=factor(my.km.f$cluster)
+df_ma_adt %>% ggvis(~MANAGEMENT, ~F, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.g <- kmeans(df_ma_adt[,c("MANAGEMENT", "G")], 3)
+df_ma_adt$cluster=factor(my.km.g$cluster)
+df_ma_adt %>% ggvis(~MANAGEMENT, ~G, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.h <- kmeans(df_ma_adt[,c("MANAGEMENT", "H")], 3)
+df_ma_adt$cluster=factor(my.km.h$cluster)
+df_ma_adt %>% ggvis(~MANAGEMENT, ~H, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.i <- kmeans(df_ma_adt[,c("MANAGEMENT", "I")], 3)
+df_ma_adt$cluster=factor(my.km.i$cluster)
+df_ma_adt %>% ggvis(~MANAGEMENT, ~I, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.j <- kmeans(df_ma_adt[,c("MANAGEMENT", "J")], 3)
+df_ma_adt$cluster=factor(my.km.j$cluster)
+df_ma_adt %>% ggvis(~MANAGEMENT, ~J, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.k <- kmeans(df_ma_adt[,c("MANAGEMENT", "K")], 3)
+df_ma_adt$cluster=factor(my.km.k$cluster)
+df_ma_adt %>% ggvis(~MANAGEMENT, ~K, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.l <- kmeans(df_ma_adt[,c("MANAGEMENT", "L")], 3)
+df_ma_adt$cluster=factor(my.km.l$cluster)
+df_ma_adt %>% ggvis(~MANAGEMENT, ~L, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.m <- kmeans(df_ma_adt[,c("MANAGEMENT", "M")], 3)
+df_ma_adt$cluster=factor(my.km.m$cluster)
+df_ma_adt %>% ggvis(~MANAGEMENT, ~M, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.n <- kmeans(df_ma_adt[,c("MANAGEMENT", "N")], 3)
+df_ma_adt$cluster=factor(my.km.n$cluster)
+df_ma_adt %>% ggvis(~MANAGEMENT, ~N, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.o <- kmeans(df_ma_adt[,c("MANAGEMENT", "O")], 3)
+df_ma_adt$cluster=factor(my.km.o$cluster)
+df_ma_adt %>% ggvis(~MANAGEMENT, ~O, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_ma_adt[,c("MANAGEMENT", "P")], 3)
+df_ma_adt$cluster=factor(my.km.p$cluster)
+df_ma_adt %>% ggvis(~MANAGEMENT, ~P, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+rm(df_ma_adt)
+```
+
+### RECEPTIVITY ###
+
+```{r, echo=FALSE, warning=FALSE}
+# RECEPTIVITY
+my.df_recep <-
+    my.df_tests %>%
+    select(ID, PC6) %>%
+    filter(PC6 < 0) %>%
+    mutate(PC6 = abs(PC6)) %>%
+    rename(RECEPTIVITY = PC6)
+
+# linkando com ID de ADT
+df_rc_adt <- inner_join(my.df_recep, my.df_tests[,c("ID","A", "B", "C", "D", "E", "F", "G",
+                                                       "H", "I", "J", "K", "L", "M", "N", "O", "P")], by = "ID")
+# plot de correlacoes
+my.cor <- cor(df_rc_adt[,-1])
+par(cex=.6)
+corrplot.mixed(my.cor, insig = "p-value", sig.level = -1, is.corr = TRUE)
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# R SQUARED
+my.lm <- lm(RECEPTIVITY ~ A + B + C + D + E + F + G + H + I + J + K + L + M + N + P, df_rc_adt)
+sprintf ("R Squared: %f",summary(my.lm)$r.squared)
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# clusters
+my.km.a <- kmeans(df_rc_adt[,c("RECEPTIVITY", "A")], 3)
+df_rc_adt$cluster=factor(my.km.a$cluster)
+#centers=as.data.frame(my.km.a$centers)
+df_rc_adt %>% ggvis(~RECEPTIVITY, ~A, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.b <- kmeans(df_rc_adt[,c("RECEPTIVITY", "B")], 3)
+df_rc_adt$cluster=factor(my.km.b$cluster)
+df_rc_adt %>% ggvis(~RECEPTIVITY, ~B, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.c <- kmeans(df_rc_adt[,c("RECEPTIVITY", "C")], 3)
+df_rc_adt$cluster=factor(my.km.c$cluster)
+df_rc_adt %>% ggvis(~RECEPTIVITY, ~C, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.d <- kmeans(df_rc_adt[,c("RECEPTIVITY", "D")], 3)
+df_rc_adt$cluster=factor(my.km.d$cluster)
+df_rc_adt %>% ggvis(~RECEPTIVITY, ~D, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.e <- kmeans(df_rc_adt[,c("RECEPTIVITY", "E")], 3)
+df_rc_adt$cluster=factor(my.km.e$cluster)
+df_rc_adt %>% ggvis(~RECEPTIVITY, ~E, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.f <- kmeans(df_rc_adt[,c("RECEPTIVITY", "F")], 3)
+df_rc_adt$cluster=factor(my.km.f$cluster)
+df_rc_adt %>% ggvis(~RECEPTIVITY, ~F, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.g <- kmeans(df_rc_adt[,c("RECEPTIVITY", "G")], 3)
+df_rc_adt$cluster=factor(my.km.g$cluster)
+df_rc_adt %>% ggvis(~RECEPTIVITY, ~G, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.h <- kmeans(df_rc_adt[,c("RECEPTIVITY", "H")], 3)
+df_rc_adt$cluster=factor(my.km.h$cluster)
+df_rc_adt %>% ggvis(~RECEPTIVITY, ~H, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.i <- kmeans(df_rc_adt[,c("RECEPTIVITY", "I")], 3)
+df_rc_adt$cluster=factor(my.km.i$cluster)
+df_rc_adt %>% ggvis(~RECEPTIVITY, ~I, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.j <- kmeans(df_rc_adt[,c("RECEPTIVITY", "J")], 3)
+df_rc_adt$cluster=factor(my.km.j$cluster)
+df_rc_adt %>% ggvis(~RECEPTIVITY, ~J, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.k <- kmeans(df_rc_adt[,c("RECEPTIVITY", "K")], 3)
+df_rc_adt$cluster=factor(my.km.k$cluster)
+df_rc_adt %>% ggvis(~RECEPTIVITY, ~K, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.l <- kmeans(df_rc_adt[,c("RECEPTIVITY", "L")], 3)
+df_rc_adt$cluster=factor(my.km.l$cluster)
+df_rc_adt %>% ggvis(~RECEPTIVITY, ~L, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.m <- kmeans(df_rc_adt[,c("RECEPTIVITY", "M")], 3)
+df_rc_adt$cluster=factor(my.km.m$cluster)
+df_rc_adt %>% ggvis(~RECEPTIVITY, ~M, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.n <- kmeans(df_rc_adt[,c("RECEPTIVITY", "N")], 3)
+df_rc_adt$cluster=factor(my.km.n$cluster)
+df_rc_adt %>% ggvis(~RECEPTIVITY, ~N, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.o <- kmeans(df_rc_adt[,c("RECEPTIVITY", "O")], 3)
+df_rc_adt$cluster=factor(my.km.o$cluster)
+df_rc_adt %>% ggvis(~RECEPTIVITY, ~O, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_rc_adt[,c("RECEPTIVITY", "P")], 3)
+df_rc_adt$cluster=factor(my.km.p$cluster)
+df_rc_adt %>% ggvis(~RECEPTIVITY, ~P, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+rm(df_rc_adt)
+```
+
+### PERSISTENCE ###
+
+```{r, echo=FALSE, warning=FALSE}
+# PERSISTENCE
+my.df_persist <-
+    my.df_tests %>%
+    select(ID, PC7) %>%
+    filter(PC7 >= 0) %>%
+    rename(PERSISTENCE = PC7) 
+
+# linkando com ID de ADT
+df_pe_adt <- inner_join(my.df_persist, my.df_tests[,c("ID","A", "B", "C", "D", "E", "F", "G",
+                                                       "H", "I", "J", "K", "L", "M", "N", "O", "P")], by = "ID")
+# plot de correlacoes
+my.cor <- cor(df_pe_adt[,-1])
+par(cex=.6)
+corrplot.mixed(my.cor, insig = "p-value", sig.level = -1, is.corr = TRUE)
+
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# R SQUARED
+my.lm <- lm(PERSISTENCE ~ A + B + C + D + E + F + G + H + I + J + K + L + M + N + P, df_pe_adt)
+sprintf ("R Squared: %f",summary(my.lm)$r.squared)
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# clusters
+my.km.a <- kmeans(df_pe_adt[,c("PERSISTENCE", "A")], 3)
+df_pe_adt$cluster=factor(my.km.a$cluster)
+#centers=as.data.frame(my.km.a$centers)
+df_pe_adt %>% ggvis(~PERSISTENCE, ~A, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.b <- kmeans(df_pe_adt[,c("PERSISTENCE", "B")], 3)
+df_pe_adt$cluster=factor(my.km.b$cluster)
+df_pe_adt %>% ggvis(~PERSISTENCE, ~B, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.c <- kmeans(df_pe_adt[,c("PERSISTENCE", "C")], 3)
+df_pe_adt$cluster=factor(my.km.c$cluster)
+df_pe_adt %>% ggvis(~PERSISTENCE, ~C, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.d <- kmeans(df_pe_adt[,c("PERSISTENCE", "D")], 3)
+df_pe_adt$cluster=factor(my.km.d$cluster)
+df_pe_adt %>% ggvis(~PERSISTENCE, ~D, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.e <- kmeans(df_pe_adt[,c("PERSISTENCE", "E")], 3)
+df_pe_adt$cluster=factor(my.km.e$cluster)
+df_pe_adt %>% ggvis(~PERSISTENCE, ~E, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.f <- kmeans(df_pe_adt[,c("PERSISTENCE", "F")], 3)
+df_pe_adt$cluster=factor(my.km.f$cluster)
+df_pe_adt %>% ggvis(~PERSISTENCE, ~F, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.g <- kmeans(df_pe_adt[,c("PERSISTENCE", "G")], 3)
+df_pe_adt$cluster=factor(my.km.g$cluster)
+df_pe_adt %>% ggvis(~PERSISTENCE, ~G, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.h <- kmeans(df_pe_adt[,c("PERSISTENCE", "H")], 3)
+df_pe_adt$cluster=factor(my.km.h$cluster)
+df_pe_adt %>% ggvis(~PERSISTENCE, ~H, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.i <- kmeans(df_pe_adt[,c("PERSISTENCE", "I")], 3)
+df_pe_adt$cluster=factor(my.km.i$cluster)
+df_pe_adt %>% ggvis(~PERSISTENCE, ~I, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.j <- kmeans(df_pe_adt[,c("PERSISTENCE", "J")], 3)
+df_pe_adt$cluster=factor(my.km.j$cluster)
+df_pe_adt %>% ggvis(~PERSISTENCE, ~J, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.k <- kmeans(df_pe_adt[,c("PERSISTENCE", "K")], 3)
+df_pe_adt$cluster=factor(my.km.k$cluster)
+df_pe_adt %>% ggvis(~PERSISTENCE, ~K, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.l <- kmeans(df_pe_adt[,c("PERSISTENCE", "L")], 3)
+df_pe_adt$cluster=factor(my.km.l$cluster)
+df_pe_adt %>% ggvis(~PERSISTENCE, ~L, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.m <- kmeans(df_pe_adt[,c("PERSISTENCE", "M")], 3)
+df_pe_adt$cluster=factor(my.km.m$cluster)
+df_pe_adt %>% ggvis(~PERSISTENCE, ~M, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.n <- kmeans(df_pe_adt[,c("PERSISTENCE", "N")], 3)
+df_pe_adt$cluster=factor(my.km.n$cluster)
+df_pe_adt %>% ggvis(~PERSISTENCE, ~N, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.o <- kmeans(df_pe_adt[,c("PERSISTENCE", "O")], 3)
+df_pe_adt$cluster=factor(my.km.o$cluster)
+df_pe_adt %>% ggvis(~PERSISTENCE, ~O, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_pe_adt[,c("PERSISTENCE", "P")], 3)
+df_pe_adt$cluster=factor(my.km.p$cluster)
+df_pe_adt %>% ggvis(~PERSISTENCE, ~P, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+rm(df_pe_adt)
+```
+
+### ADJUSTMENT ###
+
+```{r, echo=FALSE, warning=FALSE}
+# ADJUSTMENT
+my.df_adjust <-
+    my.df_tests %>%
+    select(ID, PC7) %>%
+    filter(PC7 < 0) %>%
+    mutate(PC7 = abs(PC7)) %>%
+    rename(ADJUSTMENT = PC7)
+
+# linkando com ID de ADT
+df_ad_adt <- inner_join(my.df_adjust, my.df_tests[,c("ID","A", "B", "C", "D", "E", "F", "G",
+                                                       "H", "I", "J", "K", "L", "M", "N", "O", "P")], by = "ID")
+# plot de correlacoes
+my.cor <- cor(df_ad_adt[,-1])
+par(cex=.6)
+corrplot.mixed(my.cor, insig = "p-value", sig.level = -1, is.corr = TRUE)
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# R SQUARED
+my.lm <- lm(ADJUSTMENT ~ A + B + C + D + E + F + G + H + I + J + K + L + M + N + P, df_ad_adt)
+sprintf ("R Squared: %f",summary(my.lm)$r.squared)
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# clusters
+my.km.a <- kmeans(df_ad_adt[,c("ADJUSTMENT", "A")], 3)
+df_ad_adt$cluster=factor(my.km.a$cluster)
+#centers=as.data.frame(my.km.a$centers)
+df_ad_adt %>% ggvis(~ADJUSTMENT, ~A, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.b <- kmeans(df_ad_adt[,c("ADJUSTMENT", "B")], 3)
+df_ad_adt$cluster=factor(my.km.b$cluster)
+df_ad_adt %>% ggvis(~ADJUSTMENT, ~B, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.c <- kmeans(df_ad_adt[,c("ADJUSTMENT", "C")], 3)
+df_ad_adt$cluster=factor(my.km.c$cluster)
+df_ad_adt %>% ggvis(~ADJUSTMENT, ~C, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.d <- kmeans(df_ad_adt[,c("ADJUSTMENT", "D")], 3)
+df_ad_adt$cluster=factor(my.km.d$cluster)
+df_ad_adt %>% ggvis(~ADJUSTMENT, ~D, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.e <- kmeans(df_ad_adt[,c("ADJUSTMENT", "E")], 3)
+df_ad_adt$cluster=factor(my.km.e$cluster)
+df_ad_adt %>% ggvis(~ADJUSTMENT, ~E, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.f <- kmeans(df_ad_adt[,c("ADJUSTMENT", "F")], 3)
+df_ad_adt$cluster=factor(my.km.f$cluster)
+df_ad_adt %>% ggvis(~ADJUSTMENT, ~F, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.g <- kmeans(df_ad_adt[,c("ADJUSTMENT", "G")], 3)
+df_ad_adt$cluster=factor(my.km.g$cluster)
+df_ad_adt %>% ggvis(~ADJUSTMENT, ~G, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.h <- kmeans(df_ad_adt[,c("ADJUSTMENT", "H")], 3)
+df_ad_adt$cluster=factor(my.km.h$cluster)
+df_ad_adt %>% ggvis(~ADJUSTMENT, ~H, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.i <- kmeans(df_ad_adt[,c("ADJUSTMENT", "I")], 3)
+df_ad_adt$cluster=factor(my.km.i$cluster)
+df_ad_adt %>% ggvis(~ADJUSTMENT, ~I, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.j <- kmeans(df_ad_adt[,c("ADJUSTMENT", "J")], 3)
+df_ad_adt$cluster=factor(my.km.j$cluster)
+df_ad_adt %>% ggvis(~ADJUSTMENT, ~J, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.k <- kmeans(df_ad_adt[,c("ADJUSTMENT", "K")], 3)
+df_ad_adt$cluster=factor(my.km.k$cluster)
+df_ad_adt %>% ggvis(~ADJUSTMENT, ~K, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.l <- kmeans(df_ad_adt[,c("ADJUSTMENT", "L")], 3)
+df_ad_adt$cluster=factor(my.km.l$cluster)
+df_ad_adt %>% ggvis(~ADJUSTMENT, ~L, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.m <- kmeans(df_ad_adt[,c("ADJUSTMENT", "M")], 3)
+df_ad_adt$cluster=factor(my.km.m$cluster)
+df_ad_adt %>% ggvis(~ADJUSTMENT, ~M, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.n <- kmeans(df_ad_adt[,c("ADJUSTMENT", "N")], 3)
+df_ad_adt$cluster=factor(my.km.n$cluster)
+df_ad_adt %>% ggvis(~ADJUSTMENT, ~N, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.o <- kmeans(df_ad_adt[,c("ADJUSTMENT", "O")], 3)
+df_ad_adt$cluster=factor(my.km.o$cluster)
+df_ad_adt %>% ggvis(~ADJUSTMENT, ~O, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_ad_adt[,c("ADJUSTMENT", "P")], 3)
+df_ad_adt$cluster=factor(my.km.p$cluster)
+df_ad_adt %>% ggvis(~ADJUSTMENT, ~P, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+rm(df_ad_adt)
+```

@@ -1,0 +1,2676 @@
+---
+title: "Análise Exploratória - Human Guide x LJI-2"
+author: "Cassio"
+date: "April 01, 2016"
+output: 
+   html_document
+---
+
+<center>![agileBIGDATA](./logoAgileBD.png)</center>
+
+### Objetivo ###
+
+Este documento tem por objetivo implementar análise exploratória correlacionando resultados de teste LJI-2 com os componentes gerados no teste **Human Guide**.
+São usados dados obtidos de respondentes da empresa Energia Sustentável do Brasil.
+
+### Estratégia ###
+
+#### Análise de Cluster dos Componentes Human Guide x itens do teste LJI-2
+
+```{r, echo=FALSE, warning=FALSE}
+require("doMC", quietly = TRUE, warn.conflicts = FALSE)
+require("xlsx", quietly = TRUE, warn.conflicts = FALSE)
+require("dplyr", quietly = TRUE, warn.conflicts = FALSE)
+require("corrplot", quietly = TRUE, warn.conflicts = FALSE)
+#require("gridExtra", quietly = TRUE, warn.conflicts = FALSE)
+require("ggvis", quietly = TRUE, warn.conflicts = FALSE)
+#require("ggplot2", quietly = TRUE, warn.conflicts = FALSE)
+
+source("./R/f_acentos_nomcol.R") # usar esta função para ler os dados novos. 
+
+registerDoMC(8) # parallel processing
+
+# ou, lendo de arquivo já gravado pela funcao f_limites_score()
+my.df_hg <- read.xlsx ("./data/HG_ADT_LJI2.xlsx", sheetIndex = 1)
+#my.df_adt <- read.xlsx ("./data/HG_ADT_LJI2.xlsx", sheetIndex = 2)
+my.df_lji2 <- read.xlsx ("./data/HG_ADT_LJI2.xlsx", sheetIndex = 3)
+
+# muda fatores para numericos
+unfactorize<-c(2:26) # changing factor to numeric
+my.df_lji2[,unfactorize]<-lapply(unfactorize, function(x) as.numeric(as.character(my.df_lji2[,x])))
+# tirando "..."
+names(my.df_lji2) <- gsub("\\.{3}", ".", names(my.df_lji2))
+# tirando ".."
+names(my.df_lji2) <- gsub("\\.{2}", ".", names(my.df_lji2))
+# tirando "." no final da linha
+names(my.df_lji2) <- gsub("\\.$", "", names(my.df_lji2))
+# tirando acentos
+# tirando acentos e tornando minusculos os nomes das colunas
+my.df_lji2 <- f_acentos_nomcol(my.df_lji2)
+
+my.df_hg <- na.omit(my.df_hg)
+#my.df_adt <- na.omit(my.df_adt)
+my.df_lji2 <- na.omit(my.df_lji2)
+
+my.df_lji2 <-
+    my.df_lji2 %>%
+    rename(ID = x.userid)
+```
+
+```{r, echo=FALSE, warning=FALSE}
+my.df_hg <-
+        my.df_hg %>%
+        select(ID, sexo, idade, cargo,
+           s11, h21, h31, hy41, e51, m61, m71, p81, e91,
+           e12, e22, e32, s42, s52, s62, k72, h82, m92,
+           h13, k23, hy33, e43, hy53, e63, s73, e83, p93,
+           k14, d24, k34, k44, k54, hy64, p74, s84, d94,
+           p15, m25, s35, h45, d55, k65, hy75, m85, k95,
+           hy16, p26, p36, m46, h56, p66, h76, k86, s96,
+           d17, s27, d37, d47, p57, d67, e77, hy87, h97,
+           m18, hy28, m38, p48, m58, h68, d78, d88, hy98)
+
+    # seleciona apenas as colunas necessárias
+    my.df_hg <-
+        my.df_hg %>%
+        mutate(sensibility = h13 + h21 + h31 + h45 + h56 + h68 + h76 + h82 + h97,
+           power = s11 + s27 + s35 + s42 + s52 + s62 + s73 + s84 + s96,
+           quality = e12 + e22 + e32 + e43 + e51 + e63 + e77 + e83 + e91,
+           exposure = hy16 + hy28 + hy33 + hy41 + hy53 + hy64 + hy75 + hy87 + hy98,
+           structure = k14 + k23 + k34 + k44 + k54 + k65 + k72 + k86 + k95,
+           imagination = p15 + p26 + p36 + p48 + p57 + p66 + p74 + p81 + p93,
+           stability = d17 + d24 + d37 + d47 + d55 + d67 + d78 + d88 + d94,
+           contacts = m18 + m25 + m38 + m46 + m58 + m61 + m71 + m85 + m92) %>%
+        select(ID, sexo, idade, cargo, sensibility, power, quality,
+           exposure, structure, imagination, stability, contacts) 
+
+    
+# juntando em um único dataframe
+#my.df_tests <- inner_join(my.df_hg, my.df_adt, by = "ID")
+my.df_tests <- inner_join(my.df_hg, my.df_lji2, by = "ID")
+
+# calculo dos novos fatores para os respondentes do arquivo lido
+# obtendo os scores de acordo com a análise de componentes principais
+###############################################################################
+
+pca1 = prcomp(my.df_hg[,5:12], scale. = TRUE, center = TRUE)
+# scores obtidos
+scores.hg<- as.data.frame(pca1$x)
+my.scores.hg <- as.data.frame(cbind(ID =  my.df_hg$ID,
+                                sexo = my.df_hg$sexo, 
+                                idade = my.df_hg$idade, 
+                                cargo = my.df_hg$cargo,
+                                scores.hg))
+    # eliminando PC8
+    my.scores.hg <-
+        my.scores.hg %>%
+        select (-PC8)
+
+my.df_tests <- inner_join(my.df_tests, my.scores.hg[,c(1,5:11)], by = "ID")
+
+# R SQUARED
+#my.lm <- lm(G ~ PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7, my.df_tests)
+#summary(my.lm)
+
+# CORRELACOES 
+# correlacionando score ADT com os 14 componentes, separando positivo de negativo e fazendo correlação
+# para mesmo respondente
+# separação pelos 14 fatores para correlacionar abaixo
+```
+
+## Análise por Componente Human Guide ##
+
+Abaixo são mostradas as seguintes análises para correlacionar os componentes do Human Guide com os itens do teste LJI-2:
+
++ os plots de correlação do score de cada componente versus os itens do teste LJI-2.
++ O plot de análise de cluster (agrupamento) entre o componente Human Guide e o item LJI-2 que mostrou maior correlação com o mesmo. 
+
+### OPENNESS ###
+ 
+```{r, echo=FALSE, warning=FALSE}
+
+# OPENNESS
+my.df_open <-
+    my.df_tests %>%
+    select(ID, PC1) %>%
+    filter(PC1 >= 0) %>%
+    rename(OPENNESS = PC1) 
+# linkando com ID de ADT
+df_op_adt <- inner_join(my.df_open, my.df_tests[,c("ID",
+                        "preferencia.diretiva.norm", 
+                        "preferencia.consultiva.norm", "preferencia.consensual.norm",
+                        "preferencia.delegatoria.norm", "julgamento.diretivo.norm",
+                        "julgamento.consultivo.norm", "julgamento.consensual.norm",
+                        "julgamento.delegatorio.norm", "julgamento.geral.norm",
+                        "julgamento.diretivo.nao.assistido.norm", "julgamento.diretivo.pesquisado.norm",
+                        "julgamento.consultivo.individual.norm","julgamento.consultivo.em.grupo.norm",
+                        "julgamento.consensual.presidido.norm", "julgamento.consensual.como.membro.da.equipe.norm",
+                        "julgamento.delegatorio.informado.norm", "julgamento.delegatorio.balistico.norm",
+                        "preferencia.tarefa.norm", "julgamento.tarefa.norm",
+                        "preferencia.envolvimento.norm", "julgamento.envolvimento.norm",
+                        "preferencia.controle.norm", "julgamento.controle.norm",
+                        "preferencia.capacitacao.norm", "julgamento.capacitacao.norm"
+                                                   )], by = "ID")
+# testar eliminando itens ADT com correlação entre si maior que 50%
+# piorou o Rsquare??!!
+my.cor <- cor(df_op_adt[,-1])
+#png(height=1200, width=1500, pointsize=15, file="overlap.png")
+par(cex=.4)
+corrplot.mixed(my.cor, insig = "p-value", sig.level = -1, is.corr = TRUE)
+
+```
+
+```{r, echo=FALSE, warning=FALSE}
+
+# R SQUARED
+my.lm <- lm(OPENNESS ~ preferencia.diretiva.norm + 
+                        preferencia.consultiva.norm + preferencia.consensual.norm +
+                        preferencia.delegatoria.norm + julgamento.diretivo.norm +
+                        julgamento.consultivo.norm + julgamento.consensual.norm +
+                        julgamento.delegatorio.norm + julgamento.geral.norm +
+                        julgamento.diretivo.nao.assistido.norm + julgamento.diretivo.pesquisado.norm +
+                        julgamento.consultivo.individual.norm +julgamento.consultivo.em.grupo.norm +
+                        julgamento.consensual.presidido.norm + julgamento.consensual.como.membro.da.equipe.norm +
+                        julgamento.delegatorio.informado.norm + julgamento.delegatorio.balistico.norm +
+                        preferencia.tarefa.norm + julgamento.tarefa.norm +
+                        preferencia.envolvimento.norm + julgamento.envolvimento.norm +
+                        preferencia.controle.norm + julgamento.controle.norm +
+                        preferencia.capacitacao.norm + julgamento.capacitacao.norm, df_op_adt)
+#summary(my.lm)
+#my.lm <- lm(OPENNESS ~ C, df_op_adt)
+#summary(my.lm)
+#sprinttf ("R Squared OPENNESS: %f",summary(my.lm)$r.squared)
+
+##sprinttf ("p-value: %f",summary(my.lm)$pvalue)
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# clusters
+my.km.a <- kmeans(df_op_adt[,c("OPENNESS", "preferencia.diretiva.norm")], 3)
+df_op_adt$cluster=factor(my.km.a$cluster)
+
+df_op_adt %>% ggvis(~OPENNESS, ~preferencia.diretiva.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.b <- kmeans(df_op_adt[,c("OPENNESS", "preferencia.consultiva.norm")], 3)
+df_op_adt$cluster=factor(my.km.b$cluster)
+df_op_adt %>% ggvis(~OPENNESS, ~preferencia.consultiva.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.c <- kmeans(df_op_adt[,c("OPENNESS", "preferencia.consensual.norm")], 3)
+df_op_adt$cluster=factor(my.km.c$cluster)
+df_op_adt %>% ggvis(~OPENNESS, ~preferencia.consensual.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.d <- kmeans(df_op_adt[,c("OPENNESS", "preferencia.delegatoria.norm")], 3)
+df_op_adt$cluster=factor(my.km.d$cluster)
+df_op_adt %>% ggvis(~OPENNESS, ~preferencia.delegatoria.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.e <- kmeans(df_op_adt[,c("OPENNESS", "julgamento.diretivo.norm")], 3)
+df_op_adt$cluster=factor(my.km.e$cluster)
+df_op_adt %>% ggvis(~OPENNESS, ~julgamento.diretivo.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.f <- kmeans(df_op_adt[,c("OPENNESS", "julgamento.consultivo.norm")], 3)
+df_op_adt$cluster=factor(my.km.f$cluster)
+df_op_adt %>% ggvis(~OPENNESS, ~julgamento.consultivo.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.g <- kmeans(df_op_adt[,c("OPENNESS", "julgamento.consensual.norm")], 3)
+df_op_adt$cluster=factor(my.km.g$cluster)
+df_op_adt %>% ggvis(~OPENNESS, ~julgamento.consensual.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.h <- kmeans(df_op_adt[,c("OPENNESS", "julgamento.delegatorio.norm")], 3)
+df_op_adt$cluster=factor(my.km.h$cluster)
+df_op_adt %>% ggvis(~OPENNESS, ~julgamento.delegatorio.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.i <- kmeans(df_op_adt[,c("OPENNESS", "julgamento.geral.norm")], 3)
+df_op_adt$cluster=factor(my.km.i$cluster)
+df_op_adt %>% ggvis(~OPENNESS, ~julgamento.geral.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.j <- kmeans(df_op_adt[,c("OPENNESS", "julgamento.diretivo.nao.assistido.norm")], 3)
+df_op_adt$cluster=factor(my.km.j$cluster)
+df_op_adt %>% ggvis(~OPENNESS, ~julgamento.diretivo.nao.assistido.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.k <- kmeans(df_op_adt[,c("OPENNESS", "julgamento.diretivo.pesquisado.norm")], 3)
+df_op_adt$cluster=factor(my.km.k$cluster)
+df_op_adt %>% ggvis(~OPENNESS, ~julgamento.diretivo.pesquisado.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.l <- kmeans(df_op_adt[,c("OPENNESS", "julgamento.consultivo.individual.norm")], 3)
+df_op_adt$cluster=factor(my.km.l$cluster)
+df_op_adt %>% ggvis(~OPENNESS, ~julgamento.consultivo.individual.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.m <- kmeans(df_op_adt[,c("OPENNESS", "julgamento.consultivo.em.grupo.norm")], 3)
+df_op_adt$cluster=factor(my.km.m$cluster)
+df_op_adt %>% ggvis(~OPENNESS, ~julgamento.consultivo.em.grupo.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.n <- kmeans(df_op_adt[,c("OPENNESS", "julgamento.consensual.presidido.norm")], 3)
+df_op_adt$cluster=factor(my.km.n$cluster)
+df_op_adt %>% ggvis(~OPENNESS, ~julgamento.consensual.presidido.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.o <- kmeans(df_op_adt[,c("OPENNESS", "julgamento.consensual.como.membro.da.equipe.norm")], 3)
+df_op_adt$cluster=factor(my.km.o$cluster)
+df_op_adt %>% ggvis(~OPENNESS, ~julgamento.consensual.como.membro.da.equipe.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_op_adt[,c("OPENNESS", "julgamento.delegatorio.informado.norm")], 3)
+df_op_adt$cluster=factor(my.km.p$cluster)
+df_op_adt %>% ggvis(~OPENNESS, ~julgamento.delegatorio.informado.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_op_adt[,c("OPENNESS", "julgamento.delegatorio.balistico.norm")], 3)
+df_op_adt$cluster=factor(my.km.p$cluster)
+df_op_adt %>% ggvis(~OPENNESS, ~julgamento.delegatorio.balistico.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_op_adt[,c("OPENNESS", "preferencia.tarefa.norm")], 3)
+df_op_adt$cluster=factor(my.km.p$cluster)
+df_op_adt %>% ggvis(~OPENNESS, ~preferencia.tarefa.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_op_adt[,c("OPENNESS", "julgamento.tarefa.norm")], 3)
+df_op_adt$cluster=factor(my.km.p$cluster)
+df_op_adt %>% ggvis(~OPENNESS, ~julgamento.tarefa.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_op_adt[,c("OPENNESS", "preferencia.envolvimento.norm")], 3)
+df_op_adt$cluster=factor(my.km.p$cluster)
+df_op_adt %>% ggvis(~OPENNESS, ~preferencia.envolvimento.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_op_adt[,c("OPENNESS", "julgamento.envolvimento.norm")], 3)
+df_op_adt$cluster=factor(my.km.p$cluster)
+df_op_adt %>% ggvis(~OPENNESS, ~julgamento.envolvimento.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_op_adt[,c("OPENNESS", "preferencia.controle.norm")], 3)
+df_op_adt$cluster=factor(my.km.p$cluster)
+df_op_adt %>% ggvis(~OPENNESS, ~preferencia.controle.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_op_adt[,c("OPENNESS", "julgamento.controle.norm")], 3)
+df_op_adt$cluster=factor(my.km.p$cluster)
+df_op_adt %>% ggvis(~OPENNESS, ~julgamento.controle.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_op_adt[,c("OPENNESS", "preferencia.capacitacao.norm")], 3)
+df_op_adt$cluster=factor(my.km.p$cluster)
+df_op_adt %>% ggvis(~OPENNESS, ~preferencia.capacitacao.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_op_adt[,c("OPENNESS", "julgamento.capacitacao.norm")], 3)
+df_op_adt$cluster=factor(my.km.p$cluster)
+df_op_adt %>% ggvis(~OPENNESS, ~julgamento.capacitacao.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+
+rm(df_op_adt)
+
+
+```
+
+### CONSCIOUSNESS ###
+
+```{r, echo=FALSE, warning=FALSE}
+# CONSCIOUSNESS
+my.df_consc <-
+    my.df_tests %>%
+    select(ID, PC1) %>%
+    filter(PC1 < 0) %>%
+    mutate(PC1 = abs(PC1)) %>%
+    rename(CONSCIOUSNESS = PC1) 
+# linkando com ID de ADT
+df_co_adt <- inner_join(my.df_consc, my.df_tests[,c("ID",
+                        "preferencia.diretiva.norm", 
+                        "preferencia.consultiva.norm", "preferencia.consensual.norm",
+                        "preferencia.delegatoria.norm", "julgamento.diretivo.norm",
+                        "julgamento.consultivo.norm", "julgamento.consensual.norm",
+                        "julgamento.delegatorio.norm", "julgamento.geral.norm",
+                        "julgamento.diretivo.nao.assistido.norm", "julgamento.diretivo.pesquisado.norm",
+                        "julgamento.consultivo.individual.norm","julgamento.consultivo.em.grupo.norm",
+                        "julgamento.consensual.presidido.norm", "julgamento.consensual.como.membro.da.equipe.norm",
+                        "julgamento.delegatorio.informado.norm", "julgamento.delegatorio.balistico.norm",
+                        "preferencia.tarefa.norm", "julgamento.tarefa.norm",
+                        "preferencia.envolvimento.norm", "julgamento.envolvimento.norm",
+                        "preferencia.controle.norm", "julgamento.controle.norm",
+                        "preferencia.capacitacao.norm", "julgamento.capacitacao.norm"
+                                                   )], by = "ID")
+# plot de correlacoes
+my.cor <- cor(df_co_adt[,-1])
+par(cex=.4)
+corrplot.mixed(my.cor, insig = "p-value", sig.level = -1, is.corr = TRUE)
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# R SQUARED
+my.lm <- lm(CONSCIOUSNESS ~ preferencia.diretiva.norm + 
+                        preferencia.consultiva.norm + preferencia.consensual.norm +
+                        preferencia.delegatoria.norm + julgamento.diretivo.norm +
+                        julgamento.consultivo.norm + julgamento.consensual.norm +
+                        julgamento.delegatorio.norm + julgamento.geral.norm +
+                        julgamento.diretivo.nao.assistido.norm + julgamento.diretivo.pesquisado.norm +
+                        julgamento.consultivo.individual.norm +julgamento.consultivo.em.grupo.norm +
+                        julgamento.consensual.presidido.norm + julgamento.consensual.como.membro.da.equipe.norm +
+                        julgamento.delegatorio.informado.norm + julgamento.delegatorio.balistico.norm +
+                        preferencia.tarefa.norm + julgamento.tarefa.norm +
+                        preferencia.envolvimento.norm + julgamento.envolvimento.norm +
+                        preferencia.controle.norm + julgamento.controle.norm +
+                        preferencia.capacitacao.norm + julgamento.capacitacao.norm, df_co_adt)
+#sprinttf ("R Squared: %f",summary(my.lm)$r.squared)
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# clusters
+my.km.a <- kmeans(df_co_adt[,c("CONSCIOUSNESS", "preferencia.diretiva.norm")], 3)
+df_co_adt$cluster=factor(my.km.a$cluster)
+
+df_co_adt %>% ggvis(~CONSCIOUSNESS, ~preferencia.diretiva.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.b <- kmeans(df_co_adt[,c("CONSCIOUSNESS", "preferencia.consultiva.norm")], 3)
+df_co_adt$cluster=factor(my.km.b$cluster)
+df_co_adt %>% ggvis(~CONSCIOUSNESS, ~preferencia.consultiva.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.c <- kmeans(df_co_adt[,c("CONSCIOUSNESS", "preferencia.consensual.norm")], 3)
+df_co_adt$cluster=factor(my.km.c$cluster)
+df_co_adt %>% ggvis(~CONSCIOUSNESS, ~preferencia.consensual.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.d <- kmeans(df_co_adt[,c("CONSCIOUSNESS", "preferencia.delegatoria.norm")], 3)
+df_co_adt$cluster=factor(my.km.d$cluster)
+df_co_adt %>% ggvis(~CONSCIOUSNESS, ~preferencia.delegatoria.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.e <- kmeans(df_co_adt[,c("CONSCIOUSNESS", "julgamento.diretivo.norm")], 3)
+df_co_adt$cluster=factor(my.km.e$cluster)
+df_co_adt %>% ggvis(~CONSCIOUSNESS, ~julgamento.diretivo.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.f <- kmeans(df_co_adt[,c("CONSCIOUSNESS", "julgamento.consultivo.norm")], 3)
+df_co_adt$cluster=factor(my.km.f$cluster)
+df_co_adt %>% ggvis(~CONSCIOUSNESS, ~julgamento.consultivo.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.g <- kmeans(df_co_adt[,c("CONSCIOUSNESS", "julgamento.consensual.norm")], 3)
+df_co_adt$cluster=factor(my.km.g$cluster)
+df_co_adt %>% ggvis(~CONSCIOUSNESS, ~julgamento.consensual.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.h <- kmeans(df_co_adt[,c("CONSCIOUSNESS", "julgamento.delegatorio.norm")], 3)
+df_co_adt$cluster=factor(my.km.h$cluster)
+df_co_adt %>% ggvis(~CONSCIOUSNESS, ~julgamento.delegatorio.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.i <- kmeans(df_co_adt[,c("CONSCIOUSNESS", "julgamento.geral.norm")], 3)
+df_co_adt$cluster=factor(my.km.i$cluster)
+df_co_adt %>% ggvis(~CONSCIOUSNESS, ~julgamento.geral.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.j <- kmeans(df_co_adt[,c("CONSCIOUSNESS", "julgamento.diretivo.nao.assistido.norm")], 3)
+df_co_adt$cluster=factor(my.km.j$cluster)
+df_co_adt %>% ggvis(~CONSCIOUSNESS, ~julgamento.diretivo.nao.assistido.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.k <- kmeans(df_co_adt[,c("CONSCIOUSNESS", "julgamento.diretivo.pesquisado.norm")], 3)
+df_co_adt$cluster=factor(my.km.k$cluster)
+df_co_adt %>% ggvis(~CONSCIOUSNESS, ~julgamento.diretivo.pesquisado.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.l <- kmeans(df_co_adt[,c("CONSCIOUSNESS", "julgamento.consultivo.individual.norm")], 3)
+df_co_adt$cluster=factor(my.km.l$cluster)
+df_co_adt %>% ggvis(~CONSCIOUSNESS, ~julgamento.consultivo.individual.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.m <- kmeans(df_co_adt[,c("CONSCIOUSNESS", "julgamento.consultivo.em.grupo.norm")], 3)
+df_co_adt$cluster=factor(my.km.m$cluster)
+df_co_adt %>% ggvis(~CONSCIOUSNESS, ~julgamento.consultivo.em.grupo.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.n <- kmeans(df_co_adt[,c("CONSCIOUSNESS", "julgamento.consensual.presidido.norm")], 3)
+df_co_adt$cluster=factor(my.km.n$cluster)
+df_co_adt %>% ggvis(~CONSCIOUSNESS, ~julgamento.consensual.presidido.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.o <- kmeans(df_co_adt[,c("CONSCIOUSNESS", "julgamento.consensual.como.membro.da.equipe.norm")], 3)
+df_co_adt$cluster=factor(my.km.o$cluster)
+df_co_adt %>% ggvis(~CONSCIOUSNESS, ~julgamento.consensual.como.membro.da.equipe.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_co_adt[,c("CONSCIOUSNESS", "julgamento.delegatorio.informado.norm")], 3)
+df_co_adt$cluster=factor(my.km.p$cluster)
+df_co_adt %>% ggvis(~CONSCIOUSNESS, ~julgamento.delegatorio.informado.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_co_adt[,c("CONSCIOUSNESS", "julgamento.delegatorio.balistico.norm")], 3)
+df_co_adt$cluster=factor(my.km.p$cluster)
+df_co_adt %>% ggvis(~CONSCIOUSNESS, ~julgamento.delegatorio.balistico.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_co_adt[,c("CONSCIOUSNESS", "preferencia.tarefa.norm")], 3)
+df_co_adt$cluster=factor(my.km.p$cluster)
+df_co_adt %>% ggvis(~CONSCIOUSNESS, ~preferencia.tarefa.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_co_adt[,c("CONSCIOUSNESS", "julgamento.tarefa.norm")], 3)
+df_co_adt$cluster=factor(my.km.p$cluster)
+df_co_adt %>% ggvis(~CONSCIOUSNESS, ~julgamento.tarefa.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_co_adt[,c("CONSCIOUSNESS", "preferencia.envolvimento.norm")], 3)
+df_co_adt$cluster=factor(my.km.p$cluster)
+df_co_adt %>% ggvis(~CONSCIOUSNESS, ~preferencia.envolvimento.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_co_adt[,c("CONSCIOUSNESS", "julgamento.envolvimento.norm")], 3)
+df_co_adt$cluster=factor(my.km.p$cluster)
+df_co_adt %>% ggvis(~CONSCIOUSNESS, ~julgamento.envolvimento.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_co_adt[,c("CONSCIOUSNESS", "preferencia.controle.norm")], 3)
+df_co_adt$cluster=factor(my.km.p$cluster)
+df_co_adt %>% ggvis(~CONSCIOUSNESS, ~preferencia.controle.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_co_adt[,c("CONSCIOUSNESS", "julgamento.controle.norm")], 3)
+df_co_adt$cluster=factor(my.km.p$cluster)
+df_co_adt %>% ggvis(~CONSCIOUSNESS, ~julgamento.controle.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_co_adt[,c("CONSCIOUSNESS", "preferencia.capacitacao.norm")], 3)
+df_co_adt$cluster=factor(my.km.p$cluster)
+df_co_adt %>% ggvis(~CONSCIOUSNESS, ~preferencia.capacitacao.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_co_adt[,c("CONSCIOUSNESS", "julgamento.capacitacao.norm")], 3)
+df_co_adt$cluster=factor(my.km.p$cluster)
+df_co_adt %>% ggvis(~CONSCIOUSNESS, ~julgamento.capacitacao.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+rm(df_co_adt)
+```
+
+### AGREEABLENESS ###
+
+```{r, echo=FALSE, warning=FALSE}
+# AGREEABLENESS
+my.df_agreeab <-
+    my.df_tests %>%
+    select(ID, PC2) %>%
+    filter(PC2 >= 0) %>%
+    rename(AGREEABLENESS = PC2) 
+
+# linkando com ID de ADT
+df_ag_adt <- inner_join(my.df_agreeab, my.df_tests[,c("ID",
+                        "preferencia.diretiva.norm", 
+                        "preferencia.consultiva.norm", "preferencia.consensual.norm",
+                        "preferencia.delegatoria.norm", "julgamento.diretivo.norm",
+                        "julgamento.consultivo.norm", "julgamento.consensual.norm",
+                        "julgamento.delegatorio.norm", "julgamento.geral.norm",
+                        "julgamento.diretivo.nao.assistido.norm", "julgamento.diretivo.pesquisado.norm",
+                        "julgamento.consultivo.individual.norm","julgamento.consultivo.em.grupo.norm",
+                        "julgamento.consensual.presidido.norm", "julgamento.consensual.como.membro.da.equipe.norm",
+                        "julgamento.delegatorio.informado.norm", "julgamento.delegatorio.balistico.norm",
+                        "preferencia.tarefa.norm", "julgamento.tarefa.norm",
+                        "preferencia.envolvimento.norm", "julgamento.envolvimento.norm",
+                        "preferencia.controle.norm", "julgamento.controle.norm",
+                        "preferencia.capacitacao.norm", "julgamento.capacitacao.norm"
+                                                   )], by = "ID")
+# plot de correlacoes
+my.cor <- cor(df_ag_adt[,-1])
+par(cex=.4)
+corrplot.mixed(my.cor, insig = "p-value", sig.level = -1, is.corr = TRUE)                                         
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# R SQUARED
+my.lm <- lm(AGREEABLENESS ~ preferencia.diretiva.norm + 
+                        preferencia.consultiva.norm + preferencia.consensual.norm +
+                        preferencia.delegatoria.norm + julgamento.diretivo.norm +
+                        julgamento.consultivo.norm + julgamento.consensual.norm +
+                        julgamento.delegatorio.norm + julgamento.geral.norm +
+                        julgamento.diretivo.nao.assistido.norm + julgamento.diretivo.pesquisado.norm +
+                        julgamento.consultivo.individual.norm +julgamento.consultivo.em.grupo.norm +
+                        julgamento.consensual.presidido.norm + julgamento.consensual.como.membro.da.equipe.norm +
+                        julgamento.delegatorio.informado.norm + julgamento.delegatorio.balistico.norm +
+                        preferencia.tarefa.norm + julgamento.tarefa.norm +
+                        preferencia.envolvimento.norm + julgamento.envolvimento.norm +
+                        preferencia.controle.norm + julgamento.controle.norm +
+                        preferencia.capacitacao.norm + julgamento.capacitacao.norm, df_ag_adt)
+#sprinttf ("R Squared: %f",summary(my.lm)$r.squared)
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# clusters
+my.km.a <- kmeans(df_ag_adt[,c("AGREEABLENESS", "preferencia.diretiva.norm")], 3)
+df_ag_adt$cluster=factor(my.km.a$cluster)
+
+df_ag_adt %>% ggvis(~AGREEABLENESS, ~preferencia.diretiva.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.b <- kmeans(df_ag_adt[,c("AGREEABLENESS", "preferencia.consultiva.norm")], 3)
+df_ag_adt$cluster=factor(my.km.b$cluster)
+df_ag_adt %>% ggvis(~AGREEABLENESS, ~preferencia.consultiva.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.c <- kmeans(df_ag_adt[,c("AGREEABLENESS", "preferencia.consensual.norm")], 3)
+df_ag_adt$cluster=factor(my.km.c$cluster)
+df_ag_adt %>% ggvis(~AGREEABLENESS, ~preferencia.consensual.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.d <- kmeans(df_ag_adt[,c("AGREEABLENESS", "preferencia.delegatoria.norm")], 3)
+df_ag_adt$cluster=factor(my.km.d$cluster)
+df_ag_adt %>% ggvis(~AGREEABLENESS, ~preferencia.delegatoria.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.e <- kmeans(df_ag_adt[,c("AGREEABLENESS", "julgamento.diretivo.norm")], 3)
+df_ag_adt$cluster=factor(my.km.e$cluster)
+df_ag_adt %>% ggvis(~AGREEABLENESS, ~julgamento.diretivo.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.f <- kmeans(df_ag_adt[,c("AGREEABLENESS", "julgamento.consultivo.norm")], 3)
+df_ag_adt$cluster=factor(my.km.f$cluster)
+df_ag_adt %>% ggvis(~AGREEABLENESS, ~julgamento.consultivo.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.g <- kmeans(df_ag_adt[,c("AGREEABLENESS", "julgamento.consensual.norm")], 3)
+df_ag_adt$cluster=factor(my.km.g$cluster)
+df_ag_adt %>% ggvis(~AGREEABLENESS, ~julgamento.consensual.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.h <- kmeans(df_ag_adt[,c("AGREEABLENESS", "julgamento.delegatorio.norm")], 3)
+df_ag_adt$cluster=factor(my.km.h$cluster)
+df_ag_adt %>% ggvis(~AGREEABLENESS, ~julgamento.delegatorio.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.i <- kmeans(df_ag_adt[,c("AGREEABLENESS", "julgamento.geral.norm")], 3)
+df_ag_adt$cluster=factor(my.km.i$cluster)
+df_ag_adt %>% ggvis(~AGREEABLENESS, ~julgamento.geral.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.j <- kmeans(df_ag_adt[,c("AGREEABLENESS", "julgamento.diretivo.nao.assistido.norm")], 3)
+df_ag_adt$cluster=factor(my.km.j$cluster)
+df_ag_adt %>% ggvis(~AGREEABLENESS, ~julgamento.diretivo.nao.assistido.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.k <- kmeans(df_ag_adt[,c("AGREEABLENESS", "julgamento.diretivo.pesquisado.norm")], 3)
+df_ag_adt$cluster=factor(my.km.k$cluster)
+df_ag_adt %>% ggvis(~AGREEABLENESS, ~julgamento.diretivo.pesquisado.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.l <- kmeans(df_ag_adt[,c("AGREEABLENESS", "julgamento.consultivo.individual.norm")], 3)
+df_ag_adt$cluster=factor(my.km.l$cluster)
+df_ag_adt %>% ggvis(~AGREEABLENESS, ~julgamento.consultivo.individual.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.m <- kmeans(df_ag_adt[,c("AGREEABLENESS", "julgamento.consultivo.em.grupo.norm")], 3)
+df_ag_adt$cluster=factor(my.km.m$cluster)
+df_ag_adt %>% ggvis(~AGREEABLENESS, ~julgamento.consultivo.em.grupo.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.n <- kmeans(df_ag_adt[,c("AGREEABLENESS", "julgamento.consensual.presidido.norm")], 3)
+df_ag_adt$cluster=factor(my.km.n$cluster)
+df_ag_adt %>% ggvis(~AGREEABLENESS, ~julgamento.consensual.presidido.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.o <- kmeans(df_ag_adt[,c("AGREEABLENESS", "julgamento.consensual.como.membro.da.equipe.norm")], 3)
+df_ag_adt$cluster=factor(my.km.o$cluster)
+df_ag_adt %>% ggvis(~AGREEABLENESS, ~julgamento.consensual.como.membro.da.equipe.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_ag_adt[,c("AGREEABLENESS", "julgamento.delegatorio.informado.norm")], 3)
+df_ag_adt$cluster=factor(my.km.p$cluster)
+df_ag_adt %>% ggvis(~AGREEABLENESS, ~julgamento.delegatorio.informado.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_ag_adt[,c("AGREEABLENESS", "julgamento.delegatorio.balistico.norm")], 3)
+df_ag_adt$cluster=factor(my.km.p$cluster)
+df_ag_adt %>% ggvis(~AGREEABLENESS, ~julgamento.delegatorio.balistico.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_ag_adt[,c("AGREEABLENESS", "preferencia.tarefa.norm")], 3)
+df_ag_adt$cluster=factor(my.km.p$cluster)
+df_ag_adt %>% ggvis(~AGREEABLENESS, ~preferencia.tarefa.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_ag_adt[,c("AGREEABLENESS", "julgamento.tarefa.norm")], 3)
+df_ag_adt$cluster=factor(my.km.p$cluster)
+df_ag_adt %>% ggvis(~AGREEABLENESS, ~julgamento.tarefa.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_ag_adt[,c("AGREEABLENESS", "preferencia.envolvimento.norm")], 3)
+df_ag_adt$cluster=factor(my.km.p$cluster)
+df_ag_adt %>% ggvis(~AGREEABLENESS, ~preferencia.envolvimento.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_ag_adt[,c("AGREEABLENESS", "julgamento.envolvimento.norm")], 3)
+df_ag_adt$cluster=factor(my.km.p$cluster)
+df_ag_adt %>% ggvis(~AGREEABLENESS, ~julgamento.envolvimento.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_ag_adt[,c("AGREEABLENESS", "preferencia.controle.norm")], 3)
+df_ag_adt$cluster=factor(my.km.p$cluster)
+df_ag_adt %>% ggvis(~AGREEABLENESS, ~preferencia.controle.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_ag_adt[,c("AGREEABLENESS", "julgamento.controle.norm")], 3)
+df_ag_adt$cluster=factor(my.km.p$cluster)
+df_ag_adt %>% ggvis(~AGREEABLENESS, ~julgamento.controle.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_ag_adt[,c("AGREEABLENESS", "preferencia.capacitacao.norm")], 3)
+df_ag_adt$cluster=factor(my.km.p$cluster)
+df_ag_adt %>% ggvis(~AGREEABLENESS, ~preferencia.capacitacao.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_ag_adt[,c("AGREEABLENESS", "julgamento.capacitacao.norm")], 3)
+df_ag_adt$cluster=factor(my.km.p$cluster)
+df_ag_adt %>% ggvis(~AGREEABLENESS, ~julgamento.capacitacao.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+rm(df_ag_adt)
+```
+
+### DETERMINATION ###
+
+```{r, echo=FALSE, warning=FALSE}
+# DETERMINATION
+my.df_determ <-
+    my.df_tests %>%
+    select(ID, PC2) %>%
+    filter(PC2 < 0) %>%
+    mutate(PC2 = abs(PC2)) %>%
+    rename(DETERMINATION = PC2)
+
+# linkando com ID de ADT
+df_dt_adt <- inner_join(my.df_determ, my.df_tests[,c("ID",
+                        "preferencia.diretiva.norm", 
+                        "preferencia.consultiva.norm", "preferencia.consensual.norm",
+                        "preferencia.delegatoria.norm", "julgamento.diretivo.norm",
+                        "julgamento.consultivo.norm", "julgamento.consensual.norm",
+                        "julgamento.delegatorio.norm", "julgamento.geral.norm",
+                        "julgamento.diretivo.nao.assistido.norm", "julgamento.diretivo.pesquisado.norm",
+                        "julgamento.consultivo.individual.norm","julgamento.consultivo.em.grupo.norm",
+                        "julgamento.consensual.presidido.norm", "julgamento.consensual.como.membro.da.equipe.norm",
+                        "julgamento.delegatorio.informado.norm", "julgamento.delegatorio.balistico.norm",
+                        "preferencia.tarefa.norm", "julgamento.tarefa.norm",
+                        "preferencia.envolvimento.norm", "julgamento.envolvimento.norm",
+                        "preferencia.controle.norm", "julgamento.controle.norm",
+                        "preferencia.capacitacao.norm", "julgamento.capacitacao.norm"
+                                                   )], by = "ID")
+# plot de correlacoes
+my.cor <- cor(df_dt_adt[,-1])
+par(cex=.4)
+corrplot.mixed(my.cor, insig = "p-value", sig.level = -1, is.corr = TRUE)
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# R SQUARED
+my.lm <- lm(DETERMINATION ~ preferencia.diretiva.norm + 
+                        preferencia.consultiva.norm + preferencia.consensual.norm +
+                        preferencia.delegatoria.norm + julgamento.diretivo.norm +
+                        julgamento.consultivo.norm + julgamento.consensual.norm +
+                        julgamento.delegatorio.norm + julgamento.geral.norm +
+                        julgamento.diretivo.nao.assistido.norm + julgamento.diretivo.pesquisado.norm +
+                        julgamento.consultivo.individual.norm +julgamento.consultivo.em.grupo.norm +
+                        julgamento.consensual.presidido.norm + julgamento.consensual.como.membro.da.equipe.norm +
+                        julgamento.delegatorio.informado.norm + julgamento.delegatorio.balistico.norm +
+                        preferencia.tarefa.norm + julgamento.tarefa.norm +
+                        preferencia.envolvimento.norm + julgamento.envolvimento.norm +
+                        preferencia.controle.norm + julgamento.controle.norm +
+                        preferencia.capacitacao.norm + julgamento.capacitacao.norm, df_dt_adt)
+#sprinttf ("R Squared: %f",summary(my.lm)$r.squared)
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# clusters
+my.km.a <- kmeans(df_dt_adt[,c("DETERMINATION", "preferencia.diretiva.norm")], 3)
+df_dt_adt$cluster=factor(my.km.a$cluster)
+
+df_dt_adt %>% ggvis(~DETERMINATION, ~preferencia.diretiva.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.b <- kmeans(df_dt_adt[,c("DETERMINATION", "preferencia.consultiva.norm")], 3)
+df_dt_adt$cluster=factor(my.km.b$cluster)
+df_dt_adt %>% ggvis(~DETERMINATION, ~preferencia.consultiva.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.c <- kmeans(df_dt_adt[,c("DETERMINATION", "preferencia.consensual.norm")], 3)
+df_dt_adt$cluster=factor(my.km.c$cluster)
+df_dt_adt %>% ggvis(~DETERMINATION, ~preferencia.consensual.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.d <- kmeans(df_dt_adt[,c("DETERMINATION", "preferencia.delegatoria.norm")], 3)
+df_dt_adt$cluster=factor(my.km.d$cluster)
+df_dt_adt %>% ggvis(~DETERMINATION, ~preferencia.delegatoria.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.e <- kmeans(df_dt_adt[,c("DETERMINATION", "julgamento.diretivo.norm")], 3)
+df_dt_adt$cluster=factor(my.km.e$cluster)
+df_dt_adt %>% ggvis(~DETERMINATION, ~julgamento.diretivo.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.f <- kmeans(df_dt_adt[,c("DETERMINATION", "julgamento.consultivo.norm")], 3)
+df_dt_adt$cluster=factor(my.km.f$cluster)
+df_dt_adt %>% ggvis(~DETERMINATION, ~julgamento.consultivo.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.g <- kmeans(df_dt_adt[,c("DETERMINATION", "julgamento.consensual.norm")], 3)
+df_dt_adt$cluster=factor(my.km.g$cluster)
+df_dt_adt %>% ggvis(~DETERMINATION, ~julgamento.consensual.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.h <- kmeans(df_dt_adt[,c("DETERMINATION", "julgamento.delegatorio.norm")], 3)
+df_dt_adt$cluster=factor(my.km.h$cluster)
+df_dt_adt %>% ggvis(~DETERMINATION, ~julgamento.delegatorio.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.i <- kmeans(df_dt_adt[,c("DETERMINATION", "julgamento.geral.norm")], 3)
+df_dt_adt$cluster=factor(my.km.i$cluster)
+df_dt_adt %>% ggvis(~DETERMINATION, ~julgamento.geral.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.j <- kmeans(df_dt_adt[,c("DETERMINATION", "julgamento.diretivo.nao.assistido.norm")], 3)
+df_dt_adt$cluster=factor(my.km.j$cluster)
+df_dt_adt %>% ggvis(~DETERMINATION, ~julgamento.diretivo.nao.assistido.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.k <- kmeans(df_dt_adt[,c("DETERMINATION", "julgamento.diretivo.pesquisado.norm")], 3)
+df_dt_adt$cluster=factor(my.km.k$cluster)
+df_dt_adt %>% ggvis(~DETERMINATION, ~julgamento.diretivo.pesquisado.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.l <- kmeans(df_dt_adt[,c("DETERMINATION", "julgamento.consultivo.individual.norm")], 3)
+df_dt_adt$cluster=factor(my.km.l$cluster)
+df_dt_adt %>% ggvis(~DETERMINATION, ~julgamento.consultivo.individual.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.m <- kmeans(df_dt_adt[,c("DETERMINATION", "julgamento.consultivo.em.grupo.norm")], 3)
+df_dt_adt$cluster=factor(my.km.m$cluster)
+df_dt_adt %>% ggvis(~DETERMINATION, ~julgamento.consultivo.em.grupo.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.n <- kmeans(df_dt_adt[,c("DETERMINATION", "julgamento.consensual.presidido.norm")], 3)
+df_dt_adt$cluster=factor(my.km.n$cluster)
+df_dt_adt %>% ggvis(~DETERMINATION, ~julgamento.consensual.presidido.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.o <- kmeans(df_dt_adt[,c("DETERMINATION", "julgamento.consensual.como.membro.da.equipe.norm")], 3)
+df_dt_adt$cluster=factor(my.km.o$cluster)
+df_dt_adt %>% ggvis(~DETERMINATION, ~julgamento.consensual.como.membro.da.equipe.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_dt_adt[,c("DETERMINATION", "julgamento.delegatorio.informado.norm")], 3)
+df_dt_adt$cluster=factor(my.km.p$cluster)
+df_dt_adt %>% ggvis(~DETERMINATION, ~julgamento.delegatorio.informado.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_dt_adt[,c("DETERMINATION", "julgamento.delegatorio.balistico.norm")], 3)
+df_dt_adt$cluster=factor(my.km.p$cluster)
+df_dt_adt %>% ggvis(~DETERMINATION, ~julgamento.delegatorio.balistico.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_dt_adt[,c("DETERMINATION", "preferencia.tarefa.norm")], 3)
+df_dt_adt$cluster=factor(my.km.p$cluster)
+df_dt_adt %>% ggvis(~DETERMINATION, ~preferencia.tarefa.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_dt_adt[,c("DETERMINATION", "julgamento.tarefa.norm")], 3)
+df_dt_adt$cluster=factor(my.km.p$cluster)
+df_dt_adt %>% ggvis(~DETERMINATION, ~julgamento.tarefa.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_dt_adt[,c("DETERMINATION", "preferencia.envolvimento.norm")], 3)
+df_dt_adt$cluster=factor(my.km.p$cluster)
+df_dt_adt %>% ggvis(~DETERMINATION, ~preferencia.envolvimento.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_dt_adt[,c("DETERMINATION", "julgamento.envolvimento.norm")], 3)
+df_dt_adt$cluster=factor(my.km.p$cluster)
+df_dt_adt %>% ggvis(~DETERMINATION, ~julgamento.envolvimento.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_dt_adt[,c("DETERMINATION", "preferencia.controle.norm")], 3)
+df_dt_adt$cluster=factor(my.km.p$cluster)
+df_dt_adt %>% ggvis(~DETERMINATION, ~preferencia.controle.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_dt_adt[,c("DETERMINATION", "julgamento.controle.norm")], 3)
+df_dt_adt$cluster=factor(my.km.p$cluster)
+df_dt_adt %>% ggvis(~DETERMINATION, ~julgamento.controle.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_dt_adt[,c("DETERMINATION", "preferencia.capacitacao.norm")], 3)
+df_dt_adt$cluster=factor(my.km.p$cluster)
+df_dt_adt %>% ggvis(~DETERMINATION, ~preferencia.capacitacao.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_dt_adt[,c("DETERMINATION", "julgamento.capacitacao.norm")], 3)
+df_dt_adt$cluster=factor(my.km.p$cluster)
+df_dt_adt %>% ggvis(~DETERMINATION, ~julgamento.capacitacao.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+rm(df_dt_adt)
+```
+
+### LONG TERM VISION ###
+
+```{r, echo=FALSE, warning=FALSE}
+# LONG TERM VISION
+my.df_longterm <-
+    my.df_tests %>%
+    select(ID, PC3) %>%
+    filter(PC3 >= 0) %>%
+    rename(LONG.TERM.VISION = PC3) 
+
+# linkando com ID de ADT
+df_lt_adt <- inner_join(my.df_longterm, my.df_tests[,c("ID",
+                        "preferencia.diretiva.norm", 
+                        "preferencia.consultiva.norm", "preferencia.consensual.norm",
+                        "preferencia.delegatoria.norm", "julgamento.diretivo.norm",
+                        "julgamento.consultivo.norm", "julgamento.consensual.norm",
+                        "julgamento.delegatorio.norm", "julgamento.geral.norm",
+                        "julgamento.diretivo.nao.assistido.norm", "julgamento.diretivo.pesquisado.norm",
+                        "julgamento.consultivo.individual.norm","julgamento.consultivo.em.grupo.norm",
+                        "julgamento.consensual.presidido.norm", "julgamento.consensual.como.membro.da.equipe.norm",
+                        "julgamento.delegatorio.informado.norm", "julgamento.delegatorio.balistico.norm",
+                        "preferencia.tarefa.norm", "julgamento.tarefa.norm",
+                        "preferencia.envolvimento.norm", "julgamento.envolvimento.norm",
+                        "preferencia.controle.norm", "julgamento.controle.norm",
+                        "preferencia.capacitacao.norm", "julgamento.capacitacao.norm"
+                                                   )], by = "ID")
+# plot de correlacoes
+my.cor <- cor(df_lt_adt[,-1])
+par(cex=.4)
+corrplot.mixed(my.cor, insig = "p-value", sig.level = -1, is.corr = TRUE)
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# R SQUARED
+my.lm <- lm(LONG.TERM.VISION ~ preferencia.diretiva.norm + 
+                        preferencia.consultiva.norm + preferencia.consensual.norm +
+                        preferencia.delegatoria.norm + julgamento.diretivo.norm +
+                        julgamento.consultivo.norm + julgamento.consensual.norm +
+                        julgamento.delegatorio.norm + julgamento.geral.norm +
+                        julgamento.diretivo.nao.assistido.norm + julgamento.diretivo.pesquisado.norm +
+                        julgamento.consultivo.individual.norm +julgamento.consultivo.em.grupo.norm +
+                        julgamento.consensual.presidido.norm + julgamento.consensual.como.membro.da.equipe.norm +
+                        julgamento.delegatorio.informado.norm + julgamento.delegatorio.balistico.norm +
+                        preferencia.tarefa.norm + julgamento.tarefa.norm +
+                        preferencia.envolvimento.norm + julgamento.envolvimento.norm +
+                        preferencia.controle.norm + julgamento.controle.norm +
+                        preferencia.capacitacao.norm + julgamento.capacitacao.norm, df_lt_adt)
+#sprinttf ("R Squared: %f",summary(my.lm)$r.squared)
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# clusters
+my.km.a <- kmeans(df_lt_adt[,c("LONG.TERM.VISION", "preferencia.diretiva.norm")], 3)
+df_lt_adt$cluster=factor(my.km.a$cluster)
+
+df_lt_adt %>% ggvis(~LONG.TERM.VISION, ~preferencia.diretiva.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.b <- kmeans(df_lt_adt[,c("LONG.TERM.VISION", "preferencia.consultiva.norm")], 3)
+df_lt_adt$cluster=factor(my.km.b$cluster)
+df_lt_adt %>% ggvis(~LONG.TERM.VISION, ~preferencia.consultiva.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.c <- kmeans(df_lt_adt[,c("LONG.TERM.VISION", "preferencia.consensual.norm")], 3)
+df_lt_adt$cluster=factor(my.km.c$cluster)
+df_lt_adt %>% ggvis(~LONG.TERM.VISION, ~preferencia.consensual.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.d <- kmeans(df_lt_adt[,c("LONG.TERM.VISION", "preferencia.delegatoria.norm")], 3)
+df_lt_adt$cluster=factor(my.km.d$cluster)
+df_lt_adt %>% ggvis(~LONG.TERM.VISION, ~preferencia.delegatoria.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.e <- kmeans(df_lt_adt[,c("LONG.TERM.VISION", "julgamento.diretivo.norm")], 3)
+df_lt_adt$cluster=factor(my.km.e$cluster)
+df_lt_adt %>% ggvis(~LONG.TERM.VISION, ~julgamento.diretivo.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.f <- kmeans(df_lt_adt[,c("LONG.TERM.VISION", "julgamento.consultivo.norm")], 3)
+df_lt_adt$cluster=factor(my.km.f$cluster)
+df_lt_adt %>% ggvis(~LONG.TERM.VISION, ~julgamento.consultivo.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.g <- kmeans(df_lt_adt[,c("LONG.TERM.VISION", "julgamento.consensual.norm")], 3)
+df_lt_adt$cluster=factor(my.km.g$cluster)
+df_lt_adt %>% ggvis(~LONG.TERM.VISION, ~julgamento.consensual.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.h <- kmeans(df_lt_adt[,c("LONG.TERM.VISION", "julgamento.delegatorio.norm")], 3)
+df_lt_adt$cluster=factor(my.km.h$cluster)
+df_lt_adt %>% ggvis(~LONG.TERM.VISION, ~julgamento.delegatorio.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.i <- kmeans(df_lt_adt[,c("LONG.TERM.VISION", "julgamento.geral.norm")], 3)
+df_lt_adt$cluster=factor(my.km.i$cluster)
+df_lt_adt %>% ggvis(~LONG.TERM.VISION, ~julgamento.geral.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.j <- kmeans(df_lt_adt[,c("LONG.TERM.VISION", "julgamento.diretivo.nao.assistido.norm")], 3)
+df_lt_adt$cluster=factor(my.km.j$cluster)
+df_lt_adt %>% ggvis(~LONG.TERM.VISION, ~julgamento.diretivo.nao.assistido.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.k <- kmeans(df_lt_adt[,c("LONG.TERM.VISION", "julgamento.diretivo.pesquisado.norm")], 3)
+df_lt_adt$cluster=factor(my.km.k$cluster)
+df_lt_adt %>% ggvis(~LONG.TERM.VISION, ~julgamento.diretivo.pesquisado.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.l <- kmeans(df_lt_adt[,c("LONG.TERM.VISION", "julgamento.consultivo.individual.norm")], 3)
+df_lt_adt$cluster=factor(my.km.l$cluster)
+df_lt_adt %>% ggvis(~LONG.TERM.VISION, ~julgamento.consultivo.individual.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.m <- kmeans(df_lt_adt[,c("LONG.TERM.VISION", "julgamento.consultivo.em.grupo.norm")], 3)
+df_lt_adt$cluster=factor(my.km.m$cluster)
+df_lt_adt %>% ggvis(~LONG.TERM.VISION, ~julgamento.consultivo.em.grupo.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.n <- kmeans(df_lt_adt[,c("LONG.TERM.VISION", "julgamento.consensual.presidido.norm")], 3)
+df_lt_adt$cluster=factor(my.km.n$cluster)
+df_lt_adt %>% ggvis(~LONG.TERM.VISION, ~julgamento.consensual.presidido.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.o <- kmeans(df_lt_adt[,c("LONG.TERM.VISION", "julgamento.consensual.como.membro.da.equipe.norm")], 3)
+df_lt_adt$cluster=factor(my.km.o$cluster)
+df_lt_adt %>% ggvis(~LONG.TERM.VISION, ~julgamento.consensual.como.membro.da.equipe.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_lt_adt[,c("LONG.TERM.VISION", "julgamento.delegatorio.informado.norm")], 3)
+df_lt_adt$cluster=factor(my.km.p$cluster)
+df_lt_adt %>% ggvis(~LONG.TERM.VISION, ~julgamento.delegatorio.informado.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_lt_adt[,c("LONG.TERM.VISION", "julgamento.delegatorio.balistico.norm")], 3)
+df_lt_adt$cluster=factor(my.km.p$cluster)
+df_lt_adt %>% ggvis(~LONG.TERM.VISION, ~julgamento.delegatorio.balistico.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_lt_adt[,c("LONG.TERM.VISION", "preferencia.tarefa.norm")], 3)
+df_lt_adt$cluster=factor(my.km.p$cluster)
+df_lt_adt %>% ggvis(~LONG.TERM.VISION, ~preferencia.tarefa.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_lt_adt[,c("LONG.TERM.VISION", "julgamento.tarefa.norm")], 3)
+df_lt_adt$cluster=factor(my.km.p$cluster)
+df_lt_adt %>% ggvis(~LONG.TERM.VISION, ~julgamento.tarefa.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_lt_adt[,c("LONG.TERM.VISION", "preferencia.envolvimento.norm")], 3)
+df_lt_adt$cluster=factor(my.km.p$cluster)
+df_lt_adt %>% ggvis(~LONG.TERM.VISION, ~preferencia.envolvimento.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_lt_adt[,c("LONG.TERM.VISION", "julgamento.envolvimento.norm")], 3)
+df_lt_adt$cluster=factor(my.km.p$cluster)
+df_lt_adt %>% ggvis(~LONG.TERM.VISION, ~julgamento.envolvimento.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_lt_adt[,c("LONG.TERM.VISION", "preferencia.controle.norm")], 3)
+df_lt_adt$cluster=factor(my.km.p$cluster)
+df_lt_adt %>% ggvis(~LONG.TERM.VISION, ~preferencia.controle.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_lt_adt[,c("LONG.TERM.VISION", "julgamento.controle.norm")], 3)
+df_lt_adt$cluster=factor(my.km.p$cluster)
+df_lt_adt %>% ggvis(~LONG.TERM.VISION, ~julgamento.controle.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_lt_adt[,c("LONG.TERM.VISION", "preferencia.capacitacao.norm")], 3)
+df_lt_adt$cluster=factor(my.km.p$cluster)
+df_lt_adt %>% ggvis(~LONG.TERM.VISION, ~preferencia.capacitacao.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_lt_adt[,c("LONG.TERM.VISION", "julgamento.capacitacao.norm")], 3)
+df_lt_adt$cluster=factor(my.km.p$cluster)
+df_lt_adt %>% ggvis(~LONG.TERM.VISION, ~julgamento.capacitacao.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+rm(df_lt_adt)
+```
+
+### COMMITMENT ###
+
+```{r, echo=FALSE, warning=FALSE}
+# COMMITMENT
+my.df_commit <-
+    my.df_tests %>%
+    select(ID, PC3) %>%
+    filter(PC3 < 0) %>%
+    mutate(PC3 = abs(PC3)) %>%
+    rename(COMMITMENT = PC3)
+
+# linkando com ID de ADT
+df_cm_adt <- inner_join(my.df_commit, my.df_tests[,c("ID",
+                        "preferencia.diretiva.norm", 
+                        "preferencia.consultiva.norm", "preferencia.consensual.norm",
+                        "preferencia.delegatoria.norm", "julgamento.diretivo.norm",
+                        "julgamento.consultivo.norm", "julgamento.consensual.norm",
+                        "julgamento.delegatorio.norm", "julgamento.geral.norm",
+                        "julgamento.diretivo.nao.assistido.norm", "julgamento.diretivo.pesquisado.norm",
+                        "julgamento.consultivo.individual.norm","julgamento.consultivo.em.grupo.norm",
+                        "julgamento.consensual.presidido.norm", "julgamento.consensual.como.membro.da.equipe.norm",
+                        "julgamento.delegatorio.informado.norm", "julgamento.delegatorio.balistico.norm",
+                        "preferencia.tarefa.norm", "julgamento.tarefa.norm",
+                        "preferencia.envolvimento.norm", "julgamento.envolvimento.norm",
+                        "preferencia.controle.norm", "julgamento.controle.norm",
+                        "preferencia.capacitacao.norm", "julgamento.capacitacao.norm"
+                                                   )], by = "ID")
+# plot de correlacoes
+my.cor <- cor(df_cm_adt[,-1])
+par(cex=.4)
+corrplot.mixed(my.cor, insig = "p-value", sig.level = -1, is.corr = TRUE)
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# R SQUARED
+my.lm <- lm(COMMITMENT ~ preferencia.diretiva.norm + 
+                        preferencia.consultiva.norm + preferencia.consensual.norm +
+                        preferencia.delegatoria.norm + julgamento.diretivo.norm +
+                        julgamento.consultivo.norm + julgamento.consensual.norm +
+                        julgamento.delegatorio.norm + julgamento.geral.norm +
+                        julgamento.diretivo.nao.assistido.norm + julgamento.diretivo.pesquisado.norm +
+                        julgamento.consultivo.individual.norm +julgamento.consultivo.em.grupo.norm +
+                        julgamento.consensual.presidido.norm + julgamento.consensual.como.membro.da.equipe.norm +
+                        julgamento.delegatorio.informado.norm + julgamento.delegatorio.balistico.norm +
+                        preferencia.tarefa.norm + julgamento.tarefa.norm +
+                        preferencia.envolvimento.norm + julgamento.envolvimento.norm +
+                        preferencia.controle.norm + julgamento.controle.norm +
+                        preferencia.capacitacao.norm + julgamento.capacitacao.norm, df_cm_adt)
+#sprinttf ("R Squared: %f",summary(my.lm)$r.squared)
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# clusters
+my.km.a <- kmeans(df_cm_adt[,c("COMMITMENT", "preferencia.diretiva.norm")], 3)
+df_cm_adt$cluster=factor(my.km.a$cluster)
+
+df_cm_adt %>% ggvis(~COMMITMENT, ~preferencia.diretiva.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.b <- kmeans(df_cm_adt[,c("COMMITMENT", "preferencia.consultiva.norm")], 3)
+df_cm_adt$cluster=factor(my.km.b$cluster)
+df_cm_adt %>% ggvis(~COMMITMENT, ~preferencia.consultiva.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.c <- kmeans(df_cm_adt[,c("COMMITMENT", "preferencia.consensual.norm")], 3)
+df_cm_adt$cluster=factor(my.km.c$cluster)
+df_cm_adt %>% ggvis(~COMMITMENT, ~preferencia.consensual.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.d <- kmeans(df_cm_adt[,c("COMMITMENT", "preferencia.delegatoria.norm")], 3)
+df_cm_adt$cluster=factor(my.km.d$cluster)
+df_cm_adt %>% ggvis(~COMMITMENT, ~preferencia.delegatoria.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.e <- kmeans(df_cm_adt[,c("COMMITMENT", "julgamento.diretivo.norm")], 3)
+df_cm_adt$cluster=factor(my.km.e$cluster)
+df_cm_adt %>% ggvis(~COMMITMENT, ~julgamento.diretivo.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.f <- kmeans(df_cm_adt[,c("COMMITMENT", "julgamento.consultivo.norm")], 3)
+df_cm_adt$cluster=factor(my.km.f$cluster)
+df_cm_adt %>% ggvis(~COMMITMENT, ~julgamento.consultivo.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.g <- kmeans(df_cm_adt[,c("COMMITMENT", "julgamento.consensual.norm")], 3)
+df_cm_adt$cluster=factor(my.km.g$cluster)
+df_cm_adt %>% ggvis(~COMMITMENT, ~julgamento.consensual.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.h <- kmeans(df_cm_adt[,c("COMMITMENT", "julgamento.delegatorio.norm")], 3)
+df_cm_adt$cluster=factor(my.km.h$cluster)
+df_cm_adt %>% ggvis(~COMMITMENT, ~julgamento.delegatorio.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.i <- kmeans(df_cm_adt[,c("COMMITMENT", "julgamento.geral.norm")], 3)
+df_cm_adt$cluster=factor(my.km.i$cluster)
+df_cm_adt %>% ggvis(~COMMITMENT, ~julgamento.geral.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.j <- kmeans(df_cm_adt[,c("COMMITMENT", "julgamento.diretivo.nao.assistido.norm")], 3)
+df_cm_adt$cluster=factor(my.km.j$cluster)
+df_cm_adt %>% ggvis(~COMMITMENT, ~julgamento.diretivo.nao.assistido.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.k <- kmeans(df_cm_adt[,c("COMMITMENT", "julgamento.diretivo.pesquisado.norm")], 3)
+df_cm_adt$cluster=factor(my.km.k$cluster)
+df_cm_adt %>% ggvis(~COMMITMENT, ~julgamento.diretivo.pesquisado.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.l <- kmeans(df_cm_adt[,c("COMMITMENT", "julgamento.consultivo.individual.norm")], 3)
+df_cm_adt$cluster=factor(my.km.l$cluster)
+df_cm_adt %>% ggvis(~COMMITMENT, ~julgamento.consultivo.individual.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.m <- kmeans(df_cm_adt[,c("COMMITMENT", "julgamento.consultivo.em.grupo.norm")], 3)
+df_cm_adt$cluster=factor(my.km.m$cluster)
+df_cm_adt %>% ggvis(~COMMITMENT, ~julgamento.consultivo.em.grupo.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.n <- kmeans(df_cm_adt[,c("COMMITMENT", "julgamento.consensual.presidido.norm")], 3)
+df_cm_adt$cluster=factor(my.km.n$cluster)
+df_cm_adt %>% ggvis(~COMMITMENT, ~julgamento.consensual.presidido.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.o <- kmeans(df_cm_adt[,c("COMMITMENT", "julgamento.consensual.como.membro.da.equipe.norm")], 3)
+df_cm_adt$cluster=factor(my.km.o$cluster)
+df_cm_adt %>% ggvis(~COMMITMENT, ~julgamento.consensual.como.membro.da.equipe.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_cm_adt[,c("COMMITMENT", "julgamento.delegatorio.informado.norm")], 3)
+df_cm_adt$cluster=factor(my.km.p$cluster)
+df_cm_adt %>% ggvis(~COMMITMENT, ~julgamento.delegatorio.informado.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_cm_adt[,c("COMMITMENT", "julgamento.delegatorio.balistico.norm")], 3)
+df_cm_adt$cluster=factor(my.km.p$cluster)
+df_cm_adt %>% ggvis(~COMMITMENT, ~julgamento.delegatorio.balistico.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_cm_adt[,c("COMMITMENT", "preferencia.tarefa.norm")], 3)
+df_cm_adt$cluster=factor(my.km.p$cluster)
+df_cm_adt %>% ggvis(~COMMITMENT, ~preferencia.tarefa.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_cm_adt[,c("COMMITMENT", "julgamento.tarefa.norm")], 3)
+df_cm_adt$cluster=factor(my.km.p$cluster)
+df_cm_adt %>% ggvis(~COMMITMENT, ~julgamento.tarefa.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_cm_adt[,c("COMMITMENT", "preferencia.envolvimento.norm")], 3)
+df_cm_adt$cluster=factor(my.km.p$cluster)
+df_cm_adt %>% ggvis(~COMMITMENT, ~preferencia.envolvimento.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_cm_adt[,c("COMMITMENT", "julgamento.envolvimento.norm")], 3)
+df_cm_adt$cluster=factor(my.km.p$cluster)
+df_cm_adt %>% ggvis(~COMMITMENT, ~julgamento.envolvimento.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_cm_adt[,c("COMMITMENT", "preferencia.controle.norm")], 3)
+df_cm_adt$cluster=factor(my.km.p$cluster)
+df_cm_adt %>% ggvis(~COMMITMENT, ~preferencia.controle.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_cm_adt[,c("COMMITMENT", "julgamento.controle.norm")], 3)
+df_cm_adt$cluster=factor(my.km.p$cluster)
+df_cm_adt %>% ggvis(~COMMITMENT, ~julgamento.controle.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_cm_adt[,c("COMMITMENT", "preferencia.capacitacao.norm")], 3)
+df_cm_adt$cluster=factor(my.km.p$cluster)
+df_cm_adt %>% ggvis(~COMMITMENT, ~preferencia.capacitacao.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_cm_adt[,c("COMMITMENT", "julgamento.capacitacao.norm")], 3)
+df_cm_adt$cluster=factor(my.km.p$cluster)
+df_cm_adt %>% ggvis(~COMMITMENT, ~julgamento.capacitacao.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+rm(df_cm_adt)
+```
+
+### IDEALISM ###
+
+```{r, echo=FALSE, warning=FALSE}
+# IDEALISM
+my.df_ideal <-
+    my.df_tests %>%
+    select(ID, PC4) %>%
+    filter(PC4 >= 0) %>%
+    rename(IDEALISM = PC4) 
+
+# linkando com ID de ADT
+df_id_adt <- inner_join(my.df_ideal, my.df_tests[,c("ID",
+                        "preferencia.diretiva.norm", 
+                        "preferencia.consultiva.norm", "preferencia.consensual.norm",
+                        "preferencia.delegatoria.norm", "julgamento.diretivo.norm",
+                        "julgamento.consultivo.norm", "julgamento.consensual.norm",
+                        "julgamento.delegatorio.norm", "julgamento.geral.norm",
+                        "julgamento.diretivo.nao.assistido.norm", "julgamento.diretivo.pesquisado.norm",
+                        "julgamento.consultivo.individual.norm","julgamento.consultivo.em.grupo.norm",
+                        "julgamento.consensual.presidido.norm", "julgamento.consensual.como.membro.da.equipe.norm",
+                        "julgamento.delegatorio.informado.norm", "julgamento.delegatorio.balistico.norm",
+                        "preferencia.tarefa.norm", "julgamento.tarefa.norm",
+                        "preferencia.envolvimento.norm", "julgamento.envolvimento.norm",
+                        "preferencia.controle.norm", "julgamento.controle.norm",
+                        "preferencia.capacitacao.norm", "julgamento.capacitacao.norm"
+                                                   )], by = "ID")
+# plot de correlacoes
+my.cor <- cor(df_id_adt[,-1])
+par(cex=.4)
+corrplot.mixed(my.cor, insig = "p-value", sig.level = -1, is.corr = TRUE)
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# R SQUARED
+my.lm <- lm(IDEALISM ~ preferencia.diretiva.norm + 
+                        preferencia.consultiva.norm + preferencia.consensual.norm +
+                        preferencia.delegatoria.norm + julgamento.diretivo.norm +
+                        julgamento.consultivo.norm + julgamento.consensual.norm +
+                        julgamento.delegatorio.norm + julgamento.geral.norm +
+                        julgamento.diretivo.nao.assistido.norm + julgamento.diretivo.pesquisado.norm +
+                        julgamento.consultivo.individual.norm +julgamento.consultivo.em.grupo.norm +
+                        julgamento.consensual.presidido.norm + julgamento.consensual.como.membro.da.equipe.norm +
+                        julgamento.delegatorio.informado.norm + julgamento.delegatorio.balistico.norm +
+                        preferencia.tarefa.norm + julgamento.tarefa.norm +
+                        preferencia.envolvimento.norm + julgamento.envolvimento.norm +
+                        preferencia.controle.norm + julgamento.controle.norm +
+                        preferencia.capacitacao.norm + julgamento.capacitacao.norm, df_id_adt)
+#sprinttf ("R Squared: %f",summary(my.lm)$r.squared)
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# clusters
+my.km.a <- kmeans(df_id_adt[,c("IDEALISM", "preferencia.diretiva.norm")], 3)
+df_id_adt$cluster=factor(my.km.a$cluster)
+
+df_id_adt %>% ggvis(~IDEALISM, ~preferencia.diretiva.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.b <- kmeans(df_id_adt[,c("IDEALISM", "preferencia.consultiva.norm")], 3)
+df_id_adt$cluster=factor(my.km.b$cluster)
+df_id_adt %>% ggvis(~IDEALISM, ~preferencia.consultiva.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.c <- kmeans(df_id_adt[,c("IDEALISM", "preferencia.consensual.norm")], 3)
+df_id_adt$cluster=factor(my.km.c$cluster)
+df_id_adt %>% ggvis(~IDEALISM, ~preferencia.consensual.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.d <- kmeans(df_id_adt[,c("IDEALISM", "preferencia.delegatoria.norm")], 3)
+df_id_adt$cluster=factor(my.km.d$cluster)
+df_id_adt %>% ggvis(~IDEALISM, ~preferencia.delegatoria.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.e <- kmeans(df_id_adt[,c("IDEALISM", "julgamento.diretivo.norm")], 3)
+df_id_adt$cluster=factor(my.km.e$cluster)
+df_id_adt %>% ggvis(~IDEALISM, ~julgamento.diretivo.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.f <- kmeans(df_id_adt[,c("IDEALISM", "julgamento.consultivo.norm")], 3)
+df_id_adt$cluster=factor(my.km.f$cluster)
+df_id_adt %>% ggvis(~IDEALISM, ~julgamento.consultivo.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.g <- kmeans(df_id_adt[,c("IDEALISM", "julgamento.consensual.norm")], 3)
+df_id_adt$cluster=factor(my.km.g$cluster)
+df_id_adt %>% ggvis(~IDEALISM, ~julgamento.consensual.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.h <- kmeans(df_id_adt[,c("IDEALISM", "julgamento.delegatorio.norm")], 3)
+df_id_adt$cluster=factor(my.km.h$cluster)
+df_id_adt %>% ggvis(~IDEALISM, ~julgamento.delegatorio.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.i <- kmeans(df_id_adt[,c("IDEALISM", "julgamento.geral.norm")], 3)
+df_id_adt$cluster=factor(my.km.i$cluster)
+df_id_adt %>% ggvis(~IDEALISM, ~julgamento.geral.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.j <- kmeans(df_id_adt[,c("IDEALISM", "julgamento.diretivo.nao.assistido.norm")], 3)
+df_id_adt$cluster=factor(my.km.j$cluster)
+df_id_adt %>% ggvis(~IDEALISM, ~julgamento.diretivo.nao.assistido.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.k <- kmeans(df_id_adt[,c("IDEALISM", "julgamento.diretivo.pesquisado.norm")], 3)
+df_id_adt$cluster=factor(my.km.k$cluster)
+df_id_adt %>% ggvis(~IDEALISM, ~julgamento.diretivo.pesquisado.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.l <- kmeans(df_id_adt[,c("IDEALISM", "julgamento.consultivo.individual.norm")], 3)
+df_id_adt$cluster=factor(my.km.l$cluster)
+df_id_adt %>% ggvis(~IDEALISM, ~julgamento.consultivo.individual.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.m <- kmeans(df_id_adt[,c("IDEALISM", "julgamento.consultivo.em.grupo.norm")], 3)
+df_id_adt$cluster=factor(my.km.m$cluster)
+df_id_adt %>% ggvis(~IDEALISM, ~julgamento.consultivo.em.grupo.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.n <- kmeans(df_id_adt[,c("IDEALISM", "julgamento.consensual.presidido.norm")], 3)
+df_id_adt$cluster=factor(my.km.n$cluster)
+df_id_adt %>% ggvis(~IDEALISM, ~julgamento.consensual.presidido.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.o <- kmeans(df_id_adt[,c("IDEALISM", "julgamento.consensual.como.membro.da.equipe.norm")], 3)
+df_id_adt$cluster=factor(my.km.o$cluster)
+df_id_adt %>% ggvis(~IDEALISM, ~julgamento.consensual.como.membro.da.equipe.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_id_adt[,c("IDEALISM", "julgamento.delegatorio.informado.norm")], 3)
+df_id_adt$cluster=factor(my.km.p$cluster)
+df_id_adt %>% ggvis(~IDEALISM, ~julgamento.delegatorio.informado.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_id_adt[,c("IDEALISM", "julgamento.delegatorio.balistico.norm")], 3)
+df_id_adt$cluster=factor(my.km.p$cluster)
+df_id_adt %>% ggvis(~IDEALISM, ~julgamento.delegatorio.balistico.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_id_adt[,c("IDEALISM", "preferencia.tarefa.norm")], 3)
+df_id_adt$cluster=factor(my.km.p$cluster)
+df_id_adt %>% ggvis(~IDEALISM, ~preferencia.tarefa.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_id_adt[,c("IDEALISM", "julgamento.tarefa.norm")], 3)
+df_id_adt$cluster=factor(my.km.p$cluster)
+df_id_adt %>% ggvis(~IDEALISM, ~julgamento.tarefa.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_id_adt[,c("IDEALISM", "preferencia.envolvimento.norm")], 3)
+df_id_adt$cluster=factor(my.km.p$cluster)
+df_id_adt %>% ggvis(~IDEALISM, ~preferencia.envolvimento.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_id_adt[,c("IDEALISM", "julgamento.envolvimento.norm")], 3)
+df_id_adt$cluster=factor(my.km.p$cluster)
+df_id_adt %>% ggvis(~IDEALISM, ~julgamento.envolvimento.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_id_adt[,c("IDEALISM", "preferencia.controle.norm")], 3)
+df_id_adt$cluster=factor(my.km.p$cluster)
+df_id_adt %>% ggvis(~IDEALISM, ~preferencia.controle.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_id_adt[,c("IDEALISM", "julgamento.controle.norm")], 3)
+df_id_adt$cluster=factor(my.km.p$cluster)
+df_id_adt %>% ggvis(~IDEALISM, ~julgamento.controle.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_id_adt[,c("IDEALISM", "preferencia.capacitacao.norm")], 3)
+df_id_adt$cluster=factor(my.km.p$cluster)
+df_id_adt %>% ggvis(~IDEALISM, ~preferencia.capacitacao.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_id_adt[,c("IDEALISM", "julgamento.capacitacao.norm")], 3)
+df_id_adt$cluster=factor(my.km.p$cluster)
+df_id_adt %>% ggvis(~IDEALISM, ~julgamento.capacitacao.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+    
+rm(df_id_adt)
+```
+
+### REALISM ###
+
+```{r, echo=FALSE, warning=FALSE}
+# REALISM
+my.df_realism <-
+    my.df_tests %>%
+    select(ID, PC4) %>%
+    filter(PC4 < 0) %>%
+    mutate(PC4 = abs(PC4)) %>%
+    rename(REALISM = PC4)
+
+# linkando com ID de ADT
+df_re_adt <- inner_join(my.df_realism, my.df_tests[,c("ID",
+                        "preferencia.diretiva.norm", 
+                        "preferencia.consultiva.norm", "preferencia.consensual.norm",
+                        "preferencia.delegatoria.norm", "julgamento.diretivo.norm",
+                        "julgamento.consultivo.norm", "julgamento.consensual.norm",
+                        "julgamento.delegatorio.norm", "julgamento.geral.norm",
+                        "julgamento.diretivo.nao.assistido.norm", "julgamento.diretivo.pesquisado.norm",
+                        "julgamento.consultivo.individual.norm","julgamento.consultivo.em.grupo.norm",
+                        "julgamento.consensual.presidido.norm", "julgamento.consensual.como.membro.da.equipe.norm",
+                        "julgamento.delegatorio.informado.norm", "julgamento.delegatorio.balistico.norm",
+                        "preferencia.tarefa.norm", "julgamento.tarefa.norm",
+                        "preferencia.envolvimento.norm", "julgamento.envolvimento.norm",
+                        "preferencia.controle.norm", "julgamento.controle.norm",
+                        "preferencia.capacitacao.norm", "julgamento.capacitacao.norm"
+                                                   )], by = "ID")
+# plot de correlacoes
+my.cor <- cor(df_re_adt[,-1])
+par(cex=.4)
+corrplot.mixed(my.cor, insig = "p-value", sig.level = -1, is.corr = TRUE)
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# R SQUARED
+my.lm <- lm(REALISM ~ preferencia.diretiva.norm + 
+                        preferencia.consultiva.norm + preferencia.consensual.norm +
+                        preferencia.delegatoria.norm + julgamento.diretivo.norm +
+                        julgamento.consultivo.norm + julgamento.consensual.norm +
+                        julgamento.delegatorio.norm + julgamento.geral.norm +
+                        julgamento.diretivo.nao.assistido.norm + julgamento.diretivo.pesquisado.norm +
+                        julgamento.consultivo.individual.norm +julgamento.consultivo.em.grupo.norm +
+                        julgamento.consensual.presidido.norm + julgamento.consensual.como.membro.da.equipe.norm +
+                        julgamento.delegatorio.informado.norm + julgamento.delegatorio.balistico.norm +
+                        preferencia.tarefa.norm + julgamento.tarefa.norm +
+                        preferencia.envolvimento.norm + julgamento.envolvimento.norm +
+                        preferencia.controle.norm + julgamento.controle.norm +
+                        preferencia.capacitacao.norm + julgamento.capacitacao.norm, df_re_adt)
+#sprinttf ("R Squared: %f",summary(my.lm)$r.squared)
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# clusters
+my.km.a <- kmeans(df_re_adt[,c("REALISM", "preferencia.diretiva.norm")], 3)
+df_re_adt$cluster=factor(my.km.a$cluster)
+
+df_re_adt %>% ggvis(~REALISM, ~preferencia.diretiva.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.b <- kmeans(df_re_adt[,c("REALISM", "preferencia.consultiva.norm")], 3)
+df_re_adt$cluster=factor(my.km.b$cluster)
+df_re_adt %>% ggvis(~REALISM, ~preferencia.consultiva.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.c <- kmeans(df_re_adt[,c("REALISM", "preferencia.consensual.norm")], 3)
+df_re_adt$cluster=factor(my.km.c$cluster)
+df_re_adt %>% ggvis(~REALISM, ~preferencia.consensual.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.d <- kmeans(df_re_adt[,c("REALISM", "preferencia.delegatoria.norm")], 3)
+df_re_adt$cluster=factor(my.km.d$cluster)
+df_re_adt %>% ggvis(~REALISM, ~preferencia.delegatoria.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.e <- kmeans(df_re_adt[,c("REALISM", "julgamento.diretivo.norm")], 3)
+df_re_adt$cluster=factor(my.km.e$cluster)
+df_re_adt %>% ggvis(~REALISM, ~julgamento.diretivo.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.f <- kmeans(df_re_adt[,c("REALISM", "julgamento.consultivo.norm")], 3)
+df_re_adt$cluster=factor(my.km.f$cluster)
+df_re_adt %>% ggvis(~REALISM, ~julgamento.consultivo.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.g <- kmeans(df_re_adt[,c("REALISM", "julgamento.consensual.norm")], 3)
+df_re_adt$cluster=factor(my.km.g$cluster)
+df_re_adt %>% ggvis(~REALISM, ~julgamento.consensual.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.h <- kmeans(df_re_adt[,c("REALISM", "julgamento.delegatorio.norm")], 3)
+df_re_adt$cluster=factor(my.km.h$cluster)
+df_re_adt %>% ggvis(~REALISM, ~julgamento.delegatorio.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.i <- kmeans(df_re_adt[,c("REALISM", "julgamento.geral.norm")], 3)
+df_re_adt$cluster=factor(my.km.i$cluster)
+df_re_adt %>% ggvis(~REALISM, ~julgamento.geral.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.j <- kmeans(df_re_adt[,c("REALISM", "julgamento.diretivo.nao.assistido.norm")], 3)
+df_re_adt$cluster=factor(my.km.j$cluster)
+df_re_adt %>% ggvis(~REALISM, ~julgamento.diretivo.nao.assistido.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.k <- kmeans(df_re_adt[,c("REALISM", "julgamento.diretivo.pesquisado.norm")], 3)
+df_re_adt$cluster=factor(my.km.k$cluster)
+df_re_adt %>% ggvis(~REALISM, ~julgamento.diretivo.pesquisado.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.l <- kmeans(df_re_adt[,c("REALISM", "julgamento.consultivo.individual.norm")], 3)
+df_re_adt$cluster=factor(my.km.l$cluster)
+df_re_adt %>% ggvis(~REALISM, ~julgamento.consultivo.individual.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.m <- kmeans(df_re_adt[,c("REALISM", "julgamento.consultivo.em.grupo.norm")], 3)
+df_re_adt$cluster=factor(my.km.m$cluster)
+df_re_adt %>% ggvis(~REALISM, ~julgamento.consultivo.em.grupo.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.n <- kmeans(df_re_adt[,c("REALISM", "julgamento.consensual.presidido.norm")], 3)
+df_re_adt$cluster=factor(my.km.n$cluster)
+df_re_adt %>% ggvis(~REALISM, ~julgamento.consensual.presidido.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.o <- kmeans(df_re_adt[,c("REALISM", "julgamento.consensual.como.membro.da.equipe.norm")], 3)
+df_re_adt$cluster=factor(my.km.o$cluster)
+df_re_adt %>% ggvis(~REALISM, ~julgamento.consensual.como.membro.da.equipe.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_re_adt[,c("REALISM", "julgamento.delegatorio.informado.norm")], 3)
+df_re_adt$cluster=factor(my.km.p$cluster)
+df_re_adt %>% ggvis(~REALISM, ~julgamento.delegatorio.informado.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_re_adt[,c("REALISM", "julgamento.delegatorio.balistico.norm")], 3)
+df_re_adt$cluster=factor(my.km.p$cluster)
+df_re_adt %>% ggvis(~REALISM, ~julgamento.delegatorio.balistico.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_re_adt[,c("REALISM", "preferencia.tarefa.norm")], 3)
+df_re_adt$cluster=factor(my.km.p$cluster)
+df_re_adt %>% ggvis(~REALISM, ~preferencia.tarefa.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_re_adt[,c("REALISM", "julgamento.tarefa.norm")], 3)
+df_re_adt$cluster=factor(my.km.p$cluster)
+df_re_adt %>% ggvis(~REALISM, ~julgamento.tarefa.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_re_adt[,c("REALISM", "preferencia.envolvimento.norm")], 3)
+df_re_adt$cluster=factor(my.km.p$cluster)
+df_re_adt %>% ggvis(~REALISM, ~preferencia.envolvimento.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_re_adt[,c("REALISM", "julgamento.envolvimento.norm")], 3)
+df_re_adt$cluster=factor(my.km.p$cluster)
+df_re_adt %>% ggvis(~REALISM, ~julgamento.envolvimento.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_re_adt[,c("REALISM", "preferencia.controle.norm")], 3)
+df_re_adt$cluster=factor(my.km.p$cluster)
+df_re_adt %>% ggvis(~REALISM, ~preferencia.controle.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_re_adt[,c("REALISM", "julgamento.controle.norm")], 3)
+df_re_adt$cluster=factor(my.km.p$cluster)
+df_re_adt %>% ggvis(~REALISM, ~julgamento.controle.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_re_adt[,c("REALISM", "preferencia.capacitacao.norm")], 3)
+df_re_adt$cluster=factor(my.km.p$cluster)
+df_re_adt %>% ggvis(~REALISM, ~preferencia.capacitacao.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_re_adt[,c("REALISM", "julgamento.capacitacao.norm")], 3)
+df_re_adt$cluster=factor(my.km.p$cluster)
+df_re_adt %>% ggvis(~REALISM, ~julgamento.capacitacao.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+rm(df_re_adt)
+```
+
+### EXTROVERSION ###
+
+```{r, echo=FALSE, warning=FALSE}
+# EXTROVERSION
+my.df_extrov <-
+    my.df_tests %>%
+    select(ID, PC5) %>%
+    filter(PC5 >= 0) %>%
+    rename(EXTROVERSION = PC5)
+
+# linkando com ID de ADT
+df_ex_adt <- inner_join(my.df_extrov, my.df_tests[,c("ID",
+                        "preferencia.diretiva.norm", 
+                        "preferencia.consultiva.norm", "preferencia.consensual.norm",
+                        "preferencia.delegatoria.norm", "julgamento.diretivo.norm",
+                        "julgamento.consultivo.norm", "julgamento.consensual.norm",
+                        "julgamento.delegatorio.norm", "julgamento.geral.norm",
+                        "julgamento.diretivo.nao.assistido.norm", "julgamento.diretivo.pesquisado.norm",
+                        "julgamento.consultivo.individual.norm","julgamento.consultivo.em.grupo.norm",
+                        "julgamento.consensual.presidido.norm", "julgamento.consensual.como.membro.da.equipe.norm",
+                        "julgamento.delegatorio.informado.norm", "julgamento.delegatorio.balistico.norm",
+                        "preferencia.tarefa.norm", "julgamento.tarefa.norm",
+                        "preferencia.envolvimento.norm", "julgamento.envolvimento.norm",
+                        "preferencia.controle.norm", "julgamento.controle.norm",
+                        "preferencia.capacitacao.norm", "julgamento.capacitacao.norm"
+                                                   )], by = "ID")
+# plot de correlacoes
+my.cor <- cor(df_ex_adt[,-1])
+par(cex=.4)
+corrplot.mixed(my.cor, insig = "p-value", sig.level = -1, is.corr = TRUE)
+
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# R SQUARED
+my.lm <- lm(EXTROVERSION ~ preferencia.diretiva.norm + 
+                        preferencia.consultiva.norm + preferencia.consensual.norm +
+                        preferencia.delegatoria.norm + julgamento.diretivo.norm +
+                        julgamento.consultivo.norm + julgamento.consensual.norm +
+                        julgamento.delegatorio.norm + julgamento.geral.norm +
+                        julgamento.diretivo.nao.assistido.norm + julgamento.diretivo.pesquisado.norm +
+                        julgamento.consultivo.individual.norm +julgamento.consultivo.em.grupo.norm +
+                        julgamento.consensual.presidido.norm + julgamento.consensual.como.membro.da.equipe.norm +
+                        julgamento.delegatorio.informado.norm + julgamento.delegatorio.balistico.norm +
+                        preferencia.tarefa.norm + julgamento.tarefa.norm +
+                        preferencia.envolvimento.norm + julgamento.envolvimento.norm +
+                        preferencia.controle.norm + julgamento.controle.norm +
+                        preferencia.capacitacao.norm + julgamento.capacitacao.norm, df_ex_adt)
+#sprinttf ("R Squared: %f",summary(my.lm)$r.squared)
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# clusters
+my.km.a <- kmeans(df_ex_adt[,c("EXTROVERSION", "preferencia.diretiva.norm")], 3)
+df_ex_adt$cluster=factor(my.km.a$cluster)
+
+df_ex_adt %>% ggvis(~EXTROVERSION, ~preferencia.diretiva.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.b <- kmeans(df_ex_adt[,c("EXTROVERSION", "preferencia.consultiva.norm")], 3)
+df_ex_adt$cluster=factor(my.km.b$cluster)
+df_ex_adt %>% ggvis(~EXTROVERSION, ~preferencia.consultiva.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.c <- kmeans(df_ex_adt[,c("EXTROVERSION", "preferencia.consensual.norm")], 3)
+df_ex_adt$cluster=factor(my.km.c$cluster)
+df_ex_adt %>% ggvis(~EXTROVERSION, ~preferencia.consensual.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.d <- kmeans(df_ex_adt[,c("EXTROVERSION", "preferencia.delegatoria.norm")], 3)
+df_ex_adt$cluster=factor(my.km.d$cluster)
+df_ex_adt %>% ggvis(~EXTROVERSION, ~preferencia.delegatoria.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.e <- kmeans(df_ex_adt[,c("EXTROVERSION", "julgamento.diretivo.norm")], 3)
+df_ex_adt$cluster=factor(my.km.e$cluster)
+df_ex_adt %>% ggvis(~EXTROVERSION, ~julgamento.diretivo.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.f <- kmeans(df_ex_adt[,c("EXTROVERSION", "julgamento.consultivo.norm")], 3)
+df_ex_adt$cluster=factor(my.km.f$cluster)
+df_ex_adt %>% ggvis(~EXTROVERSION, ~julgamento.consultivo.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.g <- kmeans(df_ex_adt[,c("EXTROVERSION", "julgamento.consensual.norm")], 3)
+df_ex_adt$cluster=factor(my.km.g$cluster)
+df_ex_adt %>% ggvis(~EXTROVERSION, ~julgamento.consensual.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.h <- kmeans(df_ex_adt[,c("EXTROVERSION", "julgamento.delegatorio.norm")], 3)
+df_ex_adt$cluster=factor(my.km.h$cluster)
+df_ex_adt %>% ggvis(~EXTROVERSION, ~julgamento.delegatorio.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.i <- kmeans(df_ex_adt[,c("EXTROVERSION", "julgamento.geral.norm")], 3)
+df_ex_adt$cluster=factor(my.km.i$cluster)
+df_ex_adt %>% ggvis(~EXTROVERSION, ~julgamento.geral.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.j <- kmeans(df_ex_adt[,c("EXTROVERSION", "julgamento.diretivo.nao.assistido.norm")], 3)
+df_ex_adt$cluster=factor(my.km.j$cluster)
+df_ex_adt %>% ggvis(~EXTROVERSION, ~julgamento.diretivo.nao.assistido.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.k <- kmeans(df_ex_adt[,c("EXTROVERSION", "julgamento.diretivo.pesquisado.norm")], 3)
+df_ex_adt$cluster=factor(my.km.k$cluster)
+df_ex_adt %>% ggvis(~EXTROVERSION, ~julgamento.diretivo.pesquisado.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.l <- kmeans(df_ex_adt[,c("EXTROVERSION", "julgamento.consultivo.individual.norm")], 3)
+df_ex_adt$cluster=factor(my.km.l$cluster)
+df_ex_adt %>% ggvis(~EXTROVERSION, ~julgamento.consultivo.individual.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.m <- kmeans(df_ex_adt[,c("EXTROVERSION", "julgamento.consultivo.em.grupo.norm")], 3)
+df_ex_adt$cluster=factor(my.km.m$cluster)
+df_ex_adt %>% ggvis(~EXTROVERSION, ~julgamento.consultivo.em.grupo.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.n <- kmeans(df_ex_adt[,c("EXTROVERSION", "julgamento.consensual.presidido.norm")], 3)
+df_ex_adt$cluster=factor(my.km.n$cluster)
+df_ex_adt %>% ggvis(~EXTROVERSION, ~julgamento.consensual.presidido.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.o <- kmeans(df_ex_adt[,c("EXTROVERSION", "julgamento.consensual.como.membro.da.equipe.norm")], 3)
+df_ex_adt$cluster=factor(my.km.o$cluster)
+df_ex_adt %>% ggvis(~EXTROVERSION, ~julgamento.consensual.como.membro.da.equipe.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_ex_adt[,c("EXTROVERSION", "julgamento.delegatorio.informado.norm")], 3)
+df_ex_adt$cluster=factor(my.km.p$cluster)
+df_ex_adt %>% ggvis(~EXTROVERSION, ~julgamento.delegatorio.informado.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_ex_adt[,c("EXTROVERSION", "julgamento.delegatorio.balistico.norm")], 3)
+df_ex_adt$cluster=factor(my.km.p$cluster)
+df_ex_adt %>% ggvis(~EXTROVERSION, ~julgamento.delegatorio.balistico.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_ex_adt[,c("EXTROVERSION", "preferencia.tarefa.norm")], 3)
+df_ex_adt$cluster=factor(my.km.p$cluster)
+df_ex_adt %>% ggvis(~EXTROVERSION, ~preferencia.tarefa.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_ex_adt[,c("EXTROVERSION", "julgamento.tarefa.norm")], 3)
+df_ex_adt$cluster=factor(my.km.p$cluster)
+df_ex_adt %>% ggvis(~EXTROVERSION, ~julgamento.tarefa.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_ex_adt[,c("EXTROVERSION", "preferencia.envolvimento.norm")], 3)
+df_ex_adt$cluster=factor(my.km.p$cluster)
+df_ex_adt %>% ggvis(~EXTROVERSION, ~preferencia.envolvimento.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_ex_adt[,c("EXTROVERSION", "julgamento.envolvimento.norm")], 3)
+df_ex_adt$cluster=factor(my.km.p$cluster)
+df_ex_adt %>% ggvis(~EXTROVERSION, ~julgamento.envolvimento.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_ex_adt[,c("EXTROVERSION", "preferencia.controle.norm")], 3)
+df_ex_adt$cluster=factor(my.km.p$cluster)
+df_ex_adt %>% ggvis(~EXTROVERSION, ~preferencia.controle.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_ex_adt[,c("EXTROVERSION", "julgamento.controle.norm")], 3)
+df_ex_adt$cluster=factor(my.km.p$cluster)
+df_ex_adt %>% ggvis(~EXTROVERSION, ~julgamento.controle.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_ex_adt[,c("EXTROVERSION", "preferencia.capacitacao.norm")], 3)
+df_ex_adt$cluster=factor(my.km.p$cluster)
+df_ex_adt %>% ggvis(~EXTROVERSION, ~preferencia.capacitacao.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_ex_adt[,c("EXTROVERSION", "julgamento.capacitacao.norm")], 3)
+df_ex_adt$cluster=factor(my.km.p$cluster)
+df_ex_adt %>% ggvis(~EXTROVERSION, ~julgamento.capacitacao.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+rm(df_ex_adt)
+```
+
+### SOBRIETY ###
+
+```{r, echo=FALSE, warning=FALSE}
+# SOBRIETY
+my.df_sobr <-
+    my.df_tests %>%
+    select(ID, PC5) %>%
+    filter(PC5 < 0) %>%
+    mutate(PC5 = abs(PC5)) %>%
+    rename(SOBRIETY = PC5)
+
+# linkando com ID de ADT
+df_so_adt <- inner_join(my.df_sobr, my.df_tests[,c("ID",
+                        "preferencia.diretiva.norm", 
+                        "preferencia.consultiva.norm", "preferencia.consensual.norm",
+                        "preferencia.delegatoria.norm", "julgamento.diretivo.norm",
+                        "julgamento.consultivo.norm", "julgamento.consensual.norm",
+                        "julgamento.delegatorio.norm", "julgamento.geral.norm",
+                        "julgamento.diretivo.nao.assistido.norm", "julgamento.diretivo.pesquisado.norm",
+                        "julgamento.consultivo.individual.norm","julgamento.consultivo.em.grupo.norm",
+                        "julgamento.consensual.presidido.norm", "julgamento.consensual.como.membro.da.equipe.norm",
+                        "julgamento.delegatorio.informado.norm", "julgamento.delegatorio.balistico.norm",
+                        "preferencia.tarefa.norm", "julgamento.tarefa.norm",
+                        "preferencia.envolvimento.norm", "julgamento.envolvimento.norm",
+                        "preferencia.controle.norm", "julgamento.controle.norm",
+                        "preferencia.capacitacao.norm", "julgamento.capacitacao.norm"
+                                                   )], by = "ID")
+# plot de correlacoes
+my.cor <- cor(df_so_adt[,-1])
+par(cex=.4)
+corrplot.mixed(my.cor, insig = "p-value", sig.level = -1, is.corr = TRUE)
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# R SQUARED
+my.lm <- lm(SOBRIETY ~ preferencia.diretiva.norm + 
+                        preferencia.consultiva.norm + preferencia.consensual.norm +
+                        preferencia.delegatoria.norm + julgamento.diretivo.norm +
+                        julgamento.consultivo.norm + julgamento.consensual.norm +
+                        julgamento.delegatorio.norm + julgamento.geral.norm +
+                        julgamento.diretivo.nao.assistido.norm + julgamento.diretivo.pesquisado.norm +
+                        julgamento.consultivo.individual.norm +julgamento.consultivo.em.grupo.norm +
+                        julgamento.consensual.presidido.norm + julgamento.consensual.como.membro.da.equipe.norm +
+                        julgamento.delegatorio.informado.norm + julgamento.delegatorio.balistico.norm +
+                        preferencia.tarefa.norm + julgamento.tarefa.norm +
+                        preferencia.envolvimento.norm + julgamento.envolvimento.norm +
+                        preferencia.controle.norm + julgamento.controle.norm +
+                        preferencia.capacitacao.norm + julgamento.capacitacao.norm, df_so_adt)
+#sprinttf ("R Squared: %f",summary(my.lm)$r.squared)
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# clusters
+my.km.a <- kmeans(df_so_adt[,c("SOBRIETY", "preferencia.diretiva.norm")], 3)
+df_so_adt$cluster=factor(my.km.a$cluster)
+
+df_so_adt %>% ggvis(~SOBRIETY, ~preferencia.diretiva.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.b <- kmeans(df_so_adt[,c("SOBRIETY", "preferencia.consultiva.norm")], 3)
+df_so_adt$cluster=factor(my.km.b$cluster)
+df_so_adt %>% ggvis(~SOBRIETY, ~preferencia.consultiva.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.c <- kmeans(df_so_adt[,c("SOBRIETY", "preferencia.consensual.norm")], 3)
+df_so_adt$cluster=factor(my.km.c$cluster)
+df_so_adt %>% ggvis(~SOBRIETY, ~preferencia.consensual.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.d <- kmeans(df_so_adt[,c("SOBRIETY", "preferencia.delegatoria.norm")], 3)
+df_so_adt$cluster=factor(my.km.d$cluster)
+df_so_adt %>% ggvis(~SOBRIETY, ~preferencia.delegatoria.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.e <- kmeans(df_so_adt[,c("SOBRIETY", "julgamento.diretivo.norm")], 3)
+df_so_adt$cluster=factor(my.km.e$cluster)
+df_so_adt %>% ggvis(~SOBRIETY, ~julgamento.diretivo.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.f <- kmeans(df_so_adt[,c("SOBRIETY", "julgamento.consultivo.norm")], 3)
+df_so_adt$cluster=factor(my.km.f$cluster)
+df_so_adt %>% ggvis(~SOBRIETY, ~julgamento.consultivo.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.g <- kmeans(df_so_adt[,c("SOBRIETY", "julgamento.consensual.norm")], 3)
+df_so_adt$cluster=factor(my.km.g$cluster)
+df_so_adt %>% ggvis(~SOBRIETY, ~julgamento.consensual.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.h <- kmeans(df_so_adt[,c("SOBRIETY", "julgamento.delegatorio.norm")], 3)
+df_so_adt$cluster=factor(my.km.h$cluster)
+df_so_adt %>% ggvis(~SOBRIETY, ~julgamento.delegatorio.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.i <- kmeans(df_so_adt[,c("SOBRIETY", "julgamento.geral.norm")], 3)
+df_so_adt$cluster=factor(my.km.i$cluster)
+df_so_adt %>% ggvis(~SOBRIETY, ~julgamento.geral.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.j <- kmeans(df_so_adt[,c("SOBRIETY", "julgamento.diretivo.nao.assistido.norm")], 3)
+df_so_adt$cluster=factor(my.km.j$cluster)
+df_so_adt %>% ggvis(~SOBRIETY, ~julgamento.diretivo.nao.assistido.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.k <- kmeans(df_so_adt[,c("SOBRIETY", "julgamento.diretivo.pesquisado.norm")], 3)
+df_so_adt$cluster=factor(my.km.k$cluster)
+df_so_adt %>% ggvis(~SOBRIETY, ~julgamento.diretivo.pesquisado.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.l <- kmeans(df_so_adt[,c("SOBRIETY", "julgamento.consultivo.individual.norm")], 3)
+df_so_adt$cluster=factor(my.km.l$cluster)
+df_so_adt %>% ggvis(~SOBRIETY, ~julgamento.consultivo.individual.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.m <- kmeans(df_so_adt[,c("SOBRIETY", "julgamento.consultivo.em.grupo.norm")], 3)
+df_so_adt$cluster=factor(my.km.m$cluster)
+df_so_adt %>% ggvis(~SOBRIETY, ~julgamento.consultivo.em.grupo.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.n <- kmeans(df_so_adt[,c("SOBRIETY", "julgamento.consensual.presidido.norm")], 3)
+df_so_adt$cluster=factor(my.km.n$cluster)
+df_so_adt %>% ggvis(~SOBRIETY, ~julgamento.consensual.presidido.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.o <- kmeans(df_so_adt[,c("SOBRIETY", "julgamento.consensual.como.membro.da.equipe.norm")], 3)
+df_so_adt$cluster=factor(my.km.o$cluster)
+df_so_adt %>% ggvis(~SOBRIETY, ~julgamento.consensual.como.membro.da.equipe.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_so_adt[,c("SOBRIETY", "julgamento.delegatorio.informado.norm")], 3)
+df_so_adt$cluster=factor(my.km.p$cluster)
+df_so_adt %>% ggvis(~SOBRIETY, ~julgamento.delegatorio.informado.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_so_adt[,c("SOBRIETY", "julgamento.delegatorio.balistico.norm")], 3)
+df_so_adt$cluster=factor(my.km.p$cluster)
+df_so_adt %>% ggvis(~SOBRIETY, ~julgamento.delegatorio.balistico.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_so_adt[,c("SOBRIETY", "preferencia.tarefa.norm")], 3)
+df_so_adt$cluster=factor(my.km.p$cluster)
+df_so_adt %>% ggvis(~SOBRIETY, ~preferencia.tarefa.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_so_adt[,c("SOBRIETY", "julgamento.tarefa.norm")], 3)
+df_so_adt$cluster=factor(my.km.p$cluster)
+df_so_adt %>% ggvis(~SOBRIETY, ~julgamento.tarefa.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_so_adt[,c("SOBRIETY", "preferencia.envolvimento.norm")], 3)
+df_so_adt$cluster=factor(my.km.p$cluster)
+df_so_adt %>% ggvis(~SOBRIETY, ~preferencia.envolvimento.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_so_adt[,c("SOBRIETY", "julgamento.envolvimento.norm")], 3)
+df_so_adt$cluster=factor(my.km.p$cluster)
+df_so_adt %>% ggvis(~SOBRIETY, ~julgamento.envolvimento.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_so_adt[,c("SOBRIETY", "preferencia.controle.norm")], 3)
+df_so_adt$cluster=factor(my.km.p$cluster)
+df_so_adt %>% ggvis(~SOBRIETY, ~preferencia.controle.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_so_adt[,c("SOBRIETY", "julgamento.controle.norm")], 3)
+df_so_adt$cluster=factor(my.km.p$cluster)
+df_so_adt %>% ggvis(~SOBRIETY, ~julgamento.controle.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_so_adt[,c("SOBRIETY", "preferencia.capacitacao.norm")], 3)
+df_so_adt$cluster=factor(my.km.p$cluster)
+df_so_adt %>% ggvis(~SOBRIETY, ~preferencia.capacitacao.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_so_adt[,c("SOBRIETY", "julgamento.capacitacao.norm")], 3)
+df_so_adt$cluster=factor(my.km.p$cluster)
+df_so_adt %>% ggvis(~SOBRIETY, ~julgamento.capacitacao.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+rm(df_so_adt)
+```
+
+### MANAGEMENT ###
+
+```{r, echo=FALSE, warning=FALSE}
+# MANAGEMENT
+my.df_manag <-
+    my.df_tests %>%
+    select(ID, PC6) %>%
+    filter(PC6 >= 0) %>%
+    rename(MANAGEMENT = PC6) 
+
+# linkando com ID de ADT
+df_ma_adt <- inner_join(my.df_manag, my.df_tests[,c("ID",
+                        "preferencia.diretiva.norm", 
+                        "preferencia.consultiva.norm", "preferencia.consensual.norm",
+                        "preferencia.delegatoria.norm", "julgamento.diretivo.norm",
+                        "julgamento.consultivo.norm", "julgamento.consensual.norm",
+                        "julgamento.delegatorio.norm", "julgamento.geral.norm",
+                        "julgamento.diretivo.nao.assistido.norm", "julgamento.diretivo.pesquisado.norm",
+                        "julgamento.consultivo.individual.norm","julgamento.consultivo.em.grupo.norm",
+                        "julgamento.consensual.presidido.norm", "julgamento.consensual.como.membro.da.equipe.norm",
+                        "julgamento.delegatorio.informado.norm", "julgamento.delegatorio.balistico.norm",
+                        "preferencia.tarefa.norm", "julgamento.tarefa.norm",
+                        "preferencia.envolvimento.norm", "julgamento.envolvimento.norm",
+                        "preferencia.controle.norm", "julgamento.controle.norm",
+                        "preferencia.capacitacao.norm", "julgamento.capacitacao.norm"
+                                                   )], by = "ID")
+# plot de correlacoes
+my.cor <- cor(df_ma_adt[,-1])
+par(cex=.4)
+corrplot.mixed(my.cor, insig = "p-value", sig.level = -1, is.corr = TRUE)
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# R SQUARED
+my.lm <- lm(MANAGEMENT ~ preferencia.diretiva.norm + 
+                        preferencia.consultiva.norm + preferencia.consensual.norm +
+                        preferencia.delegatoria.norm + julgamento.diretivo.norm +
+                        julgamento.consultivo.norm + julgamento.consensual.norm +
+                        julgamento.delegatorio.norm + julgamento.geral.norm +
+                        julgamento.diretivo.nao.assistido.norm + julgamento.diretivo.pesquisado.norm +
+                        julgamento.consultivo.individual.norm +julgamento.consultivo.em.grupo.norm +
+                        julgamento.consensual.presidido.norm + julgamento.consensual.como.membro.da.equipe.norm +
+                        julgamento.delegatorio.informado.norm + julgamento.delegatorio.balistico.norm +
+                        preferencia.tarefa.norm + julgamento.tarefa.norm +
+                        preferencia.envolvimento.norm + julgamento.envolvimento.norm +
+                        preferencia.controle.norm + julgamento.controle.norm +
+                        preferencia.capacitacao.norm + julgamento.capacitacao.norm, df_ma_adt)
+#sprinttf ("R Squared: %f",summary(my.lm)$r.squared)
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# clusters
+my.km.a <- kmeans(df_ma_adt[,c("MANAGEMENT", "preferencia.diretiva.norm")], 3)
+df_ma_adt$cluster=factor(my.km.a$cluster)
+
+df_ma_adt %>% ggvis(~MANAGEMENT, ~preferencia.diretiva.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.b <- kmeans(df_ma_adt[,c("MANAGEMENT", "preferencia.consultiva.norm")], 3)
+df_ma_adt$cluster=factor(my.km.b$cluster)
+df_ma_adt %>% ggvis(~MANAGEMENT, ~preferencia.consultiva.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.c <- kmeans(df_ma_adt[,c("MANAGEMENT", "preferencia.consensual.norm")], 3)
+df_ma_adt$cluster=factor(my.km.c$cluster)
+df_ma_adt %>% ggvis(~MANAGEMENT, ~preferencia.consensual.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.d <- kmeans(df_ma_adt[,c("MANAGEMENT", "preferencia.delegatoria.norm")], 3)
+df_ma_adt$cluster=factor(my.km.d$cluster)
+df_ma_adt %>% ggvis(~MANAGEMENT, ~preferencia.delegatoria.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.e <- kmeans(df_ma_adt[,c("MANAGEMENT", "julgamento.diretivo.norm")], 3)
+df_ma_adt$cluster=factor(my.km.e$cluster)
+df_ma_adt %>% ggvis(~MANAGEMENT, ~julgamento.diretivo.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.f <- kmeans(df_ma_adt[,c("MANAGEMENT", "julgamento.consultivo.norm")], 3)
+df_ma_adt$cluster=factor(my.km.f$cluster)
+df_ma_adt %>% ggvis(~MANAGEMENT, ~julgamento.consultivo.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.g <- kmeans(df_ma_adt[,c("MANAGEMENT", "julgamento.consensual.norm")], 3)
+df_ma_adt$cluster=factor(my.km.g$cluster)
+df_ma_adt %>% ggvis(~MANAGEMENT, ~julgamento.consensual.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.h <- kmeans(df_ma_adt[,c("MANAGEMENT", "julgamento.delegatorio.norm")], 3)
+df_ma_adt$cluster=factor(my.km.h$cluster)
+df_ma_adt %>% ggvis(~MANAGEMENT, ~julgamento.delegatorio.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.i <- kmeans(df_ma_adt[,c("MANAGEMENT", "julgamento.geral.norm")], 3)
+df_ma_adt$cluster=factor(my.km.i$cluster)
+df_ma_adt %>% ggvis(~MANAGEMENT, ~julgamento.geral.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.j <- kmeans(df_ma_adt[,c("MANAGEMENT", "julgamento.diretivo.nao.assistido.norm")], 3)
+df_ma_adt$cluster=factor(my.km.j$cluster)
+df_ma_adt %>% ggvis(~MANAGEMENT, ~julgamento.diretivo.nao.assistido.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.k <- kmeans(df_ma_adt[,c("MANAGEMENT", "julgamento.diretivo.pesquisado.norm")], 3)
+df_ma_adt$cluster=factor(my.km.k$cluster)
+df_ma_adt %>% ggvis(~MANAGEMENT, ~julgamento.diretivo.pesquisado.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.l <- kmeans(df_ma_adt[,c("MANAGEMENT", "julgamento.consultivo.individual.norm")], 3)
+df_ma_adt$cluster=factor(my.km.l$cluster)
+df_ma_adt %>% ggvis(~MANAGEMENT, ~julgamento.consultivo.individual.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.m <- kmeans(df_ma_adt[,c("MANAGEMENT", "julgamento.consultivo.em.grupo.norm")], 3)
+df_ma_adt$cluster=factor(my.km.m$cluster)
+df_ma_adt %>% ggvis(~MANAGEMENT, ~julgamento.consultivo.em.grupo.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.n <- kmeans(df_ma_adt[,c("MANAGEMENT", "julgamento.consensual.presidido.norm")], 3)
+df_ma_adt$cluster=factor(my.km.n$cluster)
+df_ma_adt %>% ggvis(~MANAGEMENT, ~julgamento.consensual.presidido.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.o <- kmeans(df_ma_adt[,c("MANAGEMENT", "julgamento.consensual.como.membro.da.equipe.norm")], 3)
+df_ma_adt$cluster=factor(my.km.o$cluster)
+df_ma_adt %>% ggvis(~MANAGEMENT, ~julgamento.consensual.como.membro.da.equipe.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_ma_adt[,c("MANAGEMENT", "julgamento.delegatorio.informado.norm")], 3)
+df_ma_adt$cluster=factor(my.km.p$cluster)
+df_ma_adt %>% ggvis(~MANAGEMENT, ~julgamento.delegatorio.informado.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_ma_adt[,c("MANAGEMENT", "julgamento.delegatorio.balistico.norm")], 3)
+df_ma_adt$cluster=factor(my.km.p$cluster)
+df_ma_adt %>% ggvis(~MANAGEMENT, ~julgamento.delegatorio.balistico.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_ma_adt[,c("MANAGEMENT", "preferencia.tarefa.norm")], 3)
+df_ma_adt$cluster=factor(my.km.p$cluster)
+df_ma_adt %>% ggvis(~MANAGEMENT, ~preferencia.tarefa.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_ma_adt[,c("MANAGEMENT", "julgamento.tarefa.norm")], 3)
+df_ma_adt$cluster=factor(my.km.p$cluster)
+df_ma_adt %>% ggvis(~MANAGEMENT, ~julgamento.tarefa.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_ma_adt[,c("MANAGEMENT", "preferencia.envolvimento.norm")], 3)
+df_ma_adt$cluster=factor(my.km.p$cluster)
+df_ma_adt %>% ggvis(~MANAGEMENT, ~preferencia.envolvimento.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_ma_adt[,c("MANAGEMENT", "julgamento.envolvimento.norm")], 3)
+df_ma_adt$cluster=factor(my.km.p$cluster)
+df_ma_adt %>% ggvis(~MANAGEMENT, ~julgamento.envolvimento.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_ma_adt[,c("MANAGEMENT", "preferencia.controle.norm")], 3)
+df_ma_adt$cluster=factor(my.km.p$cluster)
+df_ma_adt %>% ggvis(~MANAGEMENT, ~preferencia.controle.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_ma_adt[,c("MANAGEMENT", "julgamento.controle.norm")], 3)
+df_ma_adt$cluster=factor(my.km.p$cluster)
+df_ma_adt %>% ggvis(~MANAGEMENT, ~julgamento.controle.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_ma_adt[,c("MANAGEMENT", "preferencia.capacitacao.norm")], 3)
+df_ma_adt$cluster=factor(my.km.p$cluster)
+df_ma_adt %>% ggvis(~MANAGEMENT, ~preferencia.capacitacao.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_ma_adt[,c("MANAGEMENT", "julgamento.capacitacao.norm")], 3)
+df_ma_adt$cluster=factor(my.km.p$cluster)
+df_ma_adt %>% ggvis(~MANAGEMENT, ~julgamento.capacitacao.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+rm(df_ma_adt)
+```
+
+### RECEPTIVITY ###
+
+```{r, echo=FALSE, warning=FALSE}
+# RECEPTIVITY
+my.df_recep <-
+    my.df_tests %>%
+    select(ID, PC6) %>%
+    filter(PC6 < 0) %>%
+    mutate(PC6 = abs(PC6)) %>%
+    rename(RECEPTIVITY = PC6)
+
+# linkando com ID de ADT
+df_rc_adt <- inner_join(my.df_recep, my.df_tests[,c("ID",
+                        "preferencia.diretiva.norm", 
+                        "preferencia.consultiva.norm", "preferencia.consensual.norm",
+                        "preferencia.delegatoria.norm", "julgamento.diretivo.norm",
+                        "julgamento.consultivo.norm", "julgamento.consensual.norm",
+                        "julgamento.delegatorio.norm", "julgamento.geral.norm",
+                        "julgamento.diretivo.nao.assistido.norm", "julgamento.diretivo.pesquisado.norm",
+                        "julgamento.consultivo.individual.norm","julgamento.consultivo.em.grupo.norm",
+                        "julgamento.consensual.presidido.norm", "julgamento.consensual.como.membro.da.equipe.norm",
+                        "julgamento.delegatorio.informado.norm", "julgamento.delegatorio.balistico.norm",
+                        "preferencia.tarefa.norm", "julgamento.tarefa.norm",
+                        "preferencia.envolvimento.norm", "julgamento.envolvimento.norm",
+                        "preferencia.controle.norm", "julgamento.controle.norm",
+                        "preferencia.capacitacao.norm", "julgamento.capacitacao.norm"
+                                                   )], by = "ID")
+# plot de correlacoes
+my.cor <- cor(df_rc_adt[,-1])
+par(cex=.4)
+corrplot.mixed(my.cor, insig = "p-value", sig.level = -1, is.corr = TRUE)
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# R SQUARED
+my.lm <- lm(RECEPTIVITY ~ preferencia.diretiva.norm + 
+                        preferencia.consultiva.norm + preferencia.consensual.norm +
+                        preferencia.delegatoria.norm + julgamento.diretivo.norm +
+                        julgamento.consultivo.norm + julgamento.consensual.norm +
+                        julgamento.delegatorio.norm + julgamento.geral.norm +
+                        julgamento.diretivo.nao.assistido.norm + julgamento.diretivo.pesquisado.norm +
+                        julgamento.consultivo.individual.norm +julgamento.consultivo.em.grupo.norm +
+                        julgamento.consensual.presidido.norm + julgamento.consensual.como.membro.da.equipe.norm +
+                        julgamento.delegatorio.informado.norm + julgamento.delegatorio.balistico.norm +
+                        preferencia.tarefa.norm + julgamento.tarefa.norm +
+                        preferencia.envolvimento.norm + julgamento.envolvimento.norm +
+                        preferencia.controle.norm + julgamento.controle.norm +
+                        preferencia.capacitacao.norm + julgamento.capacitacao.norm, df_rc_adt)
+#sprinttf ("R Squared: %f",summary(my.lm)$r.squared)
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# clusters
+my.km.a <- kmeans(df_rc_adt[,c("RECEPTIVITY", "preferencia.diretiva.norm")], 3)
+df_rc_adt$cluster=factor(my.km.a$cluster)
+
+df_rc_adt %>% ggvis(~RECEPTIVITY, ~preferencia.diretiva.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.b <- kmeans(df_rc_adt[,c("RECEPTIVITY", "preferencia.consultiva.norm")], 3)
+df_rc_adt$cluster=factor(my.km.b$cluster)
+df_rc_adt %>% ggvis(~RECEPTIVITY, ~preferencia.consultiva.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.c <- kmeans(df_rc_adt[,c("RECEPTIVITY", "preferencia.consensual.norm")], 3)
+df_rc_adt$cluster=factor(my.km.c$cluster)
+df_rc_adt %>% ggvis(~RECEPTIVITY, ~preferencia.consensual.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.d <- kmeans(df_rc_adt[,c("RECEPTIVITY", "preferencia.delegatoria.norm")], 3)
+df_rc_adt$cluster=factor(my.km.d$cluster)
+df_rc_adt %>% ggvis(~RECEPTIVITY, ~preferencia.delegatoria.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.e <- kmeans(df_rc_adt[,c("RECEPTIVITY", "julgamento.diretivo.norm")], 3)
+df_rc_adt$cluster=factor(my.km.e$cluster)
+df_rc_adt %>% ggvis(~RECEPTIVITY, ~julgamento.diretivo.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.f <- kmeans(df_rc_adt[,c("RECEPTIVITY", "julgamento.consultivo.norm")], 3)
+df_rc_adt$cluster=factor(my.km.f$cluster)
+df_rc_adt %>% ggvis(~RECEPTIVITY, ~julgamento.consultivo.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.g <- kmeans(df_rc_adt[,c("RECEPTIVITY", "julgamento.consensual.norm")], 3)
+df_rc_adt$cluster=factor(my.km.g$cluster)
+df_rc_adt %>% ggvis(~RECEPTIVITY, ~julgamento.consensual.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.h <- kmeans(df_rc_adt[,c("RECEPTIVITY", "julgamento.delegatorio.norm")], 3)
+df_rc_adt$cluster=factor(my.km.h$cluster)
+df_rc_adt %>% ggvis(~RECEPTIVITY, ~julgamento.delegatorio.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.i <- kmeans(df_rc_adt[,c("RECEPTIVITY", "julgamento.geral.norm")], 3)
+df_rc_adt$cluster=factor(my.km.i$cluster)
+df_rc_adt %>% ggvis(~RECEPTIVITY, ~julgamento.geral.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.j <- kmeans(df_rc_adt[,c("RECEPTIVITY", "julgamento.diretivo.nao.assistido.norm")], 3)
+df_rc_adt$cluster=factor(my.km.j$cluster)
+df_rc_adt %>% ggvis(~RECEPTIVITY, ~julgamento.diretivo.nao.assistido.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.k <- kmeans(df_rc_adt[,c("RECEPTIVITY", "julgamento.diretivo.pesquisado.norm")], 3)
+df_rc_adt$cluster=factor(my.km.k$cluster)
+df_rc_adt %>% ggvis(~RECEPTIVITY, ~julgamento.diretivo.pesquisado.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.l <- kmeans(df_rc_adt[,c("RECEPTIVITY", "julgamento.consultivo.individual.norm")], 3)
+df_rc_adt$cluster=factor(my.km.l$cluster)
+df_rc_adt %>% ggvis(~RECEPTIVITY, ~julgamento.consultivo.individual.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.m <- kmeans(df_rc_adt[,c("RECEPTIVITY", "julgamento.consultivo.em.grupo.norm")], 3)
+df_rc_adt$cluster=factor(my.km.m$cluster)
+df_rc_adt %>% ggvis(~RECEPTIVITY, ~julgamento.consultivo.em.grupo.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.n <- kmeans(df_rc_adt[,c("RECEPTIVITY", "julgamento.consensual.presidido.norm")], 3)
+df_rc_adt$cluster=factor(my.km.n$cluster)
+df_rc_adt %>% ggvis(~RECEPTIVITY, ~julgamento.consensual.presidido.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.o <- kmeans(df_rc_adt[,c("RECEPTIVITY", "julgamento.consensual.como.membro.da.equipe.norm")], 3)
+df_rc_adt$cluster=factor(my.km.o$cluster)
+df_rc_adt %>% ggvis(~RECEPTIVITY, ~julgamento.consensual.como.membro.da.equipe.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_rc_adt[,c("RECEPTIVITY", "julgamento.delegatorio.informado.norm")], 3)
+df_rc_adt$cluster=factor(my.km.p$cluster)
+df_rc_adt %>% ggvis(~RECEPTIVITY, ~julgamento.delegatorio.informado.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_rc_adt[,c("RECEPTIVITY", "julgamento.delegatorio.balistico.norm")], 3)
+df_rc_adt$cluster=factor(my.km.p$cluster)
+df_rc_adt %>% ggvis(~RECEPTIVITY, ~julgamento.delegatorio.balistico.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_rc_adt[,c("RECEPTIVITY", "preferencia.tarefa.norm")], 3)
+df_rc_adt$cluster=factor(my.km.p$cluster)
+df_rc_adt %>% ggvis(~RECEPTIVITY, ~preferencia.tarefa.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_rc_adt[,c("RECEPTIVITY", "julgamento.tarefa.norm")], 3)
+df_rc_adt$cluster=factor(my.km.p$cluster)
+df_rc_adt %>% ggvis(~RECEPTIVITY, ~julgamento.tarefa.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_rc_adt[,c("RECEPTIVITY", "preferencia.envolvimento.norm")], 3)
+df_rc_adt$cluster=factor(my.km.p$cluster)
+df_rc_adt %>% ggvis(~RECEPTIVITY, ~preferencia.envolvimento.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_rc_adt[,c("RECEPTIVITY", "julgamento.envolvimento.norm")], 3)
+df_rc_adt$cluster=factor(my.km.p$cluster)
+df_rc_adt %>% ggvis(~RECEPTIVITY, ~julgamento.envolvimento.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_rc_adt[,c("RECEPTIVITY", "preferencia.controle.norm")], 3)
+df_rc_adt$cluster=factor(my.km.p$cluster)
+df_rc_adt %>% ggvis(~RECEPTIVITY, ~preferencia.controle.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_rc_adt[,c("RECEPTIVITY", "julgamento.controle.norm")], 3)
+df_rc_adt$cluster=factor(my.km.p$cluster)
+df_rc_adt %>% ggvis(~RECEPTIVITY, ~julgamento.controle.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_rc_adt[,c("RECEPTIVITY", "preferencia.capacitacao.norm")], 3)
+df_rc_adt$cluster=factor(my.km.p$cluster)
+df_rc_adt %>% ggvis(~RECEPTIVITY, ~preferencia.capacitacao.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_rc_adt[,c("RECEPTIVITY", "julgamento.capacitacao.norm")], 3)
+df_rc_adt$cluster=factor(my.km.p$cluster)
+df_rc_adt %>% ggvis(~RECEPTIVITY, ~julgamento.capacitacao.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+rm(df_rc_adt)
+```
+
+### PERSISTENCE ###
+
+```{r, echo=FALSE, warning=FALSE}
+# PERSISTENCE
+my.df_persist <-
+    my.df_tests %>%
+    select(ID, PC7) %>%
+    filter(PC7 >= 0) %>%
+    rename(PERSISTENCE = PC7) 
+
+# linkando com ID de ADT
+df_pe_adt <- inner_join(my.df_persist, my.df_tests[,c("ID",
+                        "preferencia.diretiva.norm", 
+                        "preferencia.consultiva.norm", "preferencia.consensual.norm",
+                        "preferencia.delegatoria.norm", "julgamento.diretivo.norm",
+                        "julgamento.consultivo.norm", "julgamento.consensual.norm",
+                        "julgamento.delegatorio.norm", "julgamento.geral.norm",
+                        "julgamento.diretivo.nao.assistido.norm", "julgamento.diretivo.pesquisado.norm",
+                        "julgamento.consultivo.individual.norm","julgamento.consultivo.em.grupo.norm",
+                        "julgamento.consensual.presidido.norm", "julgamento.consensual.como.membro.da.equipe.norm",
+                        "julgamento.delegatorio.informado.norm", "julgamento.delegatorio.balistico.norm",
+                        "preferencia.tarefa.norm", "julgamento.tarefa.norm",
+                        "preferencia.envolvimento.norm", "julgamento.envolvimento.norm",
+                        "preferencia.controle.norm", "julgamento.controle.norm",
+                        "preferencia.capacitacao.norm", "julgamento.capacitacao.norm"
+                                                   )], by = "ID")
+# plot de correlacoes
+my.cor <- cor(df_pe_adt[,-1])
+par(cex=.4)
+corrplot.mixed(my.cor, insig = "p-value", sig.level = -1, is.corr = TRUE)
+
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# R SQUARED
+my.lm <- lm(PERSISTENCE ~ preferencia.diretiva.norm + 
+                        preferencia.consultiva.norm + preferencia.consensual.norm +
+                        preferencia.delegatoria.norm + julgamento.diretivo.norm +
+                        julgamento.consultivo.norm + julgamento.consensual.norm +
+                        julgamento.delegatorio.norm + julgamento.geral.norm +
+                        julgamento.diretivo.nao.assistido.norm + julgamento.diretivo.pesquisado.norm +
+                        julgamento.consultivo.individual.norm +julgamento.consultivo.em.grupo.norm +
+                        julgamento.consensual.presidido.norm + julgamento.consensual.como.membro.da.equipe.norm +
+                        julgamento.delegatorio.informado.norm + julgamento.delegatorio.balistico.norm +
+                        preferencia.tarefa.norm + julgamento.tarefa.norm +
+                        preferencia.envolvimento.norm + julgamento.envolvimento.norm +
+                        preferencia.controle.norm + julgamento.controle.norm +
+                        preferencia.capacitacao.norm + julgamento.capacitacao.norm, df_pe_adt)
+#sprinttf ("R Squared: %f",summary(my.lm)$r.squared)
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# clusters
+my.km.a <- kmeans(df_pe_adt[,c("PERSISTENCE", "preferencia.diretiva.norm")], 3)
+df_pe_adt$cluster=factor(my.km.a$cluster)
+
+df_pe_adt %>% ggvis(~PERSISTENCE, ~preferencia.diretiva.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.b <- kmeans(df_pe_adt[,c("PERSISTENCE", "preferencia.consultiva.norm")], 3)
+df_pe_adt$cluster=factor(my.km.b$cluster)
+df_pe_adt %>% ggvis(~PERSISTENCE, ~preferencia.consultiva.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.c <- kmeans(df_pe_adt[,c("PERSISTENCE", "preferencia.consensual.norm")], 3)
+df_pe_adt$cluster=factor(my.km.c$cluster)
+df_pe_adt %>% ggvis(~PERSISTENCE, ~preferencia.consensual.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.d <- kmeans(df_pe_adt[,c("PERSISTENCE", "preferencia.delegatoria.norm")], 3)
+df_pe_adt$cluster=factor(my.km.d$cluster)
+df_pe_adt %>% ggvis(~PERSISTENCE, ~preferencia.delegatoria.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.e <- kmeans(df_pe_adt[,c("PERSISTENCE", "julgamento.diretivo.norm")], 3)
+df_pe_adt$cluster=factor(my.km.e$cluster)
+df_pe_adt %>% ggvis(~PERSISTENCE, ~julgamento.diretivo.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.f <- kmeans(df_pe_adt[,c("PERSISTENCE", "julgamento.consultivo.norm")], 3)
+df_pe_adt$cluster=factor(my.km.f$cluster)
+df_pe_adt %>% ggvis(~PERSISTENCE, ~julgamento.consultivo.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.g <- kmeans(df_pe_adt[,c("PERSISTENCE", "julgamento.consensual.norm")], 3)
+df_pe_adt$cluster=factor(my.km.g$cluster)
+df_pe_adt %>% ggvis(~PERSISTENCE, ~julgamento.consensual.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.h <- kmeans(df_pe_adt[,c("PERSISTENCE", "julgamento.delegatorio.norm")], 3)
+df_pe_adt$cluster=factor(my.km.h$cluster)
+df_pe_adt %>% ggvis(~PERSISTENCE, ~julgamento.delegatorio.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.i <- kmeans(df_pe_adt[,c("PERSISTENCE", "julgamento.geral.norm")], 3)
+df_pe_adt$cluster=factor(my.km.i$cluster)
+df_pe_adt %>% ggvis(~PERSISTENCE, ~julgamento.geral.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.j <- kmeans(df_pe_adt[,c("PERSISTENCE", "julgamento.diretivo.nao.assistido.norm")], 3)
+df_pe_adt$cluster=factor(my.km.j$cluster)
+df_pe_adt %>% ggvis(~PERSISTENCE, ~julgamento.diretivo.nao.assistido.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.k <- kmeans(df_pe_adt[,c("PERSISTENCE", "julgamento.diretivo.pesquisado.norm")], 3)
+df_pe_adt$cluster=factor(my.km.k$cluster)
+df_pe_adt %>% ggvis(~PERSISTENCE, ~julgamento.diretivo.pesquisado.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.l <- kmeans(df_pe_adt[,c("PERSISTENCE", "julgamento.consultivo.individual.norm")], 3)
+df_pe_adt$cluster=factor(my.km.l$cluster)
+df_pe_adt %>% ggvis(~PERSISTENCE, ~julgamento.consultivo.individual.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.m <- kmeans(df_pe_adt[,c("PERSISTENCE", "julgamento.consultivo.em.grupo.norm")], 3)
+df_pe_adt$cluster=factor(my.km.m$cluster)
+df_pe_adt %>% ggvis(~PERSISTENCE, ~julgamento.consultivo.em.grupo.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.n <- kmeans(df_pe_adt[,c("PERSISTENCE", "julgamento.consensual.presidido.norm")], 3)
+df_pe_adt$cluster=factor(my.km.n$cluster)
+df_pe_adt %>% ggvis(~PERSISTENCE, ~julgamento.consensual.presidido.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.o <- kmeans(df_pe_adt[,c("PERSISTENCE", "julgamento.consensual.como.membro.da.equipe.norm")], 3)
+df_pe_adt$cluster=factor(my.km.o$cluster)
+df_pe_adt %>% ggvis(~PERSISTENCE, ~julgamento.consensual.como.membro.da.equipe.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_pe_adt[,c("PERSISTENCE", "julgamento.delegatorio.informado.norm")], 3)
+df_pe_adt$cluster=factor(my.km.p$cluster)
+df_pe_adt %>% ggvis(~PERSISTENCE, ~julgamento.delegatorio.informado.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_pe_adt[,c("PERSISTENCE", "julgamento.delegatorio.balistico.norm")], 3)
+df_pe_adt$cluster=factor(my.km.p$cluster)
+df_pe_adt %>% ggvis(~PERSISTENCE, ~julgamento.delegatorio.balistico.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_pe_adt[,c("PERSISTENCE", "preferencia.tarefa.norm")], 3)
+df_pe_adt$cluster=factor(my.km.p$cluster)
+df_pe_adt %>% ggvis(~PERSISTENCE, ~preferencia.tarefa.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_pe_adt[,c("PERSISTENCE", "julgamento.tarefa.norm")], 3)
+df_pe_adt$cluster=factor(my.km.p$cluster)
+df_pe_adt %>% ggvis(~PERSISTENCE, ~julgamento.tarefa.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_pe_adt[,c("PERSISTENCE", "preferencia.envolvimento.norm")], 3)
+df_pe_adt$cluster=factor(my.km.p$cluster)
+df_pe_adt %>% ggvis(~PERSISTENCE, ~preferencia.envolvimento.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_pe_adt[,c("PERSISTENCE", "julgamento.envolvimento.norm")], 3)
+df_pe_adt$cluster=factor(my.km.p$cluster)
+df_pe_adt %>% ggvis(~PERSISTENCE, ~julgamento.envolvimento.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_pe_adt[,c("PERSISTENCE", "preferencia.controle.norm")], 3)
+df_pe_adt$cluster=factor(my.km.p$cluster)
+df_pe_adt %>% ggvis(~PERSISTENCE, ~preferencia.controle.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_pe_adt[,c("PERSISTENCE", "julgamento.controle.norm")], 3)
+df_pe_adt$cluster=factor(my.km.p$cluster)
+df_pe_adt %>% ggvis(~PERSISTENCE, ~julgamento.controle.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_pe_adt[,c("PERSISTENCE", "preferencia.capacitacao.norm")], 3)
+df_pe_adt$cluster=factor(my.km.p$cluster)
+df_pe_adt %>% ggvis(~PERSISTENCE, ~preferencia.capacitacao.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_pe_adt[,c("PERSISTENCE", "julgamento.capacitacao.norm")], 3)
+df_pe_adt$cluster=factor(my.km.p$cluster)
+df_pe_adt %>% ggvis(~PERSISTENCE, ~julgamento.capacitacao.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+rm(df_pe_adt)
+```
+
+### ADJUSTMENT ###
+
+```{r, echo=FALSE, warning=FALSE}
+# ADJUSTMENT
+my.df_adjust <-
+    my.df_tests %>%
+    select(ID, PC7) %>%
+    filter(PC7 < 0) %>%
+    mutate(PC7 = abs(PC7)) %>%
+    rename(ADJUSTMENT = PC7)
+
+# linkando com ID de ADT
+df_ad_adt <- inner_join(my.df_adjust, my.df_tests[,c("ID",
+                        "preferencia.diretiva.norm", 
+                        "preferencia.consultiva.norm", "preferencia.consensual.norm",
+                        "preferencia.delegatoria.norm", "julgamento.diretivo.norm",
+                        "julgamento.consultivo.norm", "julgamento.consensual.norm",
+                        "julgamento.delegatorio.norm", "julgamento.geral.norm",
+                        "julgamento.diretivo.nao.assistido.norm", "julgamento.diretivo.pesquisado.norm",
+                        "julgamento.consultivo.individual.norm","julgamento.consultivo.em.grupo.norm",
+                        "julgamento.consensual.presidido.norm", "julgamento.consensual.como.membro.da.equipe.norm",
+                        "julgamento.delegatorio.informado.norm", "julgamento.delegatorio.balistico.norm",
+                        "preferencia.tarefa.norm", "julgamento.tarefa.norm",
+                        "preferencia.envolvimento.norm", "julgamento.envolvimento.norm",
+                        "preferencia.controle.norm", "julgamento.controle.norm",
+                        "preferencia.capacitacao.norm", "julgamento.capacitacao.norm"
+                                                   )], by = "ID")
+# plot de correlacoes
+my.cor <- cor(df_ad_adt[,-1])
+par(cex=.4)
+corrplot.mixed(my.cor, insig = "p-value", sig.level = -1, is.corr = TRUE)
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# R SQUARED
+my.lm <- lm(ADJUSTMENT ~ preferencia.diretiva.norm + 
+                        preferencia.consultiva.norm + preferencia.consensual.norm +
+                        preferencia.delegatoria.norm + julgamento.diretivo.norm +
+                        julgamento.consultivo.norm + julgamento.consensual.norm +
+                        julgamento.delegatorio.norm + julgamento.geral.norm +
+                        julgamento.diretivo.nao.assistido.norm + julgamento.diretivo.pesquisado.norm +
+                        julgamento.consultivo.individual.norm +julgamento.consultivo.em.grupo.norm +
+                        julgamento.consensual.presidido.norm + julgamento.consensual.como.membro.da.equipe.norm +
+                        julgamento.delegatorio.informado.norm + julgamento.delegatorio.balistico.norm +
+                        preferencia.tarefa.norm + julgamento.tarefa.norm +
+                        preferencia.envolvimento.norm + julgamento.envolvimento.norm +
+                        preferencia.controle.norm + julgamento.controle.norm +
+                        preferencia.capacitacao.norm + julgamento.capacitacao.norm, df_ad_adt)
+#sprinttf ("R Squared: %f",summary(my.lm)$r.squared)
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# clusters
+my.km.a <- kmeans(df_ad_adt[,c("ADJUSTMENT", "preferencia.diretiva.norm")], 3)
+df_ad_adt$cluster=factor(my.km.a$cluster)
+
+df_ad_adt %>% ggvis(~ADJUSTMENT, ~preferencia.diretiva.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.b <- kmeans(df_ad_adt[,c("ADJUSTMENT", "preferencia.consultiva.norm")], 3)
+df_ad_adt$cluster=factor(my.km.b$cluster)
+df_ad_adt %>% ggvis(~ADJUSTMENT, ~preferencia.consultiva.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.c <- kmeans(df_ad_adt[,c("ADJUSTMENT", "preferencia.consensual.norm")], 3)
+df_ad_adt$cluster=factor(my.km.c$cluster)
+df_ad_adt %>% ggvis(~ADJUSTMENT, ~preferencia.consensual.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.d <- kmeans(df_ad_adt[,c("ADJUSTMENT", "preferencia.delegatoria.norm")], 3)
+df_ad_adt$cluster=factor(my.km.d$cluster)
+df_ad_adt %>% ggvis(~ADJUSTMENT, ~preferencia.delegatoria.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.e <- kmeans(df_ad_adt[,c("ADJUSTMENT", "julgamento.diretivo.norm")], 3)
+df_ad_adt$cluster=factor(my.km.e$cluster)
+df_ad_adt %>% ggvis(~ADJUSTMENT, ~julgamento.diretivo.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.f <- kmeans(df_ad_adt[,c("ADJUSTMENT", "julgamento.consultivo.norm")], 3)
+df_ad_adt$cluster=factor(my.km.f$cluster)
+df_ad_adt %>% ggvis(~ADJUSTMENT, ~julgamento.consultivo.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.g <- kmeans(df_ad_adt[,c("ADJUSTMENT", "julgamento.consensual.norm")], 3)
+df_ad_adt$cluster=factor(my.km.g$cluster)
+df_ad_adt %>% ggvis(~ADJUSTMENT, ~julgamento.consensual.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.h <- kmeans(df_ad_adt[,c("ADJUSTMENT", "julgamento.delegatorio.norm")], 3)
+df_ad_adt$cluster=factor(my.km.h$cluster)
+df_ad_adt %>% ggvis(~ADJUSTMENT, ~julgamento.delegatorio.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.i <- kmeans(df_ad_adt[,c("ADJUSTMENT", "julgamento.geral.norm")], 3)
+df_ad_adt$cluster=factor(my.km.i$cluster)
+df_ad_adt %>% ggvis(~ADJUSTMENT, ~julgamento.geral.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.j <- kmeans(df_ad_adt[,c("ADJUSTMENT", "julgamento.diretivo.nao.assistido.norm")], 3)
+df_ad_adt$cluster=factor(my.km.j$cluster)
+df_ad_adt %>% ggvis(~ADJUSTMENT, ~julgamento.diretivo.nao.assistido.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.k <- kmeans(df_ad_adt[,c("ADJUSTMENT", "julgamento.diretivo.pesquisado.norm")], 3)
+df_ad_adt$cluster=factor(my.km.k$cluster)
+df_ad_adt %>% ggvis(~ADJUSTMENT, ~julgamento.diretivo.pesquisado.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.l <- kmeans(df_ad_adt[,c("ADJUSTMENT", "julgamento.consultivo.individual.norm")], 3)
+df_ad_adt$cluster=factor(my.km.l$cluster)
+df_ad_adt %>% ggvis(~ADJUSTMENT, ~julgamento.consultivo.individual.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.m <- kmeans(df_ad_adt[,c("ADJUSTMENT", "julgamento.consultivo.em.grupo.norm")], 3)
+df_ad_adt$cluster=factor(my.km.m$cluster)
+df_ad_adt %>% ggvis(~ADJUSTMENT, ~julgamento.consultivo.em.grupo.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.n <- kmeans(df_ad_adt[,c("ADJUSTMENT", "julgamento.consensual.presidido.norm")], 3)
+df_ad_adt$cluster=factor(my.km.n$cluster)
+df_ad_adt %>% ggvis(~ADJUSTMENT, ~julgamento.consensual.presidido.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.o <- kmeans(df_ad_adt[,c("ADJUSTMENT", "julgamento.consensual.como.membro.da.equipe.norm")], 3)
+df_ad_adt$cluster=factor(my.km.o$cluster)
+df_ad_adt %>% ggvis(~ADJUSTMENT, ~julgamento.consensual.como.membro.da.equipe.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_ad_adt[,c("ADJUSTMENT", "julgamento.delegatorio.informado.norm")], 3)
+df_ad_adt$cluster=factor(my.km.p$cluster)
+df_ad_adt %>% ggvis(~ADJUSTMENT, ~julgamento.delegatorio.informado.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_ad_adt[,c("ADJUSTMENT", "julgamento.delegatorio.balistico.norm")], 3)
+df_ad_adt$cluster=factor(my.km.p$cluster)
+df_ad_adt %>% ggvis(~ADJUSTMENT, ~julgamento.delegatorio.balistico.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_ad_adt[,c("ADJUSTMENT", "preferencia.tarefa.norm")], 3)
+df_ad_adt$cluster=factor(my.km.p$cluster)
+df_ad_adt %>% ggvis(~ADJUSTMENT, ~preferencia.tarefa.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_ad_adt[,c("ADJUSTMENT", "julgamento.tarefa.norm")], 3)
+df_ad_adt$cluster=factor(my.km.p$cluster)
+df_ad_adt %>% ggvis(~ADJUSTMENT, ~julgamento.tarefa.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_ad_adt[,c("ADJUSTMENT", "preferencia.envolvimento.norm")], 3)
+df_ad_adt$cluster=factor(my.km.p$cluster)
+df_ad_adt %>% ggvis(~ADJUSTMENT, ~preferencia.envolvimento.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_ad_adt[,c("ADJUSTMENT", "julgamento.envolvimento.norm")], 3)
+df_ad_adt$cluster=factor(my.km.p$cluster)
+df_ad_adt %>% ggvis(~ADJUSTMENT, ~julgamento.envolvimento.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_ad_adt[,c("ADJUSTMENT", "preferencia.controle.norm")], 3)
+df_ad_adt$cluster=factor(my.km.p$cluster)
+df_ad_adt %>% ggvis(~ADJUSTMENT, ~preferencia.controle.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_ad_adt[,c("ADJUSTMENT", "julgamento.controle.norm")], 3)
+df_ad_adt$cluster=factor(my.km.p$cluster)
+df_ad_adt %>% ggvis(~ADJUSTMENT, ~julgamento.controle.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_ad_adt[,c("ADJUSTMENT", "preferencia.capacitacao.norm")], 3)
+df_ad_adt$cluster=factor(my.km.p$cluster)
+df_ad_adt %>% ggvis(~ADJUSTMENT, ~preferencia.capacitacao.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+
+my.km.p <- kmeans(df_ad_adt[,c("ADJUSTMENT", "julgamento.capacitacao.norm")], 3)
+df_ad_adt$cluster=factor(my.km.p$cluster)
+df_ad_adt %>% ggvis(~ADJUSTMENT, ~julgamento.capacitacao.norm, fill = ~cluster) %>% layer_points() %>%
+    set_options(width = 300, height = 200, padding = padding(70, 70, 70, 70))
+rm(df_ad_adt)
+```
