@@ -6,12 +6,12 @@ require("caret")
 require("MASS")
 require("ROCR")
 source("./R/f_acentos.R") 
-source("./R/f_train_model_HG_nv.R") 
+source("./R/f_usa_model_HG_nv.R") 
 #source("./R/f_le_raw_HG.R") # usar esta função para ler os dados novos. 
 registerDoMC(8) # parallel processing
 # OBTEM ASSINATURAS DE BASELINE PARA CAMPO PROFISSIONAIS
 #########################################################
-# lendo somente os dados de EnergiaSu
+# lendo somente os dados de EnergiaSustentavel
 df_raw_hg_nv <- read.xlsx2("./data/pp_humanguide_20160307-1349.xlsx",1)
 df_raw_hg_nv <- f_acentos(df_raw_hg_nv)
 
@@ -74,7 +74,7 @@ my.atua.class <-
     select(nomerespondente, target, PC1, PC2, PC3, PC4, PC5, PC6, PC7)
 
 # separa 40 aleatórios para gerar previsão
-my.dados.uso <- sample_n(my.atua.class, 40)
+my.dados.uso <- sample_n(my.atua.class, 1000)
 # tira coluna de target
 
 # CORRELAÇÃO ENTRE OS COMPONENTES
@@ -120,20 +120,20 @@ my.dados.uso <- sample_n(my.atua.class, 40)
 # AREA DE ATUACAO - CLASSIFICAÇÃO
 ##########################
 #my.atua.target <- 1 # código da atuação a prever
-#my.pred.total <- list()
+my.pred <- list()
 
 # treina o modelo para cada uma das 10 areas de atuação, gerando dataframe com os dados
 # retornando o modelo para ser usado em cada previsão
 
 for ( my.atua.target in 1:10) {
-    l_models <- f_train_model_HG_nv(my.atua.class, my.dados.uso, my.atua.target)
+    l_models <- f_usa_model_HG_nv(my.atua.class, my.dados.uso, my.atua.target)
 
     #models <-  l_models[[1]] # modelo trans de caret
     #aic <-  l_models[[2]] # Valor de AIC do modelo
     #cf <-  l_models[[3]] # objeto confusion matrix
     #roc.perf <-  l_models[[4]] # objeto performance de caret
     #roc.auc <-  l_models[[5]] # valor de AUC de curva ROC
-    pred <-  l_models[[6]] # valor de cutoff calculado (best balance)
+    pred <-  l_models[[2]] # valor de cutoff calculado (best balance)
     #df_rank <-  l_models[[7]] # dataframe com pobabilidades de teste rankeadas
 
     #resampleHist(models$logb)
@@ -172,53 +172,52 @@ my.df_prev.final <-
            AT9 = ifelse(AT9 > .5,"T", "F"),
            AT10 = ifelse(AT10 > .5,"T", "F")
            )
-# AQUI CHAMAR FUNCAO COM ALGORITMO PARA PREDIZER PARA UM UNICO RESPONDENTE
 # ex. area 1: probabilidade, area 2, etc.
 # depois fazer plot de assinatura
 
-class <- as.factor(my.atua.class[200,"target"]) # transformando em vetor de fatores de target
-class <- factor(class, levels = c("T","F")) # ordenando levels para "S" ser o primeiro
+#class <- as.factor(my.atua.class[200,"target"]) # transformando em vetor de fatores de target
+#class <- factor(class, levels = c("T","F")) # ordenando levels para "S" ser o primeiro
 # modelo sem precisão suficiente. Tentar tirando as duplicidades
 #df_tidy_in <-
 #    df_tidy_in %>%
 #    distinct(ID)
 
 # ABAIXO USANDO VALOR DEVIDO SEM AGRUPAR E USANDO SOMENTE FEATURES DO ARQUIVO AVON PARA PODER PREVER DEPOIS
-descr <- my.atua.class[200,c(3:9)] # Obs: depois trocar Valor Devido por Faixa para ver se melhora o modelo!!
+#descr <- my.atua.class[200,c(3:9)] # Obs: depois trocar Valor Devido por Faixa para ver se melhora o modelo!!
 # obtém probabilidades dos modelos
-probValues <- extractProb(
-    models,
-    testX = descr,
-    testY = class)
+#probValues <- extractProb(
+#    models,
+#    testX = descr,
+#    testY = class)
 
 # pegar subset somente com dados de teste para validar o modelo
-testProbs <- subset(
-    probValues,
-    dataType == "Test")
+#testProbs <- subset(
+#    probValues,
+#    dataType == "Test")
 
 # confusion matrix
 #cf_o <- confusionMatrix(probValues$pred, probValues$obs)
 
 # making a prediction object
-pred_o <- prediction(probValues$T, probValues$obs)
+#pred_o <- prediction(probValues$T, probValues$obs)
 # OBS: grande prob de nao pertencer. Entao é ok que nao pertenca com grande chance!!!!
 # fazer para demais!!!!
 
 # testar com abaixo
-knnFit <- train(Species ~ ., data = iris, method = "knn", 
-                trControl = trainControl(method = "cv"))
+#knnFit <- train(Species ~ ., data = iris, method = "knn", 
+#                trControl = trainControl(method = "cv"))
 
-rdaFit <- train(Species ~ ., data = iris, method = "rda", 
-                trControl = trainControl(method = "cv"))
+#rdaFit <- train(Species ~ ., data = iris, method = "rda", 
+#                trControl = trainControl(method = "cv"))
 
-predict(knnFit)
-predict(knnFit, type = "prob")
+#predict(knnFit)
+#predict(knnFit, type = "prob")
 
-bothModels <- list(knn = knnFit,
-                   tree = rdaFit)
+#bothModels <- list(knn = knnFit,
+#                   tree = rdaFit)
 
-predict(bothModels)
+#predict(bothModels)
 
-extractPrediction(bothModels, testX = iris[1:10, -5])
-extractProb(bothModels, testX = iris[1:10, -5])
+#extractPrediction(bothModels, testX = iris[1:10, -5])
+#extractProb(bothModels, testX = iris[1:10, -5])
 
