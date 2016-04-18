@@ -13,7 +13,7 @@ Como a análise baseada nas assinaturas de baseline dos campos profisisonais ver
 + primeiro considerando nova abordagem ao invés da assinatura dos campos profissionais
 
 
-#### Nova Abordagem de Campos Profisisonais ####
+#### Nova Abordagem de Campos Profissionais ####
 
 Ao invés de considerar a assinatura dos campos profisisonais em relação a todos os sete componentes, será considerado para cada campo profisisonal somente o(s) componentes mais relevantes (considerado marcantes em nossa avaliação).
 

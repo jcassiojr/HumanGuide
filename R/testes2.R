@@ -957,3 +957,6 @@ w <- df_tidy_hg %>% filter(grepl("jose cassio", df_tidy_hg$nomerespondente))
 # meu perfil
 
 my.score <- read.xlsx ("./data/pp_humanguide_20160307-1349.xls", sheetIndex = 1)
+
+
+# ring chart (donut)

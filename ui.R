@@ -1,22 +1,10 @@
-
-# This is the user-interface definition of a Shiny web application.
-# You can find out more about building applications with Shiny here:
-# 
-# http://www.rstudio.com/shiny/
-#
-
-library(shiny)
-source("./R/f_cluster_df.R")
-df_exp <- f_cluster_df()
-
 shinyUI(pageWithSidebar(
-    headerPanel('Análise de cluster'),
+    headerPanel('Iris k-means clustering'),
     sidebarPanel(
-        selectInput('xcol', 'Variável X', names(df_exp),
-                    selected=names(df_exp)[[2]]),
-        selectInput('ycol', 'Variável Y', names(df_exp),
-                    selected=names(df_exp)[[4]]),
-        numericInput('clusters', 'Contagem de Agrupamentos', 3,
+        selectInput('xcol', 'X Variable', names(iris)),
+        selectInput('ycol', 'Y Variable', names(iris),
+                    selected=names(iris)[[2]]),
+        numericInput('clusters', 'Cluster count', 3,
                      min = 1, max = 9)
     ),
     mainPanel(

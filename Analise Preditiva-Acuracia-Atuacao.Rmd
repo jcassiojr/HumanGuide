@@ -108,8 +108,18 @@ my.pc.area <-
               PC4.sd = sd(PC4),
               PC5.sd = sd(PC5),
               PC6.sd = sd(PC6),
-              PC7.sd = sd(PC7)
+              PC7.sd = sd(PC7),
+              PC1.var = sd(PC1)^2,
+              PC2.var = sd(PC2)^2,
+              PC3.var = sd(PC3)^2,
+              PC4.var = sd(PC4)^2,
+              PC5.var = sd(PC5)^2,
+              PC6.var = sd(PC6)^2,
+              PC7.var = sd(PC7)^2
               )
+
+# salvando em planilha os valores de PCs médios e desvio padrão para cada area de atuacao
+write.xlsx2(my.pc.area, "./data/EstatisticasAreaAtuacao.xlsx")
 
 my.pc.area.t <- t(my.pc.area)
 colnames(my.pc.area.t) <- my.pc.area.t[1,]
@@ -121,6 +131,7 @@ my.pc.area.t <-
     mutate(PC.stat = rownames(my.pc.area.t))
 colnames(my.pc.area.t) <- c("atua.01", "atua.02","atua.03","atua.04","atua.05",
                                    "atua.06","atua.07","atua.08","atua.09","atua.10", "PC.stat")
+
 knitr::kable(my.pc.area.t)
 ```
 
@@ -281,19 +292,19 @@ A variâncias se intercalando nas médias mostram porque a acurácia é baixa co
 
 ```{r,echo=FALSE}
 # teste para mostrar variancia de cada campo profisisonal
-require("plotly", quietly = TRUE, warn.conflicts = FALSE)
-pc1 <- my.PC.Campo.t %>% group_by(sexo) %>%
-  summarise(mn = mean(PC1), sd = 1.96 * sd(PC1)) %>%
-  arrange(desc(mn)) %>%
-  plot_ly(y = sexo, x = mn, error_x = list(value = sd),
-          mode = "markers", name = "Agrupado por Sexo") %>%
-  layout(
-         autosize = F,
-         width = 500,
-         height = 500,
-         margin = m,
-         yaxis = list(title = "Sexo"),
-         xaxis = list(title = "PC1 score",
-                      range = c(-0.4, 0.4)))
-pc1
+#require("plotly", quietly = TRUE, warn.conflicts = FALSE)
+#pc1 <- my.PC.Campo.t %>% group_by(sexo) %>%
+#  summarise(mn = mean(PC1), sd = 1.96 * sd(PC1)) %>%
+#  arrange(desc(mn)) %>%
+#  plot_ly(y = sexo, x = mn, error_x = list(value = sd),
+#          mode = "markers", name = "Agrupado por Sexo") %>%
+#  layout(
+#         autosize = F,
+#         width = 500,
+#         height = 500,
+#         margin = m,
+#         yaxis = list(title = "Sexo"),
+#         xaxis = list(title = "PC1 score",
+#                      range = c(-0.4, 0.4)))
+#pc1
 ```
