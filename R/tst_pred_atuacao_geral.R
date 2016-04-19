@@ -1,5 +1,8 @@
 # teste de predição por regressão linear simples
 # a partir de my.scores.total com area de atuação (ver Analise-Preditiva-Acuracia-Atuacao.Rmr)
+
+# mudar para treinar o modelo com dados Sustentavel, mas testar com dados Kroton
+
 require("xlsx")
 require("dplyr")
 require("caret")

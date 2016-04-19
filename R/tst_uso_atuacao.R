@@ -1,5 +1,6 @@
 # teste de predição por regressão linear simples
 # a partir de my.scores.total com area de atuação (ver Analise-Preditiva-Acuracia-Atuacao.Rmr)
+# TRANSFORMAR EM FUNCAO PARA SER CHAMADA DE tst_pred_atuacao_Nv2!!!
 require("xlsx")
 require("dplyr")
 require("caret")
