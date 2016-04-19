@@ -8,11 +8,14 @@ require("doMC")
 require("ROCR")
 source("./R/f_acentos.R") 
 source("./R/f_train_model_HG_nv2.R") 
+source("./R/f_assinatura_atuacao.R") 
+
 #source("./R/f_le_raw_HG.R") # usar esta função para ler os dados novos. 
 registerDoMC(8) # parallel processing
 options(scipen = 999) # removendo notação científica das saídas
-options(digits = 1) # forçando casa decimais das saídas
+#options(digits = 1) # forçando casa decimais das saídas
 
+tam.amostra.uso <- 13312
 # OBTEM DADOS PARA TREINO DE ENERGIA SUSTENTAVEL
 #########################################################
 # lendo somente os dados de EnergiaSu
@@ -158,41 +161,44 @@ my.test.atua <-
     select(nomerespondente, target, PC1, PC2, PC3, PC4, PC5, PC6, PC7)
 
 # obtem apenas amostra do tamanho desejado
-my.test.atua <- sample_n(my.test.atua, 1000)
+my.test.atua <- sample_n(my.test.atua, tam.amostra.uso)
 
 # AREA DE ATUACAO 1 - CLASSIFICAÇÃO
 ##########################
-my.atua.target <- 8 # código da atuação a prever
-#my.pred.total <- list()
+#my.atua.target <- 8 # código da atuação a prever
+my.pred <- list()
 
 # treina o modelo para cada uma das 10 areas de atuação, gerando dataframe com os dados
 # retornando o modelo para ser usado em cada previsão
 
 #colocar loop para obter percentuais para todos os ATs
+for ( my.atua.target in 1:10) {
+    l_models <- f_train_model_HG_nv2(my.train.atua, my.test.atua, my.atua.target)
+    pred <-  l_models[[6]] # valor de cutoff calculado (best balance)
+    my.pred[my.atua.target] <- as.data.frame(pred@predictions)
+}
 
-l_models <- f_train_model_HG_nv2(my.train.atua, my.test.atua, my.atua.target)
+# transformando a lista em dataframe
+my.df_prev <- data.frame(matrix(unlist(my.pred), nrow=10, byrow=T),stringsAsFactors=FALSE)
+my.df_prev.t <- as.data.frame(t(my.df_prev))
+names(my.df_prev.t) <- c("AT1", "AT2", "AT3","AT4","AT5", "AT6", "AT7", "AT8", "AT9", "AT10")
+# considerando TRUE somente probabilidade > 50%
+my.df_prev.final <-
+    my.df_prev.t %>%
+    mutate(AT1 = ifelse(AT1 > .5,"T", "F"),
+           AT2 = ifelse(AT2 > .5,"T", "F"),
+           AT3 = ifelse(AT3 > .5,"T", "F"),
+           AT4 = ifelse(AT4 > .5,"T", "F"),
+           AT5 = ifelse(AT5 > .5,"T", "F"),
+           AT6 = ifelse(AT6 > .5,"T", "F"),
+           AT7 = ifelse(AT7 > .5,"T", "F"),
+           AT8 = ifelse(AT8 > .5,"T", "F"),
+           AT9 = ifelse(AT9 > .5,"T", "F"),
+           AT10 = ifelse(AT10 > .5,"T", "F")
+    )
 
-models <-  l_models[[1]] # modelo trans de caret
-aic <-  l_models[[2]] # Valor de AIC do modelo
-cf <-  l_models[[3]] # objeto confusion matrix
-roc.perf <-  l_models[[4]] # objeto performance de caret
-roc.auc <-  l_models[[5]] # valor de AUC de curva ROC
-pred <-  l_models[[6]] # valor de cutoff calculado (best balance)
-    #df_rank <-  l_models[[7]] # dataframe com pobabilidades de teste rankeadas
-
-resampleHist(models$logb)
-    # objeto confusion Matrix (devo diminuir false positive)
-print(cf$table)
-print(cf$byClass)
-print(cf$overall)
-    # Plot roc. objects (para cada modelo)
-plot(roc.perf)
-abline(a=0, b= 1)
-    # lift plot
-#roc.perf.lift = performance(pred, measure = "lift", x.measure = "rpp")
-#plot(roc.perf.lift)
-
-    # prints
-sprintf(paste0("AIC Área de Atuação ", my.atua.target,": %.2f"),aic$aic)
-sprintf(paste0("Área de Atuação ", my.atua.target," - %s : %.4f"),roc.auc@y.name,roc.auc@y.values)
-
+# plotanto os percentuais para atuacoes de dado respondente escolhido dos dados de uso
+respondente <- sample_n(my.df_prev.t,1) # amostra aleatória
+# chama funcao que gera plot de assinatura
+my.pl_atuacao <- f_assinatura_atuacao(respondente)
+(my.pl_atuacao)

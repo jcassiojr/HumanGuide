@@ -3,11 +3,11 @@
 #' df_tidy_in -> dataframe a partir de mt.score.total com colunas: ID, target, PC1, PC2, PC3, PC4, PC5, PC6, PC7
 #' df_test_in -> dataframe a partir de outros respondentes, com mesmo formato acima
 
-require("caret")
-require("MASS")
-require("ROCR")
+#require("caret")
+#require("MASS")
+#require("ROCR")
 
-f_train_model_HG_nv2 <- function(df_train_in, df_test_in, campo_in) {
+f_train_model_HG_atuacao <- function(df_train_in, df_test_in, campo_in) {
     
     #preparando modelo para target campo = CFM
     #df_train_in <- my.train.atua
@@ -19,14 +19,14 @@ f_train_model_HG_nv2 <- function(df_train_in, df_test_in, campo_in) {
         mutate(target = ifelse(target == campo_in,"T","F"))
     trainClass <- as.factor(df_train_in[,"target"]) # transformando em vetor de fatores de target
     trainClass <- factor(trainClass, levels = c("T","F")) # ordenando levels para "S" ser o primeiro
-    trainDescr <- df_train_in[,c(3:9)] 
+    trainDescr <- df_train_in[,c(1, 3:9)] 
     
     df_test_in <-
         df_test_in %>%
         mutate(target = ifelse(target == campo_in,"T","F"))
     testClass <- as.factor(df_test_in[,"target"]) # transformando em vetor de fatores de target
     testClass <- factor(testClass, levels = c("T","F")) # ordenando levels para "S" ser o primeiro
-    testDescr <- df_test_in[,c(3:9)]
+    testDescr <- df_test_in[,c(1, 3:9)]
     
     # REMOVENDO NEAR ZERO VARIANCE AND CORRELATIONS 
     # (FOR CORRELATION, NUMERIC FEATURES ONLY)
@@ -42,7 +42,7 @@ f_train_model_HG_nv2 <- function(df_train_in, df_test_in, campo_in) {
     # eliminando features com menor importância 
     ###################################################
     #trainTotal <- cbind(sexo = trainClass,trainDescr)
-    initial <- glm(target ~ ., data = cbind(target = trainClass,trainDescr), family = "binomial")
+    initial <- glm(target ~ ., data = cbind(target = trainClass,trainDescr[,-1]), family = "binomial")
     aic_o <- stepAIC(initial, direction = "both", trace = FALSE)
     
     #######################################
@@ -57,7 +57,7 @@ f_train_model_HG_nv2 <- function(df_train_in, df_test_in, campo_in) {
     
     # BOOSTED LOGISTIC REGRESSION MODEL
     #---------
-    logb_model <- train(trainDescr, trainClass, 
+    logb_model <- train(trainDescr[,-1], trainClass, 
                         #nbagg = 50,
                         metric = "ROC",
                         preProcess=c("center", "scale"),
@@ -76,7 +76,7 @@ f_train_model_HG_nv2 <- function(df_train_in, df_test_in, campo_in) {
     # obtém probabilidades dos modelos
     probValues <- extractProb(
         models_o,
-        testX = testDescr,
+        testX = testDescr[,-1],
         testY = testClass)
     
     # pegar subset somente com dados de teste para validar o modelo
