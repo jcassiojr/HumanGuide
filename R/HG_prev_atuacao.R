@@ -1,23 +1,22 @@
 # teste de predição por regressão linear simples
 # a partir de my.scores.total com area de atuação (ver Analise-Preditiva-Acuracia-Atuacao.Rmr)
 require("xlsx")
-require("dplyr")
 require("caret")
 require("MASS")
 require("doMC")
 require("ROCR")
+require("dplyr")
 source("./R/f_acentos.R") 
 source("./R/f_train_model_HG_atuacao.R") 
 source("./R/f_assinatura_atuacao.R") 
-
 #source("./R/f_le_raw_HG.R") # usar esta função para ler os dados novos. 
 registerDoMC(8) # parallel processing
 options(scipen = 999) # removendo notação científica das saídas
 #options(digits = 1) # forçando casa decimais das saídas
 
 #tam.amostra.uso <- 13312
-tam.amostra.uso <- 1000
-my.respondente <- "renata del bove" 
+#tam.amostra.uso <- 1000
+my.respondente <- "abimael antonio de oliveira" 
 # OBTEM DADOS PARA TREINO DE ENERGIA SUSTENTAVEL
 #########################################################
 # lendo somente os dados de EnergiaSu
@@ -86,8 +85,8 @@ my.train.atua <-
 #########################################################
 # estes dados são os obtidos pelo sistema HG
 df_goe <- read.csv2("./data/goe_20151121_0154.csv", encoding = "UTF-8", 
-                    sep = "\t", header = TRUE)
-df_goe <- f_acentos(df_goe)
+                    sep = "\t", header = TRUE, stringsAsFactors = FALSE)
+
 # eliminando coluna "X"
 df_goe <-
     df_goe %>%
@@ -143,6 +142,12 @@ df_goe <-
                             ifelse(atua.na.area.1 == "Empreendedor / Autonomo", 9,
                             10))))))))))
 
+df_goe <- f_acentos(df_goe)
+
+# changing factor to numeric
+unfactorize<-c(5:12)
+df_goe[,unfactorize]<-lapply(unfactorize, function(x) as.numeric(as.character(df_goe[,x])))
+
 # obtendo os scores previstos de acordo com a análise de componentes principais
 pca1.test = prcomp(df_goe[,5:12], scale. = TRUE, center = TRUE)
 # scores obtidos
@@ -164,7 +169,7 @@ my.test.atua <-
     select(nomerespondente, target, PC1, PC2, PC3, PC4, PC5, PC6, PC7)
 
 # obtem apenas amostra do tamanho desejado
-my.test.atua <- sample_n(my.test.atua, tam.amostra.uso)
+#my.test.atua <- sample_n(my.test.atua, tam.amostra.uso)
 
 # AREA DE ATUACAO 1 - CLASSIFICAÇÃO
 ##########################

@@ -12,11 +12,12 @@ f_train_model_HG_atuacao <- function(df_train_in, df_test_in, campo_in) {
     #preparando modelo para target campo = CFM
     #df_train_in <- my.train.atua
     #df_test_in <- my.test.atua
-    #campo_in <- 1
+    #campo_in <- "administração e negócio"
+    #campo_in <- "saúde"
 
     df_train_in <-
         df_train_in %>%
-        mutate(target = ifelse(target == campo_in,"T","F"))
+        mutate(target = ifelse(grepl(campo_in, target),"T","F"))
     trainClass <- as.factor(df_train_in[,"target"]) # transformando em vetor de fatores de target
     trainClass <- factor(trainClass, levels = c("T","F")) # ordenando levels para "S" ser o primeiro
     trainDescr <- df_train_in[,c(1, 3:9)] 
@@ -63,14 +64,15 @@ f_train_model_HG_atuacao <- function(df_train_in, df_test_in, campo_in) {
                         preProcess=c("center", "scale"),
                         trControl=control,  
                         method="LogitBoost")
-    #nb_model <- train(trainDescr, trainClass, 
-    #                  #nbagg = 50,
-    #                  metric = "ROC",
-    #                  preProcess=c("center", "scale"),
-    #                  trControl=control,
-    #                  na.action=na.omit,
-    #                  method="nb")
+    nb_model <- train(trainDescr[,-1], trainClass, 
+                      #nbagg = 50,
+                      metric = "ROC",
+                      preProcess=c("center", "scale"),
+                      trControl=control,
+                      na.action=na.omit,
+                      method="nb")
     
+    #models_o <- list(logb = logb_model, nb = nb_model)
     models_o <- list(logb = logb_model)
     
     # obtém probabilidades dos modelos
@@ -83,6 +85,24 @@ f_train_model_HG_atuacao <- function(df_train_in, df_test_in, campo_in) {
     testProbs <- subset(
         probValues,
         dataType == "Test")
+    #testProbs <- subset(testProbs, model == tipo_mod)
+    
+    #+++++++++++
+    #tipo_mod = "nb"
+    #nbProbs <- subset(testProbs, model == tipo_mod)
+    #nb_cf <- confusionMatrix(nbProbs$pred, nbProbs$obs)
+    #nb_pred <- prediction(nbProbs$F, nbProbs$obs)
+    #roc.perf = performance(nb_pred, measure = "tpr", x.measure = "fpr")
+    #    plot(roc.perf)
+    #abline(a=0, b= 1)
+    
+    #+++++++++++
+    
+    
+    
+    
+    
+    
     
     # confusion matrix
     #cf_o <- confusionMatrix(probValues$pred, probValues$obs)
