@@ -1,10 +1,10 @@
 # teste de predição por regressão linear simples
 # a partir de my.scores.total com area de atuação (ver Analise-Preditiva-Acuracia-Atuacao.Rmr)
 require("xlsx")
-require("dplyr")
 require("caret")
 require("MASS")
 require("ROCR")
+require("dplyr")
 source("./R/f_acentos.R") 
 source("./R/f_train_model_HG_abril.R") 
 source("./R/f_assinatura_abril.R")
@@ -13,7 +13,7 @@ registerDoMC(8) # parallel processing
 options(scipen = 999) # removendo notação científica das saídas
 # OBTEM DADOS PARA TREINO DE ENERGIA SUSTENTAVEL
 #########################################################
-my.respondente <- "abimael antonio de oliveira"
+my.respondente <- "adriana paula pires mendonca"
 # lendo somente os dados de EnergiaSu
 df_raw_hg_nv <- read.xlsx2("./data/pp_humanguide_20160307-1349.xlsx",1)
 df_raw_hg_nv <- f_acentos(df_raw_hg_nv)
@@ -268,19 +268,20 @@ names(my.df_prev.t) <- c("administração.e.negócio",
 # considerando TRUE somente probabilidade > 50%
 my.df_prev.final <- 
     my.df_prev.t %>%
-    mutate(AT1 = ifelse(administração.e.negócio > .5,"T", "F"),
-           AT2 = ifelse(saúde > .5,"T", "F"),
-           AT3 = ifelse(artes.e.design > .5,"T", "F"),
-           AT4 = ifelse(ciências.exatas.e.informática > .5,"T", "F"),
-           AT5 = ifelse(ciências.humanas.e.sociais > .5,"T", "F"),
-           AT6 = ifelse(comunicação.e.informação > .5,"T", "F"),
-           AT7 = ifelse(engenharia > .5,"T", "F"),
-           AT8 = ifelse(meio.ambiente.e.ciências.agrárias > .5,"T", "F")
+    mutate(administração.e.negócio = ifelse(administração.e.negócio > .5,"T", "F"),
+           saúde = ifelse(saúde > .5,"T", "F"),
+           artes.e.design = ifelse(artes.e.design > .5,"T", "F"),
+           ciências.exatas.e.informática = ifelse(ciências.exatas.e.informática > .5,"T", "F"),
+           ciências.humanas.e.sociais = ifelse(ciências.humanas.e.sociais > .5,"T", "F"),
+           comunicação.e.informação = ifelse(comunicação.e.informação > .5,"T", "F"),
+           engenharia = ifelse(engenharia > .5,"T", "F"),
+           meio.ambiente.e.ciências.agrárias = ifelse(meio.ambiente.e.ciências.agrárias > .5,"T", "F")
     )
 
 # plotanto os percentuais para atuacoes de dado respondente escolhido dos dados de uso
 #respondente <- sample_n(my.df_prev.t,1) # amostra aleatória
 # alternativa: buscar na base d euso por nome
+# FALTA: colocar na funcao abaixo: criar coluna T (<50%) e F(>50%). No plo pintar de vermelho F r verde T 
 respondente <-
     my.df_prev.t %>%
     filter(grepl(my.respondente, my.df_prev.t$nomerespondente))
