@@ -22,10 +22,24 @@ f_assinatura_abril <- function(in.df_resp){
                              ))
     colnames(resp.t)  <- c("area.prof", "intensidade.neg")
     
+    # insere coluna T/F. False se maior de 50% (pois tem grande chance de não fazer parte, vermelho)
+    # azul para casos contrários. Por eliminação, sempre pois especifidade é alta
+    resp.t <-
+        resp.t %>%
+        mutate(relevante = ifelse(intensidade.neg <= .5, "T", "F"))
+    
+    #out.pl_area.prof <- ggplot(resp.t, aes(x=area.prof, y=intensidade.neg)) +
+    #    geom_bar(aes (fill= factor(area.prof)), stat="identity") +
+    #    scale_fill_manual(values=c("royalblue", "royalblue1", "royalblue2", "royalblue3","royalblue4",
+    #                               "springgreen1", "springgreen2", "springgreen3")) +
+    #    ggtitle(paste("(", my.respondente,")")) +
+    #    xlab("Área Profisisonal Human Guide") +
+    #    ylab("intensidade negativa") +
+    #    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
     out.pl_area.prof <- ggplot(resp.t, aes(x=area.prof, y=intensidade.neg)) +
-        geom_bar(aes (fill= factor(area.prof)), stat="identity") +
-        scale_fill_manual(values=c("royalblue", "royalblue1", "royalblue2", "royalblue3","royalblue4",
-                                   "springgreen1", "springgreen2", "springgreen3")) +
+        geom_bar(aes (fill= factor(relevante)), stat="identity") +
+        scale_fill_manual(values=c("red1", "springgreen3")) +
         ggtitle(paste("(", my.respondente,")")) +
         xlab("Área Profisisonal Human Guide") +
         ylab("intensidade negativa") +

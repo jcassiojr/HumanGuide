@@ -115,7 +115,8 @@ f_train_model_HG_atuacao <- function(df_train_in, df_test_in, campo_in) {
     
     # ROC curve
     roc.perf_o = performance(pred_o, measure = "tpr", x.measure = "fpr")
-    
+    #plot(roc.perf_o)
+    #abline(a=0, b= 1)
     
     # RETORNAR AUC
     roc.auc_o = performance(pred_o, measure = "auc")

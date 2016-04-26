@@ -10,9 +10,9 @@
 f_train_model_HG_abril <- function(df_train_in, df_test_in, campo_in) {
     
     #preparando modelo para target campo = CFM
-    #df_train_in <- my.train.atua
-    #df_test_in <- my.test.atua
-    #campo_in <- "administração e negócio"
+    df_train_in <- my.train.atua
+    df_test_in <- my.test.atua
+    campo_in <- "administração e negócio"
     #campo_in <- "saúde"
     #campo_in <- "artes e design"
     #campo_in <- "ciências exatas e informática"
@@ -25,14 +25,14 @@ f_train_model_HG_abril <- function(df_train_in, df_test_in, campo_in) {
         df_train_in %>%
         mutate(target = ifelse(grepl(campo_in, target),"T","F"))
     trainClass <- as.factor(df_train_in[,"target"]) # transformando em vetor de fatores de target
-    trainClass <- factor(trainClass, levels = c("T","F")) # ordenando levels para "S" ser o primeiro
+    trainClass <- factor(trainClass, levels = c("T","F")) # ordenando levels para "T" ser o primeiro
     trainDescr <- df_train_in[,c(1, 3:9)] 
     
     df_test_in <-
         df_test_in %>%
         mutate(target = ifelse(target == campo_in,"T","F"))
     testClass <- as.factor(df_test_in[,"target"]) # transformando em vetor de fatores de target
-    testClass <- factor(testClass, levels = c("T","F")) # ordenando levels para "S" ser o primeiro
+    testClass <- factor(testClass, levels = c("T","F")) # ordenando levels para "T" ser o primeiro
     testDescr <- df_test_in[,c(1, 3:9)]
     table(trainClass)
     table(testClass)
@@ -118,7 +118,7 @@ f_train_model_HG_abril <- function(df_train_in, df_test_in, campo_in) {
     # making a prediction object
     #pred_o <- prediction(probValues$T, probValues$obs)
     #pred_o <- prediction(testProbs$T, testProbs$obs)
-    pred_o <- prediction(testProbs$F, testProbs$obs) # USEI FALSE POR TER ALTA ESPECIFICIDADE! POR ELIMINACAO
+    pred_o <- prediction(testProbs$T, testProbs$obs) # USEI FALSE POR TER ALTA ESPECIFICIDADE! POR ELIMINACAO
     
     # ROC curve
     roc.perf_o = performance(pred_o, measure = "tpr", x.measure = "fpr")

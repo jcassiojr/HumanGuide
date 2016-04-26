@@ -13,11 +13,26 @@ registerDoMC(8) # parallel processing
 options(scipen = 999) # removendo notação científica das saídas
 # OBTEM DADOS PARA TREINO DE ENERGIA SUSTENTAVEL
 #########################################################
-my.respondente <- "adriana paula pires mendonca"
-# lendo somente os dados de EnergiaSu
-df_raw_hg_nv <- read.xlsx2("./data/pp_humanguide_20160307-1349.xlsx",1)
-df_raw_hg_nv <- f_acentos(df_raw_hg_nv)
 
+#df_raw_hg_nv <- read.csv2("./data/new/HG_export_1461708842-TALENT.csv", encoding = "UTF-8", 
+#                         sep = "\t", header = TRUE)
+# lendo somente os dados de ultimo envio
+#df_raw_hg_nv <- read.xlsx2("./data/pp_humanguide_20160307-1349.xlsx",1)
+# lendo dados de rh99 com codigos ao invés de descrições
+df_raw_hg_nv <- read.csv2("./data/new/rh99_20160425_2158.csv", encoding = "UTF-8", 
+                     sep = "\t", header = TRUE)
+df_raw_hg_nv <- f_acentos(df_raw_hg_nv)
+# filtando somente AMBEV e removendo coluna X
+##df_raw_hg_ambev <-
+##    df_raw_hg_nv %>%
+#    filter(TIPOUSER == "ambev") %>%
+#    select(-X)
+# filtando somente AMBEV e removendo coluna X
+df_raw_hg_ambev <-
+    df_raw_hg_nv %>%
+    #filter(!grepl("ambev|func publico|df|sp",TIPOUSER)) %>%
+    filter(!grepl("df|sp",TIPOUSER)) %>%
+    select(-X)
 # buscar na tabela de profissoes da abril o codigo da formação e, achando, substituir por
 # categoria de formacao
 #df_cod.form <- read.xlsx2("./data/Classificacao_profissoes_abril_2016.xlsx", sheetIndex = 2, header = TRUE)
@@ -29,37 +44,35 @@ df_raw_hg_nv <- f_acentos(df_raw_hg_nv)
 #names(df_cod.form) <- gsub("Á","A",names(df_cod.form))
 #names(df_cod.form) <- gsub("Ú","U",names(df_cod.form))
 
-df_raw_hg_nv <- 
-    df_raw_hg_nv %>%
-    mutate(area.prof = as.factor(ifelse(formacao %in% c("1", "3", "6", "8", "9", "75", "81", 
+df_raw_hg_ambev <- 
+    df_raw_hg_ambev %>%
+    mutate(area.prof = as.factor(ifelse(formacao.em %in% c("1", "3", "6", "8", "9", "75", "81", 
                                              "52", "96", "76", "12", "75"), "administração e negócio",
-                       ifelse(formacao %in% c("4", "28", "42"), "artes e design",
-                       ifelse(formacao %in% c("11", "27", "30", "38", "47", "76"), "ciências exatas e informática",
-                       ifelse(formacao %in% c("10", "13", "14", "33", "35", "37",
+                       ifelse(formacao.em %in% c("4", "28", "42"), "artes e design",
+                       ifelse(formacao.em %in% c("11", "27", "30", "38", "47", "76"), "ciências exatas e informática",
+                       ifelse(formacao.em %in% c("10", "13", "14", "33", "35", "37",
                                               "15", "84", "49", "9", "74", "83"), "ciências humanas e sociais",
-                       ifelse(formacao %in% c("88", "36", "46", "48", "52", "72"), "comunicação e informação",
-                       ifelse(formacao %in% c("20", "89", "78", "21", "87", "23",
+                       ifelse(formacao.em %in% c("88", "36", "46", "48", "52", "72"), "comunicação e informação",
+                       ifelse(formacao.em %in% c("20", "89", "78", "21", "87", "23",
                                               "79", "24", "80", "25", "86", "26",
                                               "82", "39", "50", "17"), "engenharia",
-                       ifelse(formacao %in% c("90", "7", "91", "19", "22", "85",
+                       ifelse(formacao.em %in% c("90", "7", "91", "19", "22", "85",
                                               "92", "34", "41", "95", "93"), "meio ambiente e ciências agrárias",
-                       ifelse(formacao %in% c("5", "16", "18", "29", "31", "32",
+                       ifelse(formacao.em %in% c("5", "16", "18", "29", "31", "32",
                                               "40", "43", "44", "45", "51", "94"), "saúde",
                               NA
                               ))))))))))
-# removendo NAs (ensino médio, ensino fundamental e ensino técnico)
-df_raw_hg_nv <- na.omit(df_raw_hg_nv)    
     
 #df_raw_hg <- f_le_raw_HG() # lê toda a amostra de dados HG
 
 # changing factor to numeric
-unfactorize<-c(12:83)
-df_raw_hg_nv[,unfactorize]<-lapply(unfactorize, function(x) as.numeric(as.character(df_raw_hg_nv[,x])))
+unfactorize<-c(15:86)
+df_raw_hg_ambev[,unfactorize]<-lapply(unfactorize, function(x) as.numeric(as.character(df_raw_hg_ambev[,x])))
 
 # primeiro somente selecionando as colunas necessárias para cálculo de ranking
-df_raw_hg_nv <-
-    df_raw_hg_nv %>%
-    select(nomerespondente, idade, formacao, area.prof,
+df_raw_hg_ambev <-
+    df_raw_hg_ambev %>%
+    select(nomerespondente, idade, formacao.em, area.prof,
            s11, h21, h31, hy41, e51, m61, m71, p81, e91,
            e12, e22, e32, s42, s52, s62, k72, h82, m92,
            h13, k23, hy33, e43, hy53, e63, s73, e83, p93,
@@ -71,7 +84,7 @@ df_raw_hg_nv <-
 
 # seleciona apenas as colunas necessárias
 df_tidy_hg_nv <-
-    df_raw_hg_nv %>%
+    df_raw_hg_ambev %>%
     mutate(sensibility = h13 + h21 + h31 + h45 + h56 + h68 + h76 + h82 + h97,
            power = s11 + s27 + s35 + s42 + s52 + s62 + s73 + s84 + s96,
            quality = e12 + e22 + e32 + e43 + e51 + e63 + e77 + e83 + e91,
@@ -80,10 +93,17 @@ df_tidy_hg_nv <-
            imagination = p15 + p26 + p36 + p48 + p57 + p66 + p74 + p81 + p93,
            stability = d17 + d24 + d37 + d47 + d55 + d67 + d78 + d88 + d94,
            contacts = m18 + m25 + m38 + m46 + m58 + m61 + m71 + m85 + m92) %>%
-    select(nomerespondente, idade, formacao, area.prof, sensibility, power, quality,
+    select(nomerespondente, idade, formacao.em, area.prof, sensibility, power, quality,
            exposure, structure, imagination, stability, contacts) 
 
+# removendo NAs (ensino médio, ensino fundamental e ensino técnico)
+df_tidy_hg_nv <- na.omit(df_tidy_hg_nv)
+
+
 # OBTENÇÃO DOS SCORES A PARTIR DE TODA A AMOSTRA
+
+# obs: FALTA: pegar prior de acordo com area.prof nos dados de treino e teste!!!
+
 #-----------------------------------------------------------------------------------
 # obtendo os scores previstos de acordo com a análise de componentes principais
 pca1.train = prcomp(df_tidy_hg_nv[,5:12], scale. = TRUE, center = TRUE)
@@ -100,11 +120,13 @@ my.scores.total <-
     my.scores.total %>%
     select (-PC8)
 
-my.train.atua <-
+my.scores.atua <-
     my.scores.total %>%
     rename(target = area.prof) %>%
     select(nomerespondente, target, PC1, PC2, PC3, PC4, PC5, PC6, PC7)
 
+# removendo 13 primeiras linhas com nomes numériso e esquisitos
+my.scores.atua <- my.scores.atua[-c(1:13),]
 
 # OBTEM DADOS PARA TESTE DE ARQUIVO GOE
 #########################################################
@@ -205,12 +227,28 @@ my.train.atua <-
 
 # AREA DE ATUACAO 1 - CLASSIFICAÇÃO
 ##########################
+# usando sample com mesma distribuição de area.prof dos dados da população para ver s emelhora performance do modelo
+#n <- dim(df_tidy_hg_nv)[1]
+#n <- 1000
+#prb <- ifelse(area.prof=="administração e negócio",0.125,
+#              area.prof=="saúde",0.125,
+#              area.prof=="artes e design",0.125,
+#              area.prof=="ciências exatas e informática",0.125,
+#              area.prof=="ciências humanas e sociais",0.125,
+##              area.prof=="comunicação e informação",0.125,
+#              area.prof=="engenharia",0.125,
+#              0.125) #meio ambiente e ciências agrárias
+#smpl <- df[sample(nrow(df), n, prob = prb),]
 
 # POR ENQUANTO TESTANDO COM MESMO DATA SET (SEM USAR GOE!!!)
-#nomes <- my.train.atua[,"nomerespondente"]
-class <- as.factor(my.train.atua[,"target"]) # transformando em vetor de fatores de target
+# testando com particao da sample igual a da população
+#n <- 50
+#prb <- ifelse(sex=="M",0.25,0.75)
+#smpl <- df[sample(nrow(df), 50, prob = prb),]
+#nomes <- my.scores.atua[,"nomerespondente"]
+class <- as.factor(my.scores.atua[,"target"]) # transformando em vetor de fatores de target
 inTrain <- createDataPartition(class, p = 3/4, list = FALSE)
-descr <- my.train.atua[,c(1,3:9)] # Obs: depois trocar Valor Devido por Faixa para ver se melhora o modelo!!
+descr <- my.scores.atua[,c(1,3:9)] # Obs: depois trocar Valor Devido por Faixa para ver se melhora o modelo!!
 
 #set.seed(1)
 #inTrain <- createDataPartition(class, p = 3/4, list = FALSE)
@@ -222,14 +260,20 @@ testDescr  <- descr[-inTrain,]
 trainClass <- class[inTrain]
 testClass  <- class[-inTrain]
 
+
 my.test.atua <- cbind(target = testClass, testDescr)
 # reordenando as colunas
 my.test.atua <-
     my.test.atua %>%
     select(nomerespondente, target, PC1, PC2, PC3, PC4, PC5, PC6, PC7)
 
+my.train.atua <- cbind(target = trainClass, trainDescr)
+my.train.atua <-
+    my.train.atua %>%
+    select(nomerespondente, target, PC1, PC2, PC3, PC4, PC5, PC6, PC7)
 #my.atua.target <- 8 # código da atuação a prever
 my.pred <- list()
+my.auc <- numeric()
 
 # treina o modelo para cada uma das 10 areas de atuação, gerando dataframe com os dados
 # retornando o modelo para ser usado em cada previsão
@@ -238,19 +282,29 @@ my.pred <- list()
 v_nomes_test <- my.test.atua[,1]
 #colocar loop para obter percentuais para todos os areas profs Abril
 area.cod.descr <- c("administração e negócio",
-                             "saúde",
-                             "artes e design",
-                             "ciências exatas e informática",
-                             "ciências humanas e sociais",
-                             "comunicação e informação",
-                             "engenharia",
-                             "meio ambiente e ciências agrárias")
+                    "saúde",
+                    "artes e design",
+                    "ciências exatas e informática",
+                    "ciências humanas e sociais",
+                    "comunicação e informação",
+                    "engenharia",
+                    "meio ambiente e ciências agrárias")
 
 for (i in 1:length(area.cod.descr)) {
     l_models <- f_train_model_HG_abril(my.train.atua, my.test.atua, area.cod.descr[i])
     pred <-  l_models[[6]] # valor de cutoff calculado (best balance)
+    auc <-  l_models[[5]] # valor de cutoff calculado (best balance)
     my.pred[i] <- as.data.frame(pred@predictions)
+    my.auc[i] <- (auc@y.values)
 }
+
+# imprime acurácia do modelo
+for (i in 1:length(area.cod.descr)) {
+    print(1 - as.numeric(my.auc[i])) # uso o complemento pois no treino faço a predição usando o falso. Depois mudar!!!
+}
+
+#    plot(roc.perf)
+#abline(a=0, b= 1)
 
 # transformando a lista em dataframe
 my.df_prev <- data.frame(matrix(unlist(my.pred), nrow=8, byrow=T),stringsAsFactors=FALSE)
@@ -282,6 +336,7 @@ my.df_prev.final <-
 #respondente <- sample_n(my.df_prev.t,1) # amostra aleatória
 # alternativa: buscar na base d euso por nome
 # FALTA: colocar na funcao abaixo: criar coluna T (<50%) e F(>50%). No plo pintar de vermelho F r verde T 
+my.respondente <- "mariana morales furlan"
 respondente <-
     my.df_prev.t %>%
     filter(grepl(my.respondente, my.df_prev.t$nomerespondente))
