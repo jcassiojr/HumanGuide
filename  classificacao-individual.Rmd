@@ -3,7 +3,11 @@ title: "Classificação de Respondente"
 author: "Cassio"
 date: "March 28, 2016"
 output: 
-   html_document
+   html_document:
+    fig_height: 4
+    fig_width: 9.5
+    number_sections: yes
+    toc: yes
 ---
 
 <center>![agileBIGDATA](./logoAgileBD.png)</center>

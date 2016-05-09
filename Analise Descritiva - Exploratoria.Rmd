@@ -431,7 +431,7 @@ knitr::kable(df.1)
 Abaixo são apresentados os resultados da análise multivariada de variância das médias (MANOVA) para todos os grupos considerados nesta análise.
 O objetivo desta análise é comprovar que as médias dos scores consideradas nos agrupamentos abaixo selecionados têm uma diferença estatística significante.
 É apresentada abaixo a tabela com valores de variação das médias por grupo mostrando o valor de **F-ratio**, do teste de **Lambda de Wilks** e o **P-value**. 
-Os valores comprovam que todos os grupos considerados apresentam diferenças significativas nas médias de seus scores, confirmando que exite comportamento diferenciado para cada grupo em relação aos scores obtidos com o teste **Human Guide**.
+Os valores comprovam que todos os grupos considerados apresentam diferenças significativas nas médias de seus scores, confirmando que existe comportamento diferenciado para cada grupo em relação aos scores obtidos com o teste **Human Guide**.
 
 ```{r, echo=FALSE, warning=FALSE}
 # agrupando em data frame todas as estatísticas
