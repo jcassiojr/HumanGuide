@@ -1,32 +1,34 @@
 #' função f_assinatura_HG
 #' Gera os plots de assinatura e de classificacao em campos profissionais de respondente selecionado
 #' input:
-#' nome do arquivo a partir do qual será selecionado o repsondente
-#' nome do respondente a gerar os plots
+#' in.arquivo -> nome do arquivo a partir do qual será selecionado o respondente
+#' in.nome -> nome do respondente a gerar os plots
 #' output:
-#' lista com:
+#' out.l_plots -> lista contendo dois plots:
 #' plot de assinatura do respondente em relação aos componentes
 #' plot de classificação do respondente em relação a campos profissionais
+#' 
+#' 
+
+# carrega blibliotecas necessárias
 require("doMC", quietly = TRUE, warn.conflicts = FALSE)
 require("ggplot2", quietly = TRUE, warn.conflicts = FALSE)
 require("xlsx", quietly = TRUE, warn.conflicts = FALSE)
 require("dplyr", quietly = TRUE, warn.conflicts = FALSE)
 
-source("./R/f_acentos.R") 
+# carrega função que remove acentos e força minúsculas em todas as variáveis tipo string
+source("./R/f_acentos.R")
+source("./R/f_limites_score.R")
 
 f_assinatura_individual_HG <- function(in.arquivo, in.nome) {
-    # ATENCAO: comentar abaixo apos terminados os testes da funcao
-    #in.arquivo <- "pp_humanguide_20160307-1349.xlsx"
-    #in.nome <- "beatriz welter"
-    # ATENCAO +++++++++++++++++++++++++++++++++++++++++++++++++++++
     
-    registerDoMC(8) # parallel processing
+    registerDoMC(8) # enable parallel processing
     
     # OBTENDO SCORES MAXIMOS E MINIMOS
     ##################################
-    
-    # ou, lendo de arquivo já gravado pela funcao f_limites_score()
-    my.score.limites <- read.xlsx ("./data/limites-score.xlsx", sheetIndex = 1)
+  
+    # chamando funcao f_limites_score() que obtém os scores limites de cada componente
+    my.score.limites <- f_limites_score()
     
     # limites considerados para percentual de intensidade
     lims.classif <- c(.3, .15, .05) # classificação cass
@@ -84,7 +86,7 @@ f_assinatura_individual_HG <- function(in.arquivo, in.nome) {
     # calculo dos novos fatores para os respondentes do arquivo lido
     # obtendo os scores de acordo com a análise de componentes principais
     ###############################################################################
-
+    # aplica a função de análise de componentes principais para obter os scores dos componentes
     pca1 = prcomp(df_respondentes[,9:16], scale. = TRUE, center = TRUE)
     # scores obtidos
     scores.resp<- as.data.frame(pca1$x)
@@ -157,7 +159,7 @@ f_assinatura_individual_HG <- function(in.arquivo, in.nome) {
                                                 ))
     
 
-    #plotar
+    #plot de assinaturas por componente
     plot.assinatura.resp <- ggplot(my.classif, aes(x=atributo, y=perc)) +
                         geom_bar(aes (fill= factor(intensidade)), stat="identity") +
                         scale_fill_manual(values=c("skyblue", "lightgreen", "yellow", "red1")) +
@@ -212,7 +214,7 @@ f_assinatura_individual_HG <- function(in.arquivo, in.nome) {
                                 )))) %>%
         select(-corr.abs)
     
-    #plotar
+    #plot
     my.df_campos <-
         my.df_campos %>%
         mutate(ID.campo = seq(nrow((my.df_campos))))
@@ -220,9 +222,7 @@ f_assinatura_individual_HG <- function(in.arquivo, in.nome) {
     my.df_campos$intensidade <- factor(my.df_campos$intensidade, 
                                         levels = c("marcante","moderado","fraco","inexpressivo"))
     
-    # plot com pontos
-    #qplot(df_class.resp$campo.prof,df_class.resp$corr, colour = df_class.resp$intensidade)
-    # alternativa
+    # plot de campos profissionais
     plot.campo.resp <- ggplot(my.df_campos, aes(x=campo.prof, y=corr, fill= intensidade)) +
         geom_bar(aes (fill= factor(intensidade)), stat="identity") +
         scale_fill_manual(values=c("skyblue", "lightgreen", "yellow", "red1")) +
