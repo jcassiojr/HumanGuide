@@ -15,35 +15,16 @@ options(scipen = 999) # removendo notação científica das saídas
 # OBTEM DADOS PARA TREINO DE ENERGIA SUSTENTAVEL
 #########################################################
 
-#df_raw_hg_form <- read.csv2("./data/new/HG_export_1461708842-TALENT.csv", encoding = "UTF-8", 
-#                         sep = "\t", header = TRUE)
-# lendo somente os dados de ultimo envio
-#df_raw_hg_form <- read.xlsx2("./data/pp_humanguide_20160307-1349.xlsx",1)
 # lendo dados de rh99 com codigos ao invés de descrições
 df_raw_hg_nv <- read.csv2("./data/new/rh99_20160425_2158.csv", encoding = "UTF-8", 
                      sep = "\t", header = TRUE)
 df_raw_hg_nv <- f_acentos(df_raw_hg_nv)
-# filtando somente AMBEV e removendo coluna X
-##df_raw_hg_form <-
-##    df_raw_hg_nv %>%
-#    filter(TIPOUSER == "ambev") %>%
-#    select(-X)
+
 # filtrando para tirar colunas deslocadas e removendo coluna X
 df_raw_hg_form <-
     df_raw_hg_nv %>%
-    #filter(!grepl("ambev|func publico|df|sp",TIPOUSER)) %>%
     filter(!grepl("df|sp",TIPOUSER)) %>%
     select(-X)
-# buscar na tabela de profissoes da abril o codigo da formação e, achando, substituir por
-# categoria de formacao
-#df_cod.form <- read.xlsx2("./data/Classificacao_profissoes_abril_2016.xlsx", sheetIndex = 2, header = TRUE)
-#names(df_cod.form) <- gsub("Ç","C",names(df_cod.form))
-#names(df_cod.form) <- gsub("Ã","A",names(df_cod.form))
-#names(df_cod.form) <- gsub("Õ","O",names(df_cod.form))
-#names(df_cod.form) <- gsub("Ó","O",names(df_cod.form))
-#names(df_cod.form) <- gsub("Ê","E",names(df_cod.form))
-#names(df_cod.form) <- gsub("Á","A",names(df_cod.form))
-#names(df_cod.form) <- gsub("Ú","U",names(df_cod.form))
 
 df_raw_hg_form <- 
     df_raw_hg_form %>%
@@ -64,7 +45,6 @@ df_raw_hg_form <-
                               NA
                               ))))))))))
     
-#df_raw_hg <- f_le_raw_HG() # lê toda a amostra de dados HG
 
 # changing factor to numeric
 unfactorize<-c(15:86)
@@ -97,14 +77,9 @@ df_tidy_hg_form <-
     select(nomerespondente, idade, formacao.em, area.form, sensibility, power, quality,
            exposure, structure, imagination, stability, contacts) 
 
-# removendo NAs (ensino médio, ensino fundamental e ensino técnico)
-#df_tidy_hg_form <- na.omit(df_tidy_hg_form)
 
 
 # OBTENÇÃO DOS SCORES A PARTIR DE TODA A AMOSTRA
-
-# obs: FALTA: pegar prior de acordo com area.form nos dados de treino e teste!!!
-
 #-----------------------------------------------------------------------------------
 # obtendo os scores previstos de acordo com a análise de componentes principais
 pca1.train = prcomp(df_tidy_hg_form[,5:12], scale. = TRUE, center = TRUE)
@@ -126,127 +101,6 @@ my.scores.form <-
     rename(target = formacao.em) %>%
     select(nomerespondente, target, PC1, PC2, PC3, PC4, PC5, PC6, PC7)
 
-# removendo 13 primeiras linhas com nomes numéricos e esquisitos
-#my.scores.form <- my.scores.form[-c(1:13),]
-
-# OBTEM DADOS PARA TESTE DE ARQUIVO GOE
-#########################################################
-
-# QUANDO IMPLEMENTAR MUDANÇA DE DESCRICAO PARA CODIGO DE FORMACAO EM GOE,
-# DESCOMENTAR ABAIXO PARA USAR COMO DADOS DE USO
-#++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-# estes dados são os obtidos pelo sistema HG
-#df_goe <- read.csv2("./data/goe_20151121_0154.csv", encoding = "UTF-8", 
-#                    sep = "\t", header = TRUE, stringsAsFactors = FALSE)
-
-# eliminando coluna "X"
-#df_goe <-
-#    df_goe %>%
-#    select(-X) # eliminando coluna "X"
-
-#names(df_goe) <- gsub("ç","c",names(df_goe))
-#names(df_goe) <- gsub("ã","a",names(df_goe))
-#names(df_goe) <- gsub("õ","o",names(df_goe))
-#names(df_goe) <- gsub("á","a",names(df_goe))
-
-# primeiro somente selecionando as colunas necessárias para cálculo de ranking
-#df_goe <-
-#    df_goe %>%
-#    select(nomerespondente, idade, formacao.em, atua.na.area.1,
-#           s11, h21, h31, hy41, e51, m61, m71, p81, e91,
-#           e12, e22, e32, s42, s52, s62, k72, h82, m92,
-#           h13, k23, hy33, e43, hy53, e63, s73, e83, p93,
-#           k14, d24, k34, k44, k54, hy64, p74, s84, d94,
-#           p15, m25, s35, h45, d55, k65, hy75, m85, k95,
-#           hy16, p26, p36, m46, h56, p66, h76, k86, s96,
-#           d17, s27, d37, d47, p57, d67, e77, hy87, h97,
-#           m18, hy28, m38, p48, m58, h68, d78, d88, hy98)
-
-# agora eliminando linhas com NAs
-#df_goe <- na.omit(df_goe) # listwise deletion of missing
-
-# seleciona apenas as colunas necessárias
-#df_goe <-
-#    df_goe %>%
-#    mutate(sensibility = h13 + h21 + h31 + h45 + h56 + h68 + h76 + h82 + h97,
-#           power = s11 + s27 + s35 + s42 + s52 + s62 + s73 + s84 + s96,
-#           quality = e12 + e22 + e32 + e43 + e51 + e63 + e77 + e83 + e91,
-#           exposure = hy16 + hy28 + hy33 + hy41 + hy53 + hy64 + hy75 + hy87 + hy98,
-#           structure = k14 + k23 + k34 + k44 + k54 + k65 + k72 + k86 + k95,
-#           imagination = p15 + p26 + p36 + p48 + p57 + p66 + p74 + p81 + p93,
-#           stability = d17 + d24 + d37 + d47 + d55 + d67 + d78 + d88 + d94,
-#           contacts = m18 + m25 + m38 + m46 + m58 + m61 + m71 + m85 + m92) %>%
-#    select(nomerespondente, idade, formacao.em, atua.na.area.1, sensibility, power, quality,
-#           exposure, structure, imagination, stability, contacts) 
-
-# muda nome da area para codigo
-#df_goe <-
-#    df_goe %>%
-#    mutate(atua.na.area.1 = ifelse(atua.na.area.1  == "Gerência / Gestão / Administração",1,
-#                            ifelse(atua.na.area.1  == "Finanças / Manutenção / Operacional",2,
-#                            ifelse(atua.na.area.1  == "Contencioso / Compras", 3,
-#                            ifelse(atua.na.area.1 == "Contato / Vendas", 4,
-#                            ifelse(atua.na.area.1 == "Pesquisa  / Novos Produtos", 5,
-#                            ifelse(atua.na.area.1 == "Suporte / Atendimento", 6,
-#                            ifelse(atua.na.area.1 == "Educacional / Treinamento / RH / Saúde", 7,
-#                            ifelse(atua.na.area.1  == "Análise / Controle / Auditoria", 8,
-#                            ifelse(atua.na.area.1 == "Empreendedor / Autonomo", 9,
-#                            10))))))))))
-
-#df_goe <- f_acentos(df_goe)
-
-# changing factor to numeric
-#unfactorize<-c(5:12)
-#df_goe[,unfactorize]<-lapply(unfactorize, function(x) as.numeric(as.character(df_goe[,x])))
-
-# obtendo os scores previstos de acordo com a análise de componentes principais
-#pca1.test = prcomp(df_goe[,5:12], scale. = TRUE, center = TRUE)
-# scores obtidos
-#scores.total <- as.data.frame(pca1.test$x)
-#my.scores.total <- as.data.frame(cbind(nomerespondente = df_goe$nomerespondente, 
-#                                       idade = df_goe$idade,
-#                                       formacao = df_goe$formacao.em,
-#                                       atua.em.1 = df_goe$atua.na.area.1,
-#                                       scores.total))
-
-# eliminando PC8
-#my.scores.total <-
-#    my.scores.total %>%
-#    select (-PC8)
-
-#my.test.atua <-
-#    my.scores.total %>%
-#    rename(target = atua.em.1) %>%
-#    select(nomerespondente, target, PC1, PC2, PC3, PC4, PC5, PC6, PC7)
-
-# obtem apenas amostra do tamanho desejado
-#my.test.atua <- sample_n(my.test.atua, tam.amostra.uso)
-
-# DESCOMENTAR ATÉ AQUI ++++++++++++++++++++++++++++++++++++
-
-
-# AREA DE ATUACAO 1 - CLASSIFICAÇÃO
-##########################
-# usando sample com mesma distribuição de area.form dos dados da população para ver s emelhora performance do modelo
-#n <- dim(df_tidy_hg_form)[1]
-#n <- 1000
-#prb <- ifelse(area.form=="administração e negócio",0.125,
-#              area.form=="saúde",0.125,
-#              area.form=="artes e design",0.125,
-#              area.form=="ciências exatas e informática",0.125,
-#              area.form=="ciências humanas e sociais",0.125,
-##              area.form=="comunicação e informação",0.125,
-#              area.form=="engenharia",0.125,
-#              0.125) #meio ambiente e ciências agrárias
-#smpl <- df[sample(nrow(df), n, prob = prb),]
-
-# POR ENQUANTO TESTANDO COM MESMO DATA SET (SEM USAR GOE!!!)
-# testando com particao da sample igual a da população
-#n <- 50
-#prb <- ifelse(sex=="M",0.25,0.75)
-#smpl <- df[sample(nrow(df), 50, prob = prb),]
-#nomes <- my.scores.form[,"nomerespondente"]
 class <- as.factor(my.scores.form[,"target"]) # transformando em vetor de fatores de target
 inTrain <- createDataPartition(class, p = 3/4, list = FALSE)
 descr <- my.scores.form[,c(1,3:9)] 
@@ -256,7 +110,6 @@ descr <- my.scores.form[,c(1,3:9)]
 
 trainDescr <- descr[inTrain,]
 testDescr  <- descr[-inTrain,]
-#usaDescr  <- df_usa_in[,c(3:9)]
 
 trainClass <- class[inTrain]
 testClass  <- class[-inTrain]
@@ -274,8 +127,14 @@ my.train.atua <-
     select(nomerespondente, target, PC1, PC2, PC3, PC4, PC5, PC6, PC7)
 
 # RODANDO UM POR UM
-    l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 28)
-    sprintf("28: auc: %.4f", l_mod[[4]]@y.values)
+#l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 28)
+#sprintf("28: auc: %.4f", l_mod[[4]]@y.values)
+#l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 1)
+#sprintf("1: auc: %.4f", l_mod[[4]]@y.values)    
+l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 52)
+sprintf("52: auc: %.4f", l_mod[[4]]@y.values)    
+
+
     l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 16)
     sprintf("16: auc: %.4f", l_mod[[4]]@y.values)
     l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 37)
@@ -328,11 +187,15 @@ df_cod.form <- my.scores.form %>% mutate(target = as.numeric(as.character(target
 df_cod.form <- df_cod.form %>% distinct(target)
 cods.form <- df_cod.form[,"target"]
 for (i in 1:length(cods.form)) {
-    l_models <- f_train_model_HG_form(my.train.atua, my.test.atua, cods.form[i])
-    pred <-  l_models[[6]] # valor de cutoff calculado (best balance)
-    auc <-  l_models[[5]] # valor de cutoff calculado (best balance)
-    my.pred[i] <- as.data.frame(pred@predictions)
-    my.auc[i] <- (auc@y.values)
+    l_models <- try(f_train_model_HG_form(my.train.atua, my.test.atua, cods.form[i]))
+    if("try-error" %in% class(l_models)) {
+        print(paste0("Error in ", as.character(cods.form[i])))
+    } else {
+        pred <-  l_models[[6]] # valor de cutoff calculado (best balance)
+        auc <-  l_models[[5]] # valor de cutoff calculado (best balance)
+        my.pred[i] <- as.data.frame(pred@predictions)
+        my.auc[i] <- (auc@y.values)
+    }
 }
 
 # imprime acurácia do modelo

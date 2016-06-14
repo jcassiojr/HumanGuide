@@ -1,0 +1,173 @@
+---
+title: "Classificação de Respondente"
+author: "Cassio"
+date: "March 28, 2016"
+output: 
+   html_document:
+    fig_height: 4
+    fig_width: 9.5
+    number_sections: yes
+    toc: yes
+---
+
+<center>![agileBIGDATA](./logoAgileBD.png)</center>
+
+Este documento mostra os plots baseados na assinatura de um respondente individual de acordo com seu resultado do teste **Human Guide**.
+
+```{r, echo=FALSE, warning=FALSE}
+#source("./R/f_assinatura_individual_HG.R") 
+require("doMC")
+require("dplyr")
+registerDoMC(4) # parallel processing
+```
+
+```{r, echo=FALSE, warning=FALSE}
+df_formacao <- read.csv2("./data/ref_formacao_sem_acento.csv", encoding = "Latin-1", 
+                     sep = ",", header = FALSE)
+df_acuracia <- data.frame(cod.formacao = seq(1,97), 
+acuracia = c(.57, 0 , .56,.58,0 ,.58,0 ,
+.61, 
+0 ,
+.66,              
+.53 ,                        
+.52  ,                      
+.57   ,                      
+0     ,                    
+.50   ,                      
+.60   ,                    
+.58   ,                     
+0     ,                    
+0     ,                   
+.55   ,      
+0     ,                    
+0     ,                   
+.60   ,                       
+0     ,                     
+0     ,                     
+0     ,                     
+0     ,                     
+.67   ,                         
+0     ,                    
+0     ,              
+0     ,                    
+0     ,                   
+.59   ,                      
+0     ,                     
+.47   ,                        
+.66   ,                        
+.57   ,                       
+.58   ,                        
+.64   ,  
+ 0,
+ 0 ,                        
+ .89,                         
+  0  ,                        
+  0   ,                       
+ .70   ,                         
+ .61    ,                       
+ .58     ,                      
+  0      ,                    
+ .61, 
+ 0,
+  0,                         
+  0 ,                       
+  0  ,                        
+  0   ,                       
+  0    ,                      
+  0     ,                     
+  0      ,                    
+  0       ,                   
+ 0 ,
+ 0,
+  0,                         
+  0 ,                      
+  0  ,                        
+  0   ,                       
+  0    ,                      
+  0     ,                     
+  0      ,                    
+  0       ,                   
+ 0 ,
+ 0,
+ .66,                          
+  0  ,                      
+ .68  ,                        
+ .67   ,                        
+  0     ,                     
+ .65     ,                      
+  0       ,                   
+ .40       ,                   
+ .64,
+ 0,
+ .65,                         
+ 0   ,                      
+ 0    ,                       
+ 0     ,                      
+  0     ,                      
+ .56     ,                     
+ 0        ,                   
+ 0         ,                  
+ 0 ,
+ 0,
+   0,                        
+  0   ,                     
+  0    ,                      
+  0     ,                     
+  0      ,                    
+  0       ,                   
+  0
+))
+
+                            
+                            
+                            
+                            
+                            
+                            
+                            
+                            
+                           
+                           
+                        
+     # 86(49LG, 56 NB) 13(0.4983965,  57NB) 76(0.5335106, 0.65NB) 73(0.5302266, .68NB ) 71(0.5392586, .66NB)  1(0.4996424, .57NB) 70(0.592213, 0.69nb) 46(0.6112179)  3(0.548364)
+    # 12(0.4832399,0.52nb) 45(0.70NB) 79(0.64nb) 35(.47nb) 81(.65nb)  8(.61nb)  4(0.58nb)  6(.58nb) 17(.58nb) 10(.66nb) 15(.5nb) 39(.64nb) 
+    # 23(.6nb) 38(.58nb) 49(.61nb) 33(.59nb) 74(.67nb)   42(.89nb) 11(.53nb) 78(.40nb) 28(.67) 16(.60) 37(.57) 20(.55) 47(.58) 36(.66) 52 19 31 29  7 24
+    # 50 22 84 83 87 75  9 25 80 26 21 82 41 97 91 89 27 40 43 18 88 48 96 72 90  
+    # 5 94 44 30 34 93 32 85 14 92 51 95
+)
+df_formacao <-
+   df_formacao %>%
+    mutate()
+#in.arquivo <- "pp_humanguide_20160307-1349.xlsx"
+#in.nome <- "beatriz welter"
+#my.list <- f_assinatura_individual_HG(in.arquivo, in.nome)
+# ATENCAO: depois melhorar funcao acima para tirar brancos no inicio e fim tb!!!!
+#knitr::kable(head(df_campos))
+```
+
+### Plot de Assinatura do Respondente ###
+
+```{r, echo=FALSE, warning=FALSE}
+(my.list$pl_assinatura)
+```
+
+### Plot de Classificação por Campo Profissional do Respondente ###
+
+```{r, echo=FALSE, warning=FALSE}
+(my.list$pl_campo)
+```
+
+Importante ressaltar que as correlações nos plots acima podem ser positivas ou negativas. Valores marcantes positivos indicam forte correlação com o campo profissional, enquanto valores marcantes negativos indicam forte ausência de correlação com o campo profissional em questão.
+
+### Legenda das Siglas dos Campos Profissionais (Levenfus) ###
+
++ CFM - Campo Físico/Matemático
++ CFQ - campo Físico/Químico
++ CCF - Campo Cálculo/Finanças
++ COA - Campo Organizacional/Administrativo
++ CJS - Campo Jurídico/Social
++ CCP - Campo Comunicação/Persuasão
++ CSL - Campo Simbólico/Linguístico
++ CMA - Campo Manual/Artístico
++ CCE - Campo Comportamental/Educacional
++ CBS - Campo Biológico/Saúde
