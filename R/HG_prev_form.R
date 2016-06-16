@@ -10,7 +10,7 @@ source("./R/f_acentos.R")
 source("./R/f_train_model_HG_form.R") 
 source("./R/f_assinatura_abril.R")
 #source("./R/f_le_raw_HG.R") # usar esta função para ler os dados novos. 
-registerDoMC(8) # parallel processing
+registerDoMC(4) # parallel processing
 options(scipen = 999) # removendo notação científica das saídas
 # OBTEM DADOS PARA TREINO DE ENERGIA SUSTENTAVEL
 #########################################################
@@ -126,120 +126,190 @@ my.train.atua <-
     my.train.atua %>%
     select(nomerespondente, target, PC1, PC2, PC3, PC4, PC5, PC6, PC7)
 
-# RODANDO UM POR UM
-#l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 28)
-#sprintf("28: auc: %.4f", l_mod[[4]]@y.values)
-#l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 1)
-#sprintf("1: auc: %.4f", l_mod[[4]]@y.values)    
+# RODANDO UM POR UM (MELHORIA: substituir pelo loop comentado abaixo)
+l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 28)
+sprintf("28: auc: %.4f", l_mod[[4]]@y.values)
+l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 1)
+sprintf("1: auc: %.4f", l_mod[[4]]@y.values)    
+l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 24)
+sprintf("24: auc: %.4f", l_mod[[4]]@y.values)    
+l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 19)
+sprintf("19: auc: %.4f", l_mod[[4]]@y.values)   
+l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 21)
+sprintf("21: auc: %.4f", l_mod[[4]]@y.values)
+l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 22)
+sprintf("22: auc: %.4f", l_mod[[4]]@y.values)
+
+l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 25)
+sprintf("25: auc: %.4f", l_mod[[4]]@y.values)
+l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 26)
+sprintf("26: auc: %.4f", l_mod[[4]]@y.values)
+l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 27)
+sprintf("27: auc: %.4f", l_mod[[4]]@y.values)
+l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 29)
+sprintf("29: auc: %.4f", l_mod[[4]]@y.values)
+l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 30)
+sprintf("30: auc: %.4f", l_mod[[4]]@y.values)
+l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 31)
+sprintf("31: auc: %.4f", l_mod[[4]]@y.values)
+l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 32)
+sprintf("32: auc: %.4f", l_mod[[4]]@y.values)
+l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 34)
+sprintf("34: auc: %.4f", l_mod[[4]]@y.values)
+
+l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 40)
+sprintf("40: auc: %.4f", l_mod[[4]]@y.values)
+l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 41)
+sprintf("41: auc: %.4f", l_mod[[4]]@y.values)
+l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 43)
+sprintf("43: auc: %.4f", l_mod[[4]]@y.values)
+l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 44)
+sprintf("44: auc: %.4f", l_mod[[4]]@y.values)
+l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 48)
+sprintf("48: auc: %.4f", l_mod[[4]]@y.values)
+l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 50)
+sprintf("50: auc: %.4f", l_mod[[4]]@y.values)
+
+l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 51)
+sprintf("51: auc: %.4f", l_mod[[4]]@y.values)
 l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 52)
-sprintf("52: auc: %.4f", l_mod[[4]]@y.values)    
+sprintf("52: auc: %.4f", l_mod[[4]]@y.values)
+l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 53)
+sprintf("53: auc: %.4f", l_mod[[4]]@y.values)
+l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 54)
+sprintf("54: auc: %.4f", l_mod[[4]]@y.values)ever
+l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 55)
+sprintf("55: auc: %.4f", l_mod[[4]]@y.values)
+l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 56)
+sprintf("56: auc: %.4f", l_mod[[4]]@y.values)
+l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 57)
+sprintf("57: auc: %.4f", l_mod[[4]]@y.values)
+l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 58)
+sprintf("58: auc: %.4f", l_mod[[4]]@y.values)
+l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 59)
+sprintf("59: auc: %.4f", l_mod[[4]]@y.values)previsão
+l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 60)
+sprintf("60: auc: %.4f", l_mod[[4]]@y.values)
+
+l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 61)
+sprintf("61: auc: %.4f", l_mod[[4]]@y.values)
+l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 62)
+sprintf("62: auc: %.4f", l_mod[[4]]@y.values)
+l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 63)
+sprintf("63: auc: %.4f", l_mod[[4]]@y.values)
+l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 64)
+sprintf("64: auc: %.4f", l_mod[[4]]@y.values)ever
+l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 65)
+sprintf("65: auc: %.4f", l_mod[[4]]@y.values)
+l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 66)
+sprintf("66: auc: %.4f", l_mod[[4]]@y.values)
+l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 67)
+sprintf("67: auc: %.4f", l_mod[[4]]@y.values)
+l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 68)
+sprintf("68: auc: %.4f", l_mod[[4]]@y.values)
+l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 69)
+sprintf("69: auc: %.4f", l_mod[[4]]@y.values)previsão
+l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 70)
+sprintf("70: auc: %.4f", l_mod[[4]]@y.values)
+
+l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 72)
+sprintf("72: auc: %.4f", l_mod[[4]]@y.values)
+l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 75)
+sprintf("75: auc: %.4f", l_mod[[4]]@y.values) 
+l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 77)
+sprintf("77: auc: %.4f", l_mod[[4]]@y.values)
+l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 80)
+sprintf("80: auc: %.4f", l_mod[[4]]@y.values)
+l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 82)
+sprintf("82: auc: %.4f", l_mod[[4]]@y.values)
+l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 83)
+sprintf("83: auc: %.4f", l_mod[[4]]@y.values)
+l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 84)
+sprintf("84: auc: %.4f", l_mod[[4]]@y.values)
+l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 85)
+sprintf("85: auc: %.4f", l_mod[[4]]@y.values)
+l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 87)
+sprintf("87: auc: %.4f", l_mod[[4]]@y.values)
+l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 88)
+sprintf("88: auc: %.4f", l_mod[[4]]@y.values)
+l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 89)
+sprintf("89: auc: %.4f", l_mod[[4]]@y.values)
+l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 90)
+sprintf("90: auc: %.4f", l_mod[[4]]@y.values)
+
+l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 91)
+sprintf("91: auc: %.4f", l_mod[[4]]@y.values)
+l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 92)
+sprintf("92: auc: %.4f", l_mod[[4]]@y.values)
+l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 93)
+sprintf("93: auc: %.4f", l_mod[[4]]@y.values)
+l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 94)
+sprintf("94: auc: %.4f", l_mod[[4]]@y.values)
+l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 95)
+sprintf("95: auc: %.4f", l_mod[[4]]@y.values)
+l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 96)
+sprintf("96: auc: %.4f", l_mod[[4]]@y.values)
+l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 97)
+sprintf("97: auc: %.4f", l_mod[[4]]@y.values)
 
 
-    l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 16)
-    sprintf("16: auc: %.4f", l_mod[[4]]@y.values)
-    l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 37)
-    sprintf("37: auc: %.4f", l_mod[[4]]@y.values)
-    l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 20)
-    sprintf("20: auc: %.4f", l_mod[[4]]@y.values)
-    l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 47)
-    sprintf("47: auc: %.4f", l_mod[[4]]@y.values)
-    l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 36)
-    sprintf("36: auc: %.4f", l_mod[[4]]@y.values)
-    l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 52)
-    sprintf("52: auc: %.4f", l_mod[[4]]@y.values)
-    l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 19)
-    sprintf("19: auc: %.4f", l_mod[[4]]@y.values)
-    l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 31)
-    sprintf("31: auc: %.4f", l_mod[[4]]@y.values)
-    l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 29)
-    sprintf("29: auc: %.4f", l_mod[[4]]@y.values)
-    l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 7)
-    sprintf("7: auc: %.4f", l_mod[[4]]@y.values)
-    l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 24)
-    sprintf("24: auc: %.4f", l_mod[[4]]@y.values)
-    l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 50)
-    sprintf("50: auc: %.4f", l_mod[[4]]@y.values)
-    l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 22)
-    sprintf("22: auc: %.4f", l_mod[[4]]@y.values)
-    l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 84)
-    sprintf("84: auc: %.4f", l_mod[[4]]@y.values)
-    l_mod <- f_train_model_HG_form(my.train.atua, my.test.atua, 83)
-    sprintf("83: auc: %.4f", l_mod[[4]]@y.values)
-#my.atua.target <- 8 # código da atuação a prever
-my.pred <- list()
-my.auc <- numeric()
-
-# treina o modelo para cada uma das 10 areas de atuação, gerando dataframe com os dados
-# retornando o modelo para ser usado em cada previsão
-
-# salva vetor com nomes dos respondentes
-v_nomes_test <- my.test.atua[,1]
-#colocar loop para obter percentuais para todos os areas forms Abril
-#area.cod.descr <- c("administração e negócio",
-#                    "saúde",
-#                    "artes e design",
-#                    "ciências exatas e informática",
-#                    "ciências humanas e sociais",
-#                    "comunicação e informação",
-#                    "engenharia",
-#                    "meio ambiente e ciências agrárias")
-df_cod.form <- my.scores.form %>% mutate(target = as.numeric(as.character(target))) # transformando target de factor em numerico
-df_cod.form <- df_cod.form %>% distinct(target)
-cods.form <- df_cod.form[,"target"]
-for (i in 1:length(cods.form)) {
-    l_models <- try(f_train_model_HG_form(my.train.atua, my.test.atua, cods.form[i]))
-    if("try-error" %in% class(l_models)) {
-        print(paste0("Error in ", as.character(cods.form[i])))
-    } else {
-        pred <-  l_models[[6]] # valor de cutoff calculado (best balance)
-        auc <-  l_models[[5]] # valor de cutoff calculado (best balance)
-        my.pred[i] <- as.data.frame(pred@predictions)
-        my.auc[i] <- (auc@y.values)
-    }
-}
+#df_cod.form <- my.scores.form %>% mutate(target = as.numeric(as.character(target))) # transformando target de factor em numerico
+#df_cod.form <- df_cod.form %>% distinct(target)
+#cods.form <- df_cod.form[,"target"]
+#for (i in 1:length(cods.form)) {
+#    l_models <- try(f_train_model_HG_form(my.train.atua, my.test.atua, cods.form[i]))
+#    if("try-error" %in% class(l_models)) {
+#        print(paste0("Error in ", as.character(cods.form[i])))
+#    } else {
+#        pred <-  l_models[[6]] # valor de cutoff calculado (best balance)
+#        auc <-  l_models[[5]] # valor de cutoff calculado (best balance)
+#        my.pred[i] <- as.data.frame(pred@predictions)
+#        my.auc[i] <- (auc@y.values)
+#    }
+#}
 
 # imprime acurácia do modelo
-for (i in 1:length(cods.form)) {
-    print(1 - as.numeric(my.auc[i])) # uso o complemento pois no treino faço a predição usando o falso. Depois mudar!!!
-}
+#for (i in 1:length(cods.form)) {
+#    print(1 - as.numeric(my.auc[i])) # uso o complemento pois no treino faço a predição usando o falso. Depois mudar!!!
+#}
 
 #    plot(roc.perf)
 #abline(a=0, b= 1)
 
 # transformando a lista em dataframe
-my.df_prev <- data.frame(matrix(unlist(my.pred), nrow=8, byrow=T),stringsAsFactors=FALSE)
-my.df_prev.t <- as.data.frame(t(my.df_prev))
+#my.df_prev <- data.frame(matrix(unlist(my.pred), nrow=8, byrow=T),stringsAsFactors=FALSE)
+#my.df_prev.t <- as.data.frame(t(my.df_prev))
 # restaura nomes dos respondentes no data.frame
-my.df_prev.t$nomerespondente <- v_nomes_test
-names(my.df_prev.t) <- c("administração.e.negócio",
-                         "saúde",
-                         "artes.e.design",
-                         "ciências.exatas.e.informática",
-                         "ciências.humanas.e.sociais",
-                         "comunicação.e.informação",
-                         "engenharia",
-                         "meio.ambiente.e.ciências.agrárias","nomerespondente")
+#my.df_prev.t$nomerespondente <- v_nomes_test
+#names(my.df_prev.t) <- c("administração.e.negócio",
+#                         "saúde",
+#                         "artes.e.design",
+#                         "ciências.exatas.e.informática",
+#                         "ciências.humanas.e.sociais",
+#                         "comunicação.e.informação",
+#                         "engenharia",
+#                         "meio.ambiente.e.ciências.agrárias","nomerespondente")
 # considerando TRUE somente probabilidade > 50%
-my.df_prev.final <- 
-    my.df_prev.t %>%
-    mutate(administração.e.negócio = ifelse(administração.e.negócio > .5,"T", "F"),
-           saúde = ifelse(saúde > .5,"T", "F"),
-           artes.e.design = ifelse(artes.e.design > .5,"T", "F"),
-           ciências.exatas.e.informática = ifelse(ciências.exatas.e.informática > .5,"T", "F"),
-           ciências.humanas.e.sociais = ifelse(ciências.humanas.e.sociais > .5,"T", "F"),
-           comunicação.e.informação = ifelse(comunicação.e.informação > .5,"T", "F"),
-           engenharia = ifelse(engenharia > .5,"T", "F"),
-           meio.ambiente.e.ciências.agrárias = ifelse(meio.ambiente.e.ciências.agrárias > .5,"T", "F")
-    )
+#my.df_prev.final <- 
+#    my.df_prev.t %>%
+#    mutate(administração.e.negócio = ifelse(administração.e.negócio > .5,"T", "F"),
+##           saúde = ifelse(saúde > .5,"T", "F"),
+#           artes.e.design = ifelse(artes.e.design > .5,"T", "F"),
+#           ciências.exatas.e.informática = ifelse(ciências.exatas.e.informática > .5,"T", "F"),
+#           ciências.humanas.e.sociais = ifelse(ciências.humanas.e.sociais > .5,"T", "F"),
+#           comunicação.e.informação = ifelse(comunicação.e.informação > .5,"T", "F"),
+#           engenharia = ifelse(engenharia > .5,"T", "F"),
+#           meio.ambiente.e.ciências.agrárias = ifelse(meio.ambiente.e.ciências.agrárias > .5,"T", "F")
+#    )
 
 # plotanto os percentuais para atuacoes de dado respondente escolhido dos dados de uso
 #respondente <- sample_n(my.df_prev.t,1) # amostra aleatória
 # alternativa: buscar na base d euso por nome
 # FALTA: colocar na funcao abaixo: criar coluna T (<50%) e F(>50%). No plo pintar de vermelho F r verde T 
-my.respondente <- "mariana morales furlan"
-respondente <-
-    my.df_prev.t %>%
-    filter(grepl(my.respondente, my.df_prev.t$nomerespondente))
+#my.respondente <- "mariana morales furlan"
+#respondente <-
+#    my.df_prev.t %>%
+#    filter(grepl(my.respondente, my.df_prev.t$nomerespondente))
 # chama funcao que gera plot de assinatura
-my.pl_atuacao <- f_assinatura_abril(respondente)
-(my.pl_atuacao)
+#my.pl_atuacao <- f_assinatura_abril(respondente)
+#(my.pl_atuacao)

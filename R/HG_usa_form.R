@@ -1,5 +1,6 @@
-# teste de predição por regressão linear simples
-# a partir de my.scores.total com area de atuação (ver Analise-Preditiva-Acuracia-Atuacao.Rmr)
+# uso do modelo de predição 
+########################################
+
 require("xlsx")
 require("caret")
 require("MASS")
@@ -9,26 +10,16 @@ require("dplyr")
 require("reshape2")
 source("./R/f_acentos.R") 
 source("./R/f_usa_model_HG_form.R") 
-#source("./R/f_assinatura_abril.R")
-#source("./R/f_le_raw_HG.R") # usar esta função para ler os dados novos. 
-registerDoMC(8) # parallel processing
+registerDoMC(4) # parallel processing
 options(scipen = 999) # removendo notação científica das saídas
 # OBTEM DADOS PARA TREINO DE ENERGIA SUSTENTAVEL
 #########################################################
 
-#df_raw_hg_form <- read.csv2("./data/new/HG_export_1461708842-TALENT.csv", encoding = "UTF-8", 
-#                         sep = "\t", header = TRUE)
-# lendo somente os dados de ultimo envio
-#df_raw_hg_form <- read.xlsx2("./data/pp_humanguide_20160307-1349.xlsx",1)
 # lendo dados de rh99 com codigos ao invés de descrições
 df_raw_hg_nv <- read.csv2("./data/new/rh99_20160425_2158.csv", encoding = "UTF-8", 
                      sep = "\t", header = TRUE)
 df_raw_hg_nv <- f_acentos(df_raw_hg_nv)
-# filtando somente AMBEV e removendo coluna X
-##df_raw_hg_form <-
-##    df_raw_hg_nv %>%
-#    filter(TIPOUSER == "ambev") %>%
-#    select(-X)
+
 # filtrando para tirar colunas deslocadas e removendo coluna X
 df_raw_hg_form <-
     df_raw_hg_nv %>%
@@ -88,14 +79,8 @@ df_tidy_hg_form <-
     select(nomerespondente, idade, formacao.em, area.form, sensibility, power, quality,
            exposure, structure, imagination, stability, contacts) 
 
-# removendo NAs (ensino médio, ensino fundamental e ensino técnico)
-#df_tidy_hg_form <- na.omit(df_tidy_hg_form)
-
 
 # OBTENÇÃO DOS SCORES A PARTIR DE TODA A AMOSTRA
-
-# obs: FALTA: pegar prior de acordo com area.form nos dados de treino e teste!!!
-
 #-----------------------------------------------------------------------------------
 # obtendo os scores previstos de acordo com a análise de componentes principais
 pca1.train = prcomp(df_tidy_hg_form[,5:12], scale. = TRUE, center = TRUE)
@@ -121,15 +106,13 @@ my.scores.form <-
 class <- as.factor(my.scores.form[,"target"]) # transformando em vetor de fatores de target
 inTrain <- createDataPartition(class, p = 3/4, list = FALSE)
 descr <- my.scores.form[,c(1,3:9)] 
-# separando dados de uso
+# separando dados de uso para alguns respondentes selecionados
 uso <-
     my.scores.form %>%
     filter(grepl("alex welter|giselle welter|laura welter|beatriz welter|jose cassio dos santos",nomerespondente))
 
 
-#set.seed(1)
-#inTrain <- createDataPartition(class, p = 3/4, list = FALSE)
-
+# preparação de dados de treino, teste e uso
 trainDescr <- descr[inTrain,]
 testDescr  <- descr[-inTrain,]
 usaDescr  <- uso[,c(1,3:9)]
@@ -144,7 +127,7 @@ my.test.atua <-
     my.test.atua %>%
     select(nomerespondente, target, PC1, PC2, PC3, PC4, PC5, PC6, PC7)
 
-# USO
+# USO 
 my.usa.atua <- cbind(target = usaClass, usaDescr) # uso
 my.usa.atua <-
     my.usa.atua %>%
@@ -157,728 +140,873 @@ my.train.atua <-
     select(nomerespondente, target, PC1, PC2, PC3, PC4, PC5, PC6, PC7)
 
 # RODANDO UM POR UM
-    # 28
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 28)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.28 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.28 <- as.data.frame(temp.t[1,])
-    
-    # 86
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 86)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.86 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.86 <- as.data.frame(temp.t[1,])
-    
-    # 13
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 13)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.13 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.13 <- as.data.frame(temp.t[1,])
-    
-    # 76
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 76)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.76 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.76 <- as.data.frame(temp.t[1,])
-    
-    # 73
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 73)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.73 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.73 <- as.data.frame(temp.t[1,])
-    
-    # 71
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 71)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.71 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.71 <- as.data.frame(temp.t[1,])
-    
-    # 1
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 1)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.1 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.1 <- as.data.frame(temp.t[1,])
-    
-    # 70
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 70)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.70 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.70 <- as.data.frame(temp.t[1,])
-    
-    # 46
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 46)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.46 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.46 <- as.data.frame(temp.t[1,])
-    # 3
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 3)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.3 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.3 <- as.data.frame(temp.t[1,])
-    # 12
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 12)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.12 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.12 <- as.data.frame(temp.t[1,])
-    # 45
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 45)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.45 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.45 <- as.data.frame(temp.t[1,])
-    
-    # 79
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 79)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.79 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.79 <- as.data.frame(temp.t[1,])
-    # 35
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 35)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.35 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.35 <- as.data.frame(temp.t[1,])
-    # 81
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 81)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.81 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.81 <- as.data.frame(temp.t[1,])
-    # 8
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 8)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.8 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.8 <- as.data.frame(temp.t[1,])
-    # 4
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 4)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(4 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    4 <- as.data.frame(temp.t[1,])
-    # 6
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 6)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.6 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.6 <- as.data.frame(temp.t[1,])
-    # 17
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 17)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.17 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.17 <- as.data.frame(temp.t[1,])
-    # 10
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 10)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.10 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.10 <- as.data.frame(temp.t[1,])
-    # 15
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 15)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.15 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.15 <- as.data.frame(temp.t[1,])
-    # 39
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 39)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.39 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.39 <- as.data.frame(temp.t[1,])
-    # 23
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 23)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.23 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.23 <- as.data.frame(temp.t[1,])
-    # 38
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 38)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.38 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.38 <- as.data.frame(temp.t[1,])
-    # 49
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 49)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.49 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.49 <- as.data.frame(temp.t[1,])
-    # 33
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 33)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.33 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.33 <- as.data.frame(temp.t[1,])
-    # 74
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 74)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.74 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.74 <- as.data.frame(temp.t[1,])
-    # 42
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 42)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.42 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.42 <- as.data.frame(temp.t[1,])
-    # 11
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 11)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.11 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.11 <- as.data.frame(temp.t[1,])
-    # 78
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 78)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.78 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.78 <- as.data.frame(temp.t[1,])
-    # 28
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 28)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.28 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.28 <- as.data.frame(temp.t[1,])
-    # 16
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 16)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.16 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.16 <- as.data.frame(temp.t[1,])
-    # 37
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 37)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.37 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.37 <- as.data.frame(temp.t[1,])
-    # 20
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 20)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.20 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.20 <- as.data.frame(temp.t[1,])
-    # 47
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 47)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.47 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.47 <- as.data.frame(temp.t[1,])
-    # 36
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 36)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.36 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.36 <- as.data.frame(temp.t[1,])
-    # 52 PAROU AQUI
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(52)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.52 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.52 <- as.data.frame(temp.t[1,])
-    # 19
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 19)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.19 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.19 <- as.data.frame(temp.t[1,])
-    # 31
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 31)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.31 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.31 <- as.data.frame(temp.t[1,])
-    # 29
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 29)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.29 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.29 <- as.data.frame(temp.t[1,])
-    # 7
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 7)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.7 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.7 <- as.data.frame(temp.t[1,])
-    # 24
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 24)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.24 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.24 <- as.data.frame(temp.t[1,])
-    # 50
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 50)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.50 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.50 <- as.data.frame(temp.t[1,])
-    # 22
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 22)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.22 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.22 <- as.data.frame(temp.t[1,])
-    # 84
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 84)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.84 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.84 <- as.data.frame(temp.t[1,])
-    # 83
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 83)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.83 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.83 <- as.data.frame(temp.t[1,])
-    # 87
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 87)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.87 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.87 <- as.data.frame(temp.t[1,])
-    # 75
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 75)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.75 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.75 <- as.data.frame(temp.t[1,])
-    # 9
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 9)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.9 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.9 <- as.data.frame(temp.t[1,])
-    # 25
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 25)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.25 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.25 <- as.data.frame(temp.t[1,])
-    # 80
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 80)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.80 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.80 <- as.data.frame(temp.t[1,])
-    # 26
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 26)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.26 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.26 <- as.data.frame(temp.t[1,])
-    # 21
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 21)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.21 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.21 <- as.data.frame(temp.t[1,])
-    # 82
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 82)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.82 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.82 <- as.data.frame(temp.t[1,])
-    # 41
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 41)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.41 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.41 <- as.data.frame(temp.t[1,])
-    # 97
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 97)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.97 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.97 <- as.data.frame(temp.t[1,])
-    # 91
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 91)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.91 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.91 <- as.data.frame(temp.t[1,])
-    # 89
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 89)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.89 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.89 <- as.data.frame(temp.t[1,])
-    # 27
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 27)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.27 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.27 <- as.data.frame(temp.t[1,])
-    # 40
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 40)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.40 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.40 <- as.data.frame(temp.t[1,])
-    # 43
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 43)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.43 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.43 <- as.data.frame(temp.t[1,])
-    # 18
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 18)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.18 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.18 <- as.data.frame(temp.t[1,])
-    # 88
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 88)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.88 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.88 <- as.data.frame(temp.t[1,])
-    # 48
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 48)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.48 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.48 <- as.data.frame(temp.t[1,])
-    # 96
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 96)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.96 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.96 <- as.data.frame(temp.t[1,])
-    # 72
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 72)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.72 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.72 <- as.data.frame(temp.t[1,])
-    # 90
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 90)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.90 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.90 <- as.data.frame(temp.t[1,])
-    # 5
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 5)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.5 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.5 <- as.data.frame(temp.t[1,])
-    # 94
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 94)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.94 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.94 <- as.data.frame(temp.t[1,])
-    # 44
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 44)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.44 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.44 <- as.data.frame(temp.t[1,])
-    # 30
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 30)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.30 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.30 <- as.data.frame(temp.t[1,])
-    # 34
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 34)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.34 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.34 <- as.data.frame(temp.t[1,])
-    # 93
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 93)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.93 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.93 <- as.data.frame(temp.t[1,])
-    # 32
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 32)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.32 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.32 <- as.data.frame(temp.t[1,])
-    # 85
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 85)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.85 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.85 <- as.data.frame(temp.t[1,])
-    # 14
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 14)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.14 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.14 <- as.data.frame(temp.t[1,])
-    # 92
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 92)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.92 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.92 <- as.data.frame(temp.t[1,])
-    # 51
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 51)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.51 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.51 <- as.data.frame(temp.t[1,])
-    # 95
-    v_nomes_uso <- my.usa.atua[,1]
-    prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 95)
-    prob$nomerespondente <- v_nomes_uso
-    temp <- prob %>% rename(form.95 = T)
-    temp.t <- as.data.frame(t(temp))
-    temp.t <- temp.t %>% add_rownames("VALUE")
-    my.nomerespondente <- as.data.frame(temp.t[8,])
-    form.95 <- as.data.frame(temp.t[1,])
-    
-    prev.forms <- rbind(my.nomerespondente, form.95, form.51, form.92, form.14, form.85, form.32, form.93, form.34, 
+# 1
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 1)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.1 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.1 <- as.data.frame(temp.t[1,])
+# 3
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 3)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.3 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.31 <- as.data.frame(temp.t[1,])
+# 4
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 4)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.4 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.4 <- as.data.frame(temp.t[1,])
+# 5
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 5)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.5 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.5 <- as.data.frame(temp.t[1,])
+# 6
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 6)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.6 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.6 <- as.data.frame(temp.t[1,])
+# 7
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 7)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.7 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.7 <- as.data.frame(temp.t[1,])
+# 8
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 8)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.8 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.8 <- as.data.frame(temp.t[1,])
+# 9
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 9)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.9 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.9 <- as.data.frame(temp.t[1,])
+# 10
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 10)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.10 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.10 <- as.data.frame(temp.t[1,])
+# 11
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 11)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.11 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.11 <- as.data.frame(temp.t[1,])
+# 12
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 12)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.12 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.12 <- as.data.frame(temp.t[1,])
+# 13
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 13)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.13 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.13 <- as.data.frame(temp.t[1,])
+# 14
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 14)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.14 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.14 <- as.data.frame(temp.t[1,])
+# 15
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 15)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.15 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.15 <- as.data.frame(temp.t[1,])
+# 16
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 16)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.16 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.16 <- as.data.frame(temp.t[1,])
+# 17
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 17)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.17 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.17 <- as.data.frame(temp.t[1,])
+# 18
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 18)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.18 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.18 <- as.data.frame(temp.t[1,])
+# 19
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 19)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.19 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.19 <- as.data.frame(temp.t[1,])
+# 20
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 20)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.20 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.20 <- as.data.frame(temp.t[1,])
+# 21
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 21)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.21 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.21 <- as.data.frame(temp.t[1,])
+# 22
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 22)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.22 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.22 <- as.data.frame(temp.t[1,])
+# 23
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 23)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.23 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.23 <- as.data.frame(temp.t[1,])
+# 24
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 24)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.24 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.24 <- as.data.frame(temp.t[1,])
+# 25
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 25)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.25 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.25 <- as.data.frame(temp.t[1,])
+# 26
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 26)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.26 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.26 <- as.data.frame(temp.t[1,])
+# 27
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 27)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.27 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.27 <- as.data.frame(temp.t[1,])
+# 28
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 28)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.28 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.28 <- as.data.frame(temp.t[1,])
+# 29
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 29)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.29 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.29 <- as.data.frame(temp.t[1,])
+# 30
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 30)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.30 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.30 <- as.data.frame(temp.t[1,])
+# 31
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 31)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.31 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.31 <- as.data.frame(temp.t[1,])
+# 32
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 32)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.32 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.32 <- as.data.frame(temp.t[1,])
+# 33
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 33)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.33 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.33 <- as.data.frame(temp.t[1,])
+# 34
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 34)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.34 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.34 <- as.data.frame(temp.t[1,])
+# 35
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 35)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.35 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.35 <- as.data.frame(temp.t[1,])
+# 36
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 36)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.36 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.36 <- as.data.frame(temp.t[1,])
+# 37
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 37)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.37 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.37 <- as.data.frame(temp.t[1,])
+# 38
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 38)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.38 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.38 <- as.data.frame(temp.t[1,])
+# 39
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 39)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.39 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.39 <- as.data.frame(temp.t[1,])
+# 40
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 40)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.40 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.40 <- as.data.frame(temp.t[1,])
+# 41
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 41)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.41 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.41 <- as.data.frame(temp.t[1,])
+# 42
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 42)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.42 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.42 <- as.data.frame(temp.t[1,])
+# 43
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 43)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.43 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.43 <- as.data.frame(temp.t[1,])
+# 44
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 44)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.44 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.44 <- as.data.frame(temp.t[1,])
+# 45
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 45)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.45 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.45 <- as.data.frame(temp.t[1,])
+# 46
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 46)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.46 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.46 <- as.data.frame(temp.t[1,])
+# 47
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 47)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.47 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.47 <- as.data.frame(temp.t[1,])
+# 48
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 48)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.48 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.48 <- as.data.frame(temp.t[1,])
+# 49
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 49)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.49 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.49 <- as.data.frame(temp.t[1,])
+# 50
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 50)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.50 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.50 <- as.data.frame(temp.t[1,])
+# 51
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 51)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.51 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.51 <- as.data.frame(temp.t[1,])
+# 52
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 52)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.52 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.52 <- as.data.frame(temp.t[1,])
+# 53
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 53)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.53 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.53 <- as.data.frame(temp.t[1,])
+# 54
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 54)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.54 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.54 <- as.data.frame(temp.t[1,])
+# 55
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 55)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.55 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.55 <- as.data.frame(temp.t[1,])
+# 56
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 56)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.56 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.56 <- as.data.frame(temp.t[1,])
+# 57
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 57)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.57 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.57 <- as.data.frame(temp.t[1,])
+# 58
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 58)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.58 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.58 <- as.data.frame(temp.t[1,])
+# 59
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 59)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.59 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.59 <- as.data.frame(temp.t[1,])
+# 60
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 60)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.60 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.60 <- as.data.frame(temp.t[1,])    
+# 61
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 61)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.1 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.1 <- as.data.frame(temp.t[1,])
+# 62
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 62)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.1 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.1 <- as.data.frame(temp.t[1,])
+# 63
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 63)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.1 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.1 <- as.data.frame(temp.t[1,])
+# 64
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 64)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.1 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.1 <- as.data.frame(temp.t[1,])
+# 65
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 65)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.1 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.1 <- as.data.frame(temp.t[1,])
+# 66
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 66)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.1 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.1 <- as.data.frame(temp.t[1,])
+# 67
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 67)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.1 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.1 <- as.data.frame(temp.t[1,])
+# 68
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 68)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.1 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.1 <- as.data.frame(temp.t[1,])
+# 69
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 69)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.1 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.1 <- as.data.frame(temp.t[1,])
+# 70
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 70)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.1 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.1 <- as.data.frame(temp.t[1,])    
+# 71
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 71)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.1 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.1 <- as.data.frame(temp.t[1,])
+# 72
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 72)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.1 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.1 <- as.data.frame(temp.t[1,])
+# 73
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 73)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.1 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.1 <- as.data.frame(temp.t[1,])
+# 74
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 74)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.1 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.1 <- as.data.frame(temp.t[1,])
+# 75
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 75)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.1 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.1 <- as.data.frame(temp.t[1,])
+# 76
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 76)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.1 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.1 <- as.data.frame(temp.t[1,])
+# 77
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 77)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.1 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.1 <- as.data.frame(temp.t[1,])
+# 78
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 78)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.1 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.1 <- as.data.frame(temp.t[1,])
+# 79
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 79)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.1 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.1 <- as.data.frame(temp.t[1,])
+# 80
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 80)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.1 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.1 <- as.data.frame(temp.t[1,])    
+# 81
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 81)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.1 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.1 <- as.data.frame(temp.t[1,])
+# 82
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 82)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.1 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.1 <- as.data.frame(temp.t[1,])
+# 83
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 83)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.1 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.1 <- as.data.frame(temp.t[1,])
+# 84
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 84)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.1 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.1 <- as.data.frame(temp.t[1,])
+# 85
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 85)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.1 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.1 <- as.data.frame(temp.t[1,])
+# 86
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 86)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.1 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.1 <- as.data.frame(temp.t[1,])
+# 87
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 87)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.1 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.1 <- as.data.frame(temp.t[1,])
+# 88
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 88)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.1 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.1 <- as.data.frame(temp.t[1,])
+# 89
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 89)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.1 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.1 <- as.data.frame(temp.t[1,])
+# 90
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 90)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.1 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.1 <- as.data.frame(temp.t[1,])
+# 91
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 91)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.1 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.1 <- as.data.frame(temp.t[1,])
+# 92
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 92)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.1 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.1 <- as.data.frame(temp.t[1,])
+# 93
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 93)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.1 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.1 <- as.data.frame(temp.t[1,])
+# 94
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 94)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.1 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.1 <- as.data.frame(temp.t[1,])
+# 95
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 95)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.1 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.1 <- as.data.frame(temp.t[1,])
+# 96
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 96)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.1 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.1 <- as.data.frame(temp.t[1,])
+# 97
+v_nomes_uso <- my.usa.atua[,1]
+prob <- f_usa_model_HG_form(my.train.atua, my.usa.atua, 97)
+prob$nomerespondente <- v_nomes_uso
+temp <- prob %>% rename(form.1 = T)
+temp.t <- as.data.frame(t(temp))
+temp.t <- temp.t %>% add_rownames("VALUE")
+my.nomerespondente <- as.data.frame(temp.t[8,])
+form.1 <- as.data.frame(temp.t[1,])
+
+# monta dataframe com as probabilidades por respondente e formacao    
+prev.forms <- rbind(my.nomerespondente, form.95, form.51, form.92, form.14, form.85, form.32, form.93, form.34, 
                         form.30, form.44, form.94, form.5, form.90, form.72, form.96, form.48, form.88, form.18,
                         form.43, form.40, form.27, form.89, form.91, form.97,form.41, form.82, form.21, form.26,
                         form.80, form.25, form.9, form.75, form.87, form.83, form.84, form.22, form.50, form.24,
@@ -887,11 +1015,10 @@ my.train.atua <-
                         form.15, form.10, form.17, form.6, form.8, form.81, form.35, form.79, form.45, form.12,
                         form.3, form.46,form.70, form.1, form.71, form.73, form.76, form.13, form.86)
     
-    x <- rbind(my.nomerespondente, form.1, form.6, form.8, form.10, form.11, form.12, form.13, form.15, form.16, form.17, 
+df.prev.form <- rbind(my.nomerespondente, form.1, form.6, form.8, form.10, form.11, form.12, form.13, form.15, form.16, form.17, 
                         form.42, form.45, form.46, form.47, form.49, form.70, form.71, form.73, form.74, form.76,
                         form.78, form.79, form.81, form.86)
-    x %>% write.csv("./data/prev_form-V1.csv")
-    # ler formaco_ref.csv e merge com dataframe acima
-
+df.prev.form %>% write.csv("./data/prev_form-V1.csv")
+    
     
     

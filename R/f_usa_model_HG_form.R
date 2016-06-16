@@ -1,4 +1,4 @@
-#'função que treina modelo de data.frame passado
+#'função que usa o  modelo de data.frame passado
 #' campo_in -> numero do código de atuação (1 a 10)
 #' df_tidy_in -> dataframe a partir de mt.score.total com colunas: ID, target, PC1, PC2, PC3, PC4, PC5, PC6, PC7
 #' df_test_in -> dataframe a partir de outros respondentes, com mesmo formato acima

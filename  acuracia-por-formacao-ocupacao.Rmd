@@ -1,7 +1,7 @@
 ---
 title: "Classificação de Respondente"
 author: "Cassio"
-date: "March 28, 2016"
+date: "Junho 15, 2016"
 output: 
    html_document:
     fig_height: 4
@@ -12,162 +12,76 @@ output:
 
 <center>![agileBIGDATA](./logoAgileBD.png)</center>
 
-Este documento mostra os plots baseados na assinatura de um respondente individual de acordo com seu resultado do teste **Human Guide**.
+Este documento mostra os resultados de acurácia para o modleo aplicado nos dados do teste **Human Guide**.
 
+# A Técnica Utilizada #
+
+A técnica utilizada é largamente aplicada no campo de ciência de dados e é conhecida como **Machine Learning** (ver capítulo Referência). Basicamente consiste usar atributos dos dados para classificar os respondentes de alguma forma.
+No nosso caso, a variável "formação" será a classificadora, ou target. Os componentes obtidos dos testes do Human Guide serão os atributos, ou preditores, usados para classificar os reapondentes.
+Em outras palavras, usaremos os preditores para classificar os respondentes nas diferentes formações do escopo do Human Guide.
+
+# A Preparação dos Dados #
+
+Para implementar a técnica, usaremos os dados de 100.921 respostas do teste Human Guide.
+De forma a tornar o modelo generalizável para outras amostras, os dados serão separados da seguinte forma:
+
++ dados de treino: 3/4 dos dados são separados aleatóriamente para treinarem o modelo, ou seja, prepará-lo para que consiga classificar os respondentesda forma mais eficiente.
++ dados de teste: 1/4 dos dados, os quais não foram usados para treinar o modelo, são separados para posterior validação da acurácia do modelo.
+
+Para este treino dos dados foi usada uma técnica largamente usada para garantir o melhor resultado, chamada de **k-fold cross-validation**
+
+# O Modelo Usado #
+
+Foi usado o modelo de **Naive Bayes**, largamente usado em machine learning por seus bons resultados práticos.
+
+# Validação do Modelo Usado #
+
+Durante a validação do modelo, observou-se que o mesmo apresentou pontuação muito alta em *especificidade (TRUE NEGATIVE RATE)*, mas baixa em *sensitividade (TRUE POSITIVE RATE)*.
+
+Em outras palavras, se o respondente obtém um percentual acima de 50% para uma dada formação (por exemplo, Direito), não podemos afirmar com certeza que ele tenha este perfil. Porém, se ele obtém pontuação abaixo de 50% para a mesma formação, podemos descartá-lacom uma ótima chance de acerto.
+
+A acurácia mostrada abaixo é uma combinação das duas acurácias descritas acima.
+
+**Nota:** os valores apresentados como **NA** são formações que não constavm nos dados usados para treinar o modelo e, portanto, não apresentam percentual previsto. O modelo pode ser treinado novamente em amostras posteriores onde constem estas formações dos respondentes, de forma a poder contê-las em sua previsão. 
+
+A acurácia se apresenta diferente para cada formação em parte por não existirem quantidades diferentes de formações distribuidas nos dados. 
+A medida que o modelo for "retreinado" com novas amostras mais completas, a tendência é a acurácia geral aumentar.
 ```{r, echo=FALSE, warning=FALSE}
 #source("./R/f_assinatura_individual_HG.R") 
-require("doMC")
-require("dplyr")
+require("doMC", quietly = TRUE, warn.conflicts = FALSE)
+require("dplyr", quietly = TRUE, warn.conflicts = FALSE)
+require("xlsx", quietly = TRUE, warn.conflicts = FALSE)
 registerDoMC(4) # parallel processing
 ```
 
 ```{r, echo=FALSE, warning=FALSE}
 df_formacao <- read.csv2("./data/ref_formacao_sem_acento.csv", encoding = "Latin-1", 
                      sep = ",", header = FALSE)
+names(df_formacao) <- c("cod.formacao", "desc.formacao")
 df_acuracia <- data.frame(cod.formacao = seq(1,97), 
-acuracia = c(.57, 0 , .56,.58,0 ,.58,0 ,
-.61, 
-0 ,
-.66,              
-.53 ,                        
-.52  ,                      
-.57   ,                      
-0     ,                    
-.50   ,                      
-.60   ,                    
-.58   ,                     
-0     ,                    
-0     ,                   
-.55   ,      
-0     ,                    
-0     ,                   
-.60   ,                       
-0     ,                     
-0     ,                     
-0     ,                     
-0     ,                     
-.67   ,                         
-0     ,                    
-0     ,              
-0     ,                    
-0     ,                   
-.59   ,                      
-0     ,                     
-.47   ,                        
-.66   ,                        
-.57   ,                       
-.58   ,                        
-.64   ,  
- 0,
- 0 ,                        
- .89,                         
-  0  ,                        
-  0   ,                       
- .70   ,                         
- .61    ,                       
- .58     ,                      
-  0      ,                    
- .61, 
- 0,
-  0,                         
-  0 ,                       
-  0  ,                        
-  0   ,                       
-  0    ,                      
-  0     ,                     
-  0      ,                    
-  0       ,                   
- 0 ,
- 0,
-  0,                         
-  0 ,                      
-  0  ,                        
-  0   ,                       
-  0    ,                      
-  0     ,                     
-  0      ,                    
-  0       ,                   
- 0 ,
- 0,
- .66,                          
-  0  ,                      
- .68  ,                        
- .67   ,                        
-  0     ,                     
- .65     ,                      
-  0       ,                   
- .40       ,                   
- .64,
- 0,
- .65,                         
- 0   ,                      
- 0    ,                       
- 0     ,                      
-  0     ,                      
- .56     ,                     
- 0        ,                   
- 0         ,                  
- 0 ,
- 0,
-   0,                        
-  0   ,                     
-  0    ,                      
-  0     ,                     
-  0      ,                    
-  0       ,                   
-  0
-))
+acuracia = c(.57, NA,.56,.58,.68,.58,.58,.61,.56,.66,              
+             .53,.52,.57,.74,.50,.60,.58,.63,.59,.55,      
+             .54,.60,.60,.59,.61,.57,.51,.67,.59,.68, #21-30
+             .44,.46,.59,.64,.47,.66,.57,.58,.64,.70, #31-40
+             .56,.89,.57,.64,.70,.61,.58,.66,.61,.47, #41-50
+             .61,.55, NA, NA, NA, NA, NA, NA, NA, NA, #51-60
+              NA, NA, NA, NA, NA, NA, NA, NA, NA,.70, #61-70
+             .66,.66,.68,.67,.46,.65, NA,.40,.64,.62, #71-80
+             .65,.63,.57,.63,.48,.56,.87,.54,.59,.61,  # ERRO AO RODAR 76
+             .55,.75,.58,.56,.51,.59,.56
+                ))
 
-                            
-                            
-                            
-                            
-                            
-                            
-                            
-                            
-                           
-                           
-                        
-     # 86(49LG, 56 NB) 13(0.4983965,  57NB) 76(0.5335106, 0.65NB) 73(0.5302266, .68NB ) 71(0.5392586, .66NB)  1(0.4996424, .57NB) 70(0.592213, 0.69nb) 46(0.6112179)  3(0.548364)
-    # 12(0.4832399,0.52nb) 45(0.70NB) 79(0.64nb) 35(.47nb) 81(.65nb)  8(.61nb)  4(0.58nb)  6(.58nb) 17(.58nb) 10(.66nb) 15(.5nb) 39(.64nb) 
-    # 23(.6nb) 38(.58nb) 49(.61nb) 33(.59nb) 74(.67nb)   42(.89nb) 11(.53nb) 78(.40nb) 28(.67) 16(.60) 37(.57) 20(.55) 47(.58) 36(.66) 52 19 31 29  7 24
-    # 50 22 84 83 87 75  9 25 80 26 21 82 41 97 91 89 27 40 43 18 88 48 96 72 90  
-    # 5 94 44 30 34 93 32 85 14 92 51 95
-)
-df_formacao <-
-   df_formacao %>%
-    mutate()
-#in.arquivo <- "pp_humanguide_20160307-1349.xlsx"
-#in.nome <- "beatriz welter"
-#my.list <- f_assinatura_individual_HG(in.arquivo, in.nome)
-# ATENCAO: depois melhorar funcao acima para tirar brancos no inicio e fim tb!!!!
-#knitr::kable(head(df_campos))
+df_acur.form <- merge(df_formacao, df_acuracia, by = "cod.formacao")                           
+write.xlsx2(df_acur.form, "./data/acuracia_previsoes.xlsx", row.names = FALSE)                            
+knitr::kable(df_acur.form)
 ```
 
-### Plot de Assinatura do Respondente ###
+# Referências #
 
-```{r, echo=FALSE, warning=FALSE}
-(my.list$pl_assinatura)
-```
++ [Machine Learning] (https://en.wikipedia.org/wiki/Machine_learning)
 
-### Plot de Classificação por Campo Profissional do Respondente ###
++ [k-fold cross-validation] (https://en.wikipedia.org/wiki/Machine_learning)
 
-```{r, echo=FALSE, warning=FALSE}
-(my.list$pl_campo)
-```
++ [Naive Bayes] (https://en.wikipedia.org/wiki/Naive_Bayes_classifier)
 
-Importante ressaltar que as correlações nos plots acima podem ser positivas ou negativas. Valores marcantes positivos indicam forte correlação com o campo profissional, enquanto valores marcantes negativos indicam forte ausência de correlação com o campo profissional em questão.
-
-### Legenda das Siglas dos Campos Profissionais (Levenfus) ###
-
-+ CFM - Campo Físico/Matemático
-+ CFQ - campo Físico/Químico
-+ CCF - Campo Cálculo/Finanças
-+ COA - Campo Organizacional/Administrativo
-+ CJS - Campo Jurídico/Social
-+ CCP - Campo Comunicação/Persuasão
-+ CSL - Campo Simbólico/Linguístico
-+ CMA - Campo Manual/Artístico
-+ CCE - Campo Comportamental/Educacional
-+ CBS - Campo Biológico/Saúde
++ [Sensitivite e Specificity] (https://en.wikipedia.org/wiki/Sensitivity_and_specificity)
